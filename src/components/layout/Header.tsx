@@ -4,7 +4,12 @@ import { Button } from "@/components/ui/Button";
 import { logout } from "@/lib/auth/actions";
 import { getCurrentUser } from "@/lib/auth/dal";
 
-const NAV_ITEMS = ["구인공고", "구직정보", "업체정보", "커뮤니티"] as const;
+const NAV_ITEMS = [
+  { label: "구인공고", href: "/jobs" },
+  { label: "구직정보", href: "/" },
+  { label: "업체정보", href: "/" },
+  { label: "커뮤니티", href: "/" },
+] as const;
 
 export async function Header() {
   const user = await getCurrentUser();
@@ -18,11 +23,11 @@ export async function Header() {
         <nav className="flex items-center gap-1 overflow-x-auto sm:gap-2">
           {NAV_ITEMS.map((item) => (
             <Link
-              key={item}
-              href="/"
+              key={item.label}
+              href={item.href}
               className="whitespace-nowrap rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-surface hover:text-foreground"
             >
-              {item}
+              {item.label}
             </Link>
           ))}
         </nav>

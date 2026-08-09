@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Container } from "@/components/common/Container";
 import { Button } from "@/components/ui/Button";
 import {
@@ -22,7 +23,9 @@ export default function Home() {
             있습니다.
           </p>
           <div className="flex flex-wrap gap-2">
-            <Button>구인공고 보기</Button>
+            <Link href="/jobs">
+              <Button>구인공고 보기</Button>
+            </Link>
             <Button variant="outline">업체 찾기</Button>
           </div>
         </Container>
