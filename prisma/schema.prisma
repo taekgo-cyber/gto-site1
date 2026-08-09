@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -10,4 +8,516 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enum
+// ---------------------------------------------------------------------------
+
+enum UserRole {
+  USER // 일반 회원
+  COMPANY // 업체 회원
+  ADMIN // 관리자
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  WITHDRAWN
+}
+
+enum CompanyStatus {
+  PENDING // 승인 대기
+  ACTIVE
+  SUSPENDED
+  REJECTED
+}
+
+enum CompanyMemberRole {
+  OWNER // 대표
+  MANAGER // 관리자
+  STAFF // 직원
+}
+
+enum CompanyMemberStatus {
+  ACTIVE
+  REMOVED
+}
+
+enum JobPostType {
+  JOB // 구인공고
+  TRANSPORT // 운송/배차 정보
+}
+
+enum JobPostStatus {
+  DRAFT
+  OPEN
+  CLOSED
+  HIDDEN
+}
+
+enum PayType {
+  MONTHLY // 월급
+  DAILY // 일급
+  FREIGHT // 운임
+  NEGOTIABLE // 협의
+}
+
+enum WorkType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  DAILY
+  FREELANCE
+}
+
+enum PostStatus {
+  PUBLISHED
+  HIDDEN
+  BLOCKED
+}
+
+enum CommentStatus {
+  PUBLISHED
+  HIDDEN
+  BLOCKED
+}
+
+enum ReportTargetType {
+  POST
+  COMMENT
+  JOB_POST
+  COMPANY
+  USER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWING
+  RESOLVED
+  DISMISSED
+}
+
+enum AdCampaignStatus {
+  PENDING
+  ACTIVE
+  PAUSED
+  EXPIRED
+  CANCELLED
+}
+
+enum ProductType {
+  ADVERTISEMENT
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+// ---------------------------------------------------------------------------
+// 회원 / 업체
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  name         String
+  phone        String?
+  nickname     String?    @unique
+  role         UserRole   @default(USER)
+  status       UserStatus @default(ACTIVE)
+  lastLoginAt  DateTime?
+  deletedAt    DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  companyMemberships CompanyMember[]
+  jobPosts           JobPost[]       @relation("JobPostAuthor")
+  posts              Post[]
+  comments           Comment[]
+  likes              Like[]
+  reports            Report[]        @relation("ReportReporter")
+  handledReports     Report[]        @relation("ReportHandler")
+  orders             Order[]
+  adminLogs          AdminLog[]      @relation("AdminLogAdmin")
+
+  @@map("users")
+}
+
+model Company {
+  id                 String        @id @default(cuid())
+  name               String
+  businessNumber     String        @unique
+  representativeName String
+  phone              String?
+  email              String?
+  address            String?
+  addressDetail      String?
+  regionId           String?
+  introduction       String?
+  status             CompanyStatus @default(PENDING)
+  deletedAt          DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  region      Region?         @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  members     CompanyMember[]
+  jobPosts    JobPost[]
+  adCampaigns AdCampaign[]
+
+  @@index([name])
+  @@map("companies")
+}
+
+model CompanyMember {
+  id        String              @id @default(cuid())
+  userId    String
+  companyId String
+  role      CompanyMemberRole   @default(STAFF)
+  status    CompanyMemberStatus @default(ACTIVE)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, companyId])
+  @@index([companyId])
+  @@map("company_members")
+}
+
+// ---------------------------------------------------------------------------
+// 구인 / 운송 공고
+// ---------------------------------------------------------------------------
+
+model JobPost {
+  id              String        @id @default(cuid())
+  type            JobPostType   @default(JOB)
+  title           String
+  description     String?
+  companyId       String?
+  authorId        String?
+  originRegionId  String?
+  destRegionId    String?
+  originAddress   String?
+  destAddress     String?
+  vehicleTypeId   String?
+  tonnageId       String?
+  payType         PayType?
+  payAmount       Int?
+  workType        WorkType?
+  workDescription String?
+  deadline        DateTime?
+  publishedAt     DateTime?
+  viewCount       Int           @default(0)
+  status          JobPostStatus @default(OPEN)
+  deletedAt       DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  company      Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  author       User?        @relation("JobPostAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  originRegion Region?      @relation("JobPostOrigin", fields: [originRegionId], references: [id], onDelete: SetNull)
+  destRegion   Region?      @relation("JobPostDest", fields: [destRegionId], references: [id], onDelete: SetNull)
+  vehicleType  VehicleType? @relation(fields: [vehicleTypeId], references: [id], onDelete: SetNull)
+  tonnage      Tonnage?     @relation(fields: [tonnageId], references: [id], onDelete: SetNull)
+
+  @@index([status, type, publishedAt(sort: Desc)])
+  @@index([companyId])
+  @@index([authorId])
+  @@index([originRegionId])
+  @@index([destRegionId])
+  @@index([deadline])
+  @@map("job_posts")
+}
+
+// ---------------------------------------------------------------------------
+// 마스터 데이터
+// ---------------------------------------------------------------------------
+
+model Region {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  depth     Int // 1: 시/도, 2: 시/군/구
+  parentId  String?
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  parent       Region?      @relation("RegionTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children     Region[]     @relation("RegionTree")
+  companies    Company[]
+  jobPostsFrom JobPost[]    @relation("JobPostOrigin")
+  jobPostsTo   JobPost[]    @relation("JobPostDest")
+  adCampaigns  AdCampaign[]
+
+  @@index([parentId])
+  @@index([depth])
+  @@map("regions")
+}
+
+model VehicleType {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  jobPosts JobPost[]
+
+  @@map("vehicle_types")
+}
+
+model Tonnage {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  weightKg  Int?
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  jobPosts JobPost[]
+
+  @@map("tonnages")
+}
+
+// ---------------------------------------------------------------------------
+// 커뮤니티
+// ---------------------------------------------------------------------------
+
+model Board {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  posts Post[]
+
+  @@map("boards")
+}
+
+model Post {
+  id        String     @id @default(cuid())
+  boardId   String
+  authorId  String
+  title     String
+  content   String
+  viewCount Int        @default(0)
+  status    PostStatus @default(PUBLISHED)
+  deletedAt DateTime?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  board    Board     @relation(fields: [boardId], references: [id])
+  author   User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments Comment[]
+  likes    Like[]
+
+  @@index([boardId, status, createdAt(sort: Desc)])
+  @@index([authorId])
+  @@map("posts")
+}
+
+model Comment {
+  id        String        @id @default(cuid())
+  postId    String
+  authorId  String
+  parentId  String?
+  content   String
+  status    CommentStatus @default(PUBLISHED)
+  deletedAt DateTime?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  post    Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author  User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent  Comment?  @relation("CommentReply", fields: [parentId], references: [id], onDelete: Cascade)
+  replies Comment[] @relation("CommentReply")
+  likes   Like[]
+
+  @@index([postId, status, createdAt(sort: Desc)])
+  @@index([parentId])
+  @@index([authorId])
+  @@map("comments")
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String?
+  commentId String?
+  createdAt DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post    Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@unique([userId, commentId])
+  @@map("likes")
+}
+
+model Report {
+  id          String           @id @default(cuid())
+  reporterId  String?
+  targetType  ReportTargetType
+  targetId    String
+  reason      String?
+  status      ReportStatus     @default(PENDING)
+  handledById String?
+  handledAt   DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  reporter  User? @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: SetNull)
+  handledBy User? @relation("ReportHandler", fields: [handledById], references: [id], onDelete: SetNull)
+
+  @@index([targetType, targetId])
+  @@index([status])
+  @@map("reports")
+}
+
+// ---------------------------------------------------------------------------
+// 광고
+// ---------------------------------------------------------------------------
+
+model AdPlacement {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  adCampaigns AdCampaign[]
+
+  @@map("ad_placements")
+}
+
+model AdCampaign {
+  id          String           @id @default(cuid())
+  companyId   String?
+  productId   String?
+  placementId String
+  regionId    String?
+  title       String
+  imageUrl    String?
+  linkUrl     String?
+  startDate   DateTime
+  endDate     DateTime
+  sortOrder   Int              @default(0)
+  status      AdCampaignStatus @default(PENDING)
+  deletedAt   DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  company   Company?    @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  product   Product?    @relation(fields: [productId], references: [id], onDelete: SetNull)
+  placement AdPlacement @relation(fields: [placementId], references: [id])
+  region    Region?     @relation(fields: [regionId], references: [id], onDelete: SetNull)
+
+  @@index([placementId, status, sortOrder])
+  @@index([companyId])
+  @@index([startDate, endDate])
+  @@map("ad_campaigns")
+}
+
+// ---------------------------------------------------------------------------
+// 결제
+// ---------------------------------------------------------------------------
+
+model Product {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  type        ProductType   @default(ADVERTISEMENT)
+  price       Int
+  status      ProductStatus @default(ACTIVE)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  orderItems  OrderItem[]
+  adCampaigns AdCampaign[]
+
+  @@index([status, type])
+  @@map("products")
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  orderNumber     String      @unique
+  userId          String
+  amount          Int
+  status          OrderStatus @default(PENDING)
+  pgProvider      String?
+  pgTransactionId String?
+  paidAt          DateTime?
+  cancelReason    String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items OrderItem[]
+
+  @@index([userId, status])
+  @@index([status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  productId   String?
+  productName String
+  unitPrice   Int
+  quantity    Int      @default(1)
+  amount      Int
+  createdAt   DateTime @default(now())
+
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+// ---------------------------------------------------------------------------
+// 관리자 운영 로그
+// ---------------------------------------------------------------------------
+
+model AdminLog {
+  id         String   @id @default(cuid())
+  adminId    String
+  action     String
+  targetType String?
+  targetId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  admin User @relation("AdminLogAdmin", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([createdAt])
+  @@map("admin_logs")
 }

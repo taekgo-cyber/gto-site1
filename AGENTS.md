@@ -57,4 +57,5 @@ src/
 - 생성기는 `prisma-client`(출력: `src/generated/prisma`)를 사용한다.
   스키마 변경 후 `npm run prisma:generate`를 실행한다.
 - 클라이언트 생성 시 `@prisma/adapter-pg`의 `PrismaPg` Driver Adapter가 필요하다.
-- DB 스키마/마이그레이션은 세션 02에서 진행한다.
+- DB 스키마는 세션 02에서 완성(모델 18개). 마이그레이션(`prisma migrate dev`)은
+  PostgreSQL 환경이 준비된 이후에 진행한다. 현재 로컬에 PostgreSQL/Docker 미설치.
