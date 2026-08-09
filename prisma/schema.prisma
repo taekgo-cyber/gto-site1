@@ -56,6 +56,23 @@ enum JobPostStatus {
   HIDDEN
 }
 
+enum LeasePostType {
+  HIRE // 지입 구인
+  SEEK // 지입 구직
+}
+
+enum LeasePostStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  HIDDEN
+}
+
+enum AttachmentMediaType {
+  IMAGE
+  DOCUMENT
+}
+
 enum PayType {
   MONTHLY // 월급
   DAILY // 일급
@@ -143,6 +160,7 @@ model User {
 
   companyMemberships CompanyMember[]
   jobPosts           JobPost[]       @relation("JobPostAuthor")
+  leasePosts         LeasePost[]     @relation("LeasePostAuthor")
   posts              Post[]
   comments           Comment[]
   likes              Like[]
@@ -173,6 +191,7 @@ model Company {
   region      Region?         @relation(fields: [regionId], references: [id], onDelete: SetNull)
   members     CompanyMember[]
   jobPosts    JobPost[]
+  leasePosts  LeasePost[]
   adCampaigns AdCampaign[]
 
   @@index([name])
@@ -242,6 +261,65 @@ model JobPost {
 }
 
 // ---------------------------------------------------------------------------
+// 지입 게시글
+// ---------------------------------------------------------------------------
+
+model LeasePost {
+  id            String          @id @default(cuid())
+  type          LeasePostType
+  title         String
+  content       String
+  status        LeasePostStatus @default(DRAFT)
+  viewCount     Int             @default(0)
+  authorId      String
+  companyId     String?
+  regionId      String?
+  vehicleTypeId String?
+  tonnageId     String?
+  payType       PayType?
+  payAmount     Int?
+  workType      WorkType?
+  conditions    Json?
+  publishedAt   DateTime?
+  deletedAt     DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  author      User                 @relation("LeasePostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  company     Company?             @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  region      Region?              @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  vehicleType VehicleType?         @relation(fields: [vehicleTypeId], references: [id], onDelete: SetNull)
+  tonnage     Tonnage?             @relation(fields: [tonnageId], references: [id], onDelete: SetNull)
+  attachments LeasePostAttachment[]
+
+  @@index([status, type, publishedAt(sort: Desc)])
+  @@index([authorId])
+  @@index([regionId])
+  @@index([vehicleTypeId])
+  @@index([tonnageId])
+  @@map("lease_posts")
+}
+
+model LeasePostAttachment {
+  id               String               @id @default(cuid())
+  postId           String
+  storageKey       String
+  originalName     String
+  mimeType         String
+  fileSize         Int
+  mediaType        AttachmentMediaType
+  sortOrder        Int                  @default(0)
+  isRepresentative Boolean              @default(false)
+  deletedAt        DateTime?
+  createdAt        DateTime             @default(now())
+
+  post LeasePost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId, deletedAt, sortOrder])
+  @@map("lease_post_attachments")
+}
+
+// ---------------------------------------------------------------------------
 // 마스터 데이터
 // ---------------------------------------------------------------------------
 
@@ -261,6 +339,7 @@ model Region {
   companies    Company[]
   jobPostsFrom JobPost[]    @relation("JobPostOrigin")
   jobPostsTo   JobPost[]    @relation("JobPostDest")
+  leasePosts   LeasePost[]
   adCampaigns  AdCampaign[]
 
   @@index([parentId])
@@ -277,7 +356,8 @@ model VehicleType {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  jobPosts JobPost[]
+  jobPosts   JobPost[]
+  leasePosts LeasePost[]
 
   @@map("vehicle_types")
 }
@@ -292,7 +372,8 @@ model Tonnage {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  jobPosts JobPost[]
+  jobPosts   JobPost[]
+  leasePosts LeasePost[]
 
   @@map("tonnages")
 }
