@@ -5,16 +5,17 @@ type PaginationProps = {
   currentPage: number;
   totalPages: number;
   query: Record<string, string | undefined>;
+  basePath?: string;
 };
 
-function buildHref(query: Record<string, string | undefined>, page: number) {
+function buildHref(basePath: string, query: Record<string, string | undefined>, page: number) {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query)) {
     if (value) params.set(key, value);
   }
   if (page > 1) params.set("page", String(page));
   const qs = params.toString();
-  return qs ? `/jobs?${qs}` : "/jobs";
+  return qs ? `${basePath}?${qs}` : basePath;
 }
 
 function pageWindow(currentPage: number, totalPages: number): number[] {
@@ -23,7 +24,12 @@ function pageWindow(currentPage: number, totalPages: number): number[] {
   return Array.from({ length: end - start + 1 }, (_, index) => start + index);
 }
 
-export function Pagination({ currentPage, totalPages, query }: PaginationProps) {
+export function Pagination({
+  currentPage,
+  totalPages,
+  query,
+  basePath = "/jobs",
+}: PaginationProps) {
   if (totalPages <= 1) return null;
 
   const linkClasses = (disabled: boolean) =>
@@ -42,7 +48,7 @@ export function Pagination({ currentPage, totalPages, query }: PaginationProps) 
       className="flex flex-wrap items-center justify-center gap-1.5"
     >
       <Link
-        href={buildHref(query, currentPage - 1)}
+        href={buildHref(basePath, query, currentPage - 1)}
         className={linkClasses(currentPage <= 1)}
         aria-disabled={currentPage <= 1}
       >
@@ -52,7 +58,7 @@ export function Pagination({ currentPage, totalPages, query }: PaginationProps) 
       {pages.map((page) => (
         <Link
           key={page}
-          href={buildHref(query, page)}
+          href={buildHref(basePath, query, page)}
           className={cn(
             "inline-flex h-9 min-w-9 items-center justify-center rounded-md border px-3 text-sm transition-colors",
             page === currentPage
@@ -66,7 +72,7 @@ export function Pagination({ currentPage, totalPages, query }: PaginationProps) 
       ))}
 
       <Link
-        href={buildHref(query, currentPage + 1)}
+        href={buildHref(basePath, query, currentPage + 1)}
         className={linkClasses(currentPage >= totalPages)}
         aria-disabled={currentPage >= totalPages}
       >
