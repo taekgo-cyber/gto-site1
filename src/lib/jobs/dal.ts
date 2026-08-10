@@ -63,6 +63,7 @@ export type JobPostDetail = {
   viewCount: number;
   status: "DRAFT" | "OPEN" | "CLOSED" | "HIDDEN";
   companyName: string | null;
+  companyPhone: string | null;
   authorName: string | null;
   originRegionName: string | null;
   destRegionName: string | null;
@@ -215,7 +216,7 @@ export async function getJobPostById(id: string): Promise<JobPostDetail | null> 
       publishedAt: true,
       viewCount: true,
       status: true,
-      company: { select: { name: true } },
+      company: { select: { name: true, phone: true } },
       author: { select: { nickname: true, name: true } },
       originRegion: { select: { name: true } },
       destRegion: { select: { name: true } },
@@ -242,6 +243,7 @@ export async function getJobPostById(id: string): Promise<JobPostDetail | null> 
     viewCount: post.viewCount,
     status: post.status,
     companyName: post.company?.name ?? null,
+    companyPhone: post.company?.phone ?? null,
     authorName: post.author?.nickname ?? post.author?.name ?? null,
     originRegionName: post.originRegion?.name ?? null,
     destRegionName: post.destRegion?.name ?? null,

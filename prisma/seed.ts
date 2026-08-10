@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { hashPassword } from "../src/lib/auth/password";
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
@@ -336,6 +337,155 @@ async function seedSampleJobPosts(input: {
   console.log(`샘플 공고 ${samples.length}건을 생성했습니다.`);
 }
 
+type SeedLeasePostInput = {
+  type: "HIRE" | "SEEK";
+  title: string;
+  content: string;
+  regionCode: string;
+  vehicleTypeCode: string;
+  tonnageCode: string;
+  payType: PayType;
+  payAmount: number;
+  workType: WorkType;
+  conditions?: string;
+  publishedAt: Date;
+};
+
+type PayType = "MONTHLY" | "DAILY" | "FREIGHT" | "NEGOTIABLE";
+type WorkType = "FULL_TIME" | "PART_TIME" | "CONTRACT" | "DAILY" | "FREELANCE";
+
+async function seedDemoUserAndLeasePosts(input: {
+  provinces: Record<string, string>;
+  vehicleTypes: Record<string, string>;
+  tonnages: Record<string, string>;
+}): Promise<void> {
+  const existingPosts = await prisma.leasePost.count();
+  if (existingPosts > 0) {
+    console.log("이미 지입 게시글 데이터가 존재하여 데모 시딩을 건너뜁니다.");
+    return;
+  }
+
+  const DEMO_EMAIL = "demo@truckportal.dev";
+  const DEMO_PASSWORD = "demo1234";
+  const demoUser = await prisma.user.upsert({
+    where: { email: DEMO_EMAIL },
+    update: {},
+    create: {
+      email: DEMO_EMAIL,
+      passwordHash: hashPassword(DEMO_PASSWORD),
+      name: "데모 업체",
+      nickname: "데모기사",
+      phone: "010-1234-5678",
+      role: "COMPANY",
+    },
+  });
+  console.log(`데모 사용자(${demoUser.email})를 시딩했습니다.`);
+
+  const today = new Date();
+  const daysAgo = (days: number) => new Date(today.getTime() - days * 24 * 60 * 60 * 1000);
+
+  const samples: SeedLeasePostInput[] = [
+    {
+      type: "HIRE",
+      title: "1톤 카고 지입 기사 구인 (인천)",
+      content:
+        "인천 남동공단 소재 지입차 업체입니다. 1톤 카고 지입 기사를 모집합니다.\n월 정산, 보험·정비 지원. 초보 가능, 운전면허 1종 보통 소지자.",
+      regionCode: "INCHEON",
+      vehicleTypeCode: "KARGO",
+      tonnageCode: "T1",
+      payType: "MONTHLY",
+      payAmount: 300,
+      workType: "FULL_TIME",
+      conditions: "월 300만원 이상, 정산 지연 없음",
+      publishedAt: daysAgo(1),
+    },
+    {
+      type: "HIRE",
+      title: "경기권 5톤 윙바디 지입 기사 모집",
+      content:
+        "경기 화성·평택 물류 거점 기반 5톤 윙바디 지입 기사를 모집합니다.\n고정 노선 확보, 월 350만원 이상 실수익 가능.",
+      regionCode: "GYEONGGI",
+      vehicleTypeCode: "WINGBODY",
+      tonnageCode: "T5",
+      payType: "MONTHLY",
+      payAmount: 350,
+      workType: "FULL_TIME",
+      conditions: "윙바디 운행 경력자 우대",
+      publishedAt: daysAgo(2),
+    },
+    {
+      type: "SEEK",
+      title: "1톤 카고 차량 지입을 찾습니다",
+      content:
+        "1톤 카고 지입을 희망합니다. 배달 경력 5년차, 서울·수도권 지역 선호.\n조건 좋은 업체 연락 부탁드립니다.",
+      regionCode: "SEOUL",
+      vehicleTypeCode: "KARGO",
+      tonnageCode: "T1",
+      payType: "NEGOTIABLE",
+      payAmount: 0,
+      workType: "DAILY",
+      conditions: "서울/수도권",
+      publishedAt: daysAgo(3),
+    },
+  ];
+
+  for (const [index, sample] of samples.entries()) {
+    await prisma.leasePost.create({
+      data: {
+        type: sample.type,
+        title: sample.title,
+        content: sample.content,
+        status: "PUBLISHED",
+        authorId: demoUser.id,
+        regionId: input.provinces[sample.regionCode],
+        vehicleTypeId: input.vehicleTypes[sample.vehicleTypeCode],
+        tonnageId: input.tonnages[sample.tonnageCode],
+        payType: sample.payType,
+        payAmount: sample.payAmount > 0 ? sample.payAmount : null,
+        workType: sample.workType,
+        ...(sample.conditions
+          ? { conditions: { text: sample.conditions } }
+          : {}),
+        publishedAt: sample.publishedAt,
+      },
+    });
+  }
+
+  console.log(`샘플 지입 게시글 ${samples.length}건을 생성했습니다.`);
+}
+
+async function seedDemoCompany() {
+  const existing = await prisma.company.count();
+  if (existing > 0) {
+    console.log("이미 업체 데이터가 존재하여 데모 업체 시딩을 건너뜁니다.");
+    return;
+  }
+
+  const company = await prisma.company.create({
+    data: {
+      name: "데모물류",
+      businessNumber: "000-00-00000",
+      representativeName: "김대표",
+      phone: "02-1234-5678",
+      email: "company@truckportal.dev",
+      status: "ACTIVE",
+    },
+  });
+
+  const samplePosts = await prisma.jobPost.findMany({
+    where: { companyId: null },
+    orderBy: { createdAt: "asc" },
+    take: 3,
+    select: { id: true },
+  });
+  await prisma.jobPost.updateMany({
+    where: { id: { in: samplePosts.map((post) => post.id) } },
+    data: { companyId: company.id },
+  });
+
+  console.log(`데모 업체(${company.name})를 시딩하고 공고 ${samplePosts.length}건에 연결했습니다.`);
+}
+
 async function main() {
   console.log("마스터 데이터 시딩을 시작합니다...");
 
@@ -349,6 +499,8 @@ async function main() {
   console.log(`톤수 ${Object.keys(tonnages).length}개를 시딩했습니다.`);
 
   await seedSampleJobPosts({ provinces, vehicleTypes, tonnages });
+  await seedDemoCompany();
+  await seedDemoUserAndLeasePosts({ provinces, vehicleTypes, tonnages });
 
   console.log("시딩이 완료되었습니다.");
 }

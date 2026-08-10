@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/common/Container";
+import { PhoneInquiry } from "@/components/common/PhoneInquiry";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -9,6 +10,7 @@ import { LeaseGallery } from "@/components/lease/LeaseGallery";
 import { LeaseDeleteButton } from "@/components/lease/LeaseDeleteButton";
 import { getApiUser } from "@/lib/api/auth";
 import { getPostDetail, type PostPublic } from "@/lib/posts/service";
+import { getPostAuthorPhone } from "@/lib/posts/dal";
 import { leasePostStatusLabel, leasePostTypeLabel } from "@/lib/posts/labels";
 import { formatDate, formatPayAmount, workTypeLabel } from "@/lib/jobs/labels";
 import { buildAttachmentUrl } from "@/lib/attachments/url";
@@ -51,6 +53,7 @@ export default async function LeasePostDetailPage(props: PageProps<"/lease/[id]"
   }
 
   const isOwner = user !== null && user.id === post.author.id;
+  const authorPhone = await getPostAuthorPhone(id);
   const images = post.attachments.filter((attachment) => attachment.mediaType === "IMAGE");
   const documents = post.attachments.filter(
     (attachment) => attachment.mediaType === "DOCUMENT",
@@ -116,6 +119,12 @@ export default async function LeasePostDetailPage(props: PageProps<"/lease/[id]"
               {post.content}
             </p>
           </div>
+
+          {authorPhone ? (
+            <div className="border-t border-border pt-4">
+              <PhoneInquiry phone={authorPhone} isLoggedIn={user !== null} />
+            </div>
+          ) : null}
 
           {images.length > 0 ? (
             <div>

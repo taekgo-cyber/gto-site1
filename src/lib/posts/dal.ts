@@ -240,6 +240,14 @@ export async function findPost(id: string): Promise<PostRecord | null> {
   return mapPost(post);
 }
 
+export async function getPostAuthorPhone(id: string): Promise<string | null> {
+  const post = await prisma.leasePost.findUnique({
+    where: { id },
+    select: { author: { select: { phone: true } } },
+  });
+  return post?.author.phone ?? null;
+}
+
 export async function getPostList(query: PostListQuery): Promise<PostListResult> {
   const where = buildListWhere(query);
   const skip = (query.page - 1) * query.pageSize;

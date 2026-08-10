@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/common/Container";
+import { PhoneInquiry } from "@/components/common/PhoneInquiry";
 import { ViewCount } from "@/components/jobs/ViewCount";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { getApiUser } from "@/lib/api/auth";
 import { getJobPostById } from "@/lib/jobs/dal";
 import {
   formatDate,
@@ -32,7 +34,10 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
 
 export default async function JobPostPage(props: PageProps<"/jobs/[id]">) {
   const { id } = await props.params;
-  const post = await getJobPostById(id);
+  const [post, user] = await Promise.all([
+    getJobPostById(id),
+    getApiUser(),
+  ]);
 
   if (!post || post.status !== "OPEN") notFound();
 
@@ -100,6 +105,12 @@ export default async function JobPostPage(props: PageProps<"/jobs/[id]">) {
               <p>{route}</p>
               <p>{post.originAddress}</p>
               <p>{post.destAddress}</p>
+            </div>
+          ) : null}
+
+          {post.companyPhone ? (
+            <div className="mt-4 border-t border-border pt-4">
+              <PhoneInquiry phone={post.companyPhone} isLoggedIn={user !== null} />
             </div>
           ) : null}
         </CardContent>

@@ -1,16 +1,23 @@
 import Link from "next/link";
 import { Container } from "@/components/common/Container";
 import { Button } from "@/components/ui/Button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/Card";
+import { JobCard } from "@/components/jobs/JobCard";
+import { LeaseCard } from "@/components/lease/LeaseCard";
+import { getJobPostList } from "@/lib/jobs/dal";
+import { getPostList } from "@/lib/posts/dal";
+import { DEFAULT_PAGE_SIZE } from "@/lib/posts/validation";
 
-const SECTIONS = ["구인공고", "구직정보", "업체정보"] as const;
+const HOME_JOB_COUNT = 5;
+const HOME_LEASE_COUNT = 5;
 
-export default function Home() {
+export default async function Home() {
+  const [jobResult, leaseResult] = await Promise.all([
+    getJobPostList({ page: 1 }),
+    getPostList({ page: 1, pageSize: HOME_LEASE_COUNT }),
+  ]);
+
+  const jobs = jobResult.items.slice(0, HOME_JOB_COUNT);
+
   return (
     <div className="bg-surface">
       <section className="border-b border-border bg-background">
@@ -26,23 +33,63 @@ export default function Home() {
             <Link href="/jobs">
               <Button>구인공고 보기</Button>
             </Link>
-            <Button variant="outline">업체 찾기</Button>
+            <Link href="/lease">
+              <Button variant="outline">지입 구인/구직 보기</Button>
+            </Link>
           </div>
         </Container>
       </section>
-      <Container className="grid grid-cols-1 gap-4 py-8 sm:grid-cols-2 lg:grid-cols-3">
-        {SECTIONS.map((title) => (
-          <Card key={title}>
-            <CardHeader>
-              <CardTitle>{title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                {title} 콘텐츠가 이곳에 표시됩니다.
-              </p>
-            </CardContent>
-          </Card>
-        ))}
+
+      <Container className="space-y-10 py-8">
+        <section className="space-y-4">
+          <div className="flex items-end justify-between">
+            <h2 className="text-lg font-bold">최신 구인공고</h2>
+            <Link
+              href="/jobs"
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              전체 보기 →
+            </Link>
+          </div>
+          {jobs.length === 0 ? (
+            <div className="rounded-lg border border-border bg-background p-8 text-center text-sm text-muted-foreground">
+              등록된 구인공고가 없습니다.
+            </div>
+          ) : (
+            <ul className="space-y-3">
+              {jobs.map((post) => (
+                <li key={post.id}>
+                  <JobCard post={post} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="space-y-4">
+          <div className="flex items-end justify-between">
+            <h2 className="text-lg font-bold">최신 지입 구인/구직</h2>
+            <Link
+              href="/lease"
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              전체 보기 →
+            </Link>
+          </div>
+          {leaseResult.items.length === 0 ? (
+            <div className="rounded-lg border border-border bg-background p-8 text-center text-sm text-muted-foreground">
+              등록된 지입 게시글이 없습니다.
+            </div>
+          ) : (
+            <ul className="space-y-3">
+              {leaseResult.items.map((post) => (
+                <li key={post.id}>
+                  <LeaseCard post={post} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </Container>
     </div>
   );
