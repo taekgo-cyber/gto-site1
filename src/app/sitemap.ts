@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { getSeoLandingMasterData } from "@/lib/seo/landing";
+import { getCbtCategories } from "@/lib/cbt/dal";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const tonnageIdToSlug = new Map<string, string>();
   for (const [slug, tonnage] of tonnages) tonnageIdToSlug.set(tonnage.id, slug);
 
-  const [leasePosts, jobPosts] = await Promise.all([
+  const [leasePosts, jobPosts, cbtCategories] = await Promise.all([
     prisma.leasePost.findMany({
       where: { status: "PUBLISHED", deletedAt: null, publishedAt: { not: null } },
       select: { id: true, publishedAt: true, regionId: true, tonnageId: true },
@@ -28,6 +29,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       where: { status: "OPEN", deletedAt: null, publishedAt: { not: null } },
       select: { id: true, publishedAt: true },
     }),
+    getCbtCategories(),
   ]);
 
   const regionLanding = new Map<string, string | undefined>();
@@ -37,7 +39,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/`, changeFrequency: "daily", priority: 1 },
     { url: `${baseUrl}/jobs`, changeFrequency: "daily", priority: 0.9 },
     { url: `${baseUrl}/lease`, changeFrequency: "daily", priority: 0.9 },
+    { url: `${baseUrl}/cbt`, changeFrequency: "weekly", priority: 0.8 },
   ];
+
+  for (const category of cbtCategories) {
+    entries.push({
+      url: `${baseUrl}/cbt/${category.slug}`,
+      changeFrequency: "weekly",
+      priority: 0.7,
+    });
+  }
 
   for (const post of leasePosts) {
     const regionSlug = post.regionId

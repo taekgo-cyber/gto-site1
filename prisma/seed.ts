@@ -486,6 +486,225 @@ async function seedDemoCompany() {
   console.log(`데모 업체(${company.name})를 시딩하고 공고 ${samplePosts.length}건에 연결했습니다.`);
 }
 
+type SeedCbtQuestionInput = {
+  subject: string;
+  questionText: string;
+  options: Array<{ id: number; text: string }>;
+  correctOption: number;
+  explanation?: string;
+};
+
+const CBT_CATEGORY = {
+  slug: "cargo-driver",
+  name: "화물운송종사자격시험",
+  description:
+    "화물운송종사자격시험 대비 CBT 연습 문제입니다. 교통법규, 안전운행, 화물취급, 운송서비스 과목을 풀어볼 수 있습니다.",
+  sortOrder: 1,
+};
+
+const CBT_SUBJECTS = ["교통법규", "안전운행", "화물취급", "운송서비스"] as const;
+
+const CBT_SAMPLE_QUESTIONS: SeedCbtQuestionInput[] = [
+  // 교통법규 (3문항)
+  {
+    subject: "교통법규",
+    questionText: "화물자동차의 최대적재량을 초과하여 화물을 운송한 운전자가 받는 제재로 올바른 것은?",
+    options: [
+      { id: 1, text: "운전면허가 즉시 취소된다" },
+      { id: 2, text: "과적 단속 시 과태료·벌점 등 행정처분을 받을 수 있다" },
+      { id: 3, text: "아무런 제재가 없다" },
+      { id: 4, text: "사업용 화물차는 예외로 처벌하지 않는다" },
+    ],
+    correctOption: 2,
+    explanation: "과적 운행은 도로 파손과 안전사고의 원인이 되므로 단속 시 행정처분을 받을 수 있습니다.",
+  },
+  {
+    subject: "교통법규",
+    questionText: "사업용 화물자동차 운전자의 운행 시간과 휴게에 대한 설명으로 올바른 것은?",
+    options: [
+      { id: 1, text: "휴게 없이 연속 6시간 운행해도 된다" },
+      { id: 2, text: "연속 4시간 운행 시 최소 30분 이상 휴게하여야 한다" },
+      { id: 3, text: "운전자가 휴게 시간을 스스로 정하면 된다" },
+      { id: 4, text: "휴게 의무는 장거리 노선에만 적용된다" },
+    ],
+    correctOption: 2,
+    explanation: "피로 운전 예방을 위해 연속 4시간 운행 시 30분 이상의 휴게가 필요합니다.",
+  },
+  {
+    subject: "교통법규",
+    questionText: "적재물이 흘러내리거나 떨어지지 않도록 고정 조치 없이 운행한 경우에 대한 설명으로 올바른 것은?",
+    options: [
+      { id: 1, text: "적재물이 안전하게 실려 있으면 고정은 선택 사항이다" },
+      { id: 2, text: "단거리 운행 시에는 고정 조치가 필요 없다" },
+      { id: 3, text: "적재물 낙하 사고 시 운전자의 과실이 될 수 있다" },
+      { id: 4, text: "도로교통법과 무관한 사항이다" },
+    ],
+    correctOption: 3,
+    explanation: "적재물 고정 의무는 법으로 정해져 있으며, 낙하 사고 시 운전자의 책임이 따릅니다.",
+  },
+  // 안전운행 (3문항)
+  {
+    subject: "안전운행",
+    questionText: "야간 운행 시 안전을 위한 행동으로 가장 올바른 것은?",
+    options: [
+      { id: 1, text: "상향등을 항상 켜고 주행한다" },
+      { id: 2, text: "마주 오는 차량이 있으면 하향등으로 전환한다" },
+      { id: 3, text: "휴게 없이 계속 주행하는 것이 효율적이다" },
+      { id: 4, text: "주행 중 속도만 줄이면 전조등은 상향으로 유지한다" },
+    ],
+    correctOption: 2,
+    explanation: "상향등은 상대 운전자 눈부심을 유발하므로 마주 오는 차량이 있으면 하향등으로 전환해야 합니다.",
+  },
+  {
+    subject: "안전운행",
+    questionText: "화물차의 제동 거리에 영향을 주는 요소가 아닌 것은?",
+    options: [
+      { id: 1, text: "주행 속도" },
+      { id: 2, text: "적재 중량" },
+      { id: 3, text: "노면 상태" },
+      { id: 4, text: "차량 색상" },
+    ],
+    correctOption: 4,
+    explanation: "제동 거리는 속도, 중량, 노면 상태 등에 영향을 받으며 차량 색상과는 무관합니다.",
+  },
+  {
+    subject: "안전운행",
+    questionText: "비가 오는 날 화물차 운행 시 주의 사항으로 가장 올바른 것은?",
+    options: [
+      { id: 1, text: "노면이 젖어 제동 거리가 길어지므로 감속한다" },
+      { id: 2, text: "와이퍼 작동 시에는 속도를 높인다" },
+      { id: 3, text: "타이어 공기압을 높이면 빗길에 안전하다" },
+      { id: 4, text: "차간 거리는 건조한 날보다 짧게 유지한다" },
+    ],
+    correctOption: 1,
+    explanation: "젖은 노면은 마찰력이 낮아 제동 거리가 길어지므로 감속하고 차간 거리를 충분히 확보해야 합니다.",
+  },
+  // 화물취급 (3문항)
+  {
+    subject: "화물취급",
+    questionText: "화물 적재 시 무게 중심을 낮추기 위한 방법으로 가장 올바른 것은?",
+    options: [
+      { id: 1, text: "무거운 화물을 위에 올려놓는다" },
+      { id: 2, text: "무거운 화물을 아래쪽에 배치한다" },
+      { id: 3, text: "모든 화물을 한쪽에 몰아 실는다" },
+      { id: 4, text: "적재 높이는 신경 쓰지 않는다" },
+    ],
+    correctOption: 2,
+    explanation: "무거운 화물을 아래쪽에 배치하면 무게 중심이 낮아져 주행 안정성이 높아집니다.",
+  },
+  {
+    subject: "화물취급",
+    questionText: "화물을 적재할 때 무게 중심이 차량 중심에서 벗어나면 발생할 수 있는 문제는?",
+    options: [
+      { id: 1, text: "연비가 개선된다" },
+      { id: 2, text: "핸들링이 가벼워진다" },
+      { id: 3, text: "차량의 균형이 무너져 전복 위험이 커진다" },
+      { id: 4, text: "타이어 마모가 줄어든다" },
+    ],
+    correctOption: 3,
+    explanation: "무게 중심이 편중되면 코너링 시 전복 위험이 커지고 타이어에 과도한 하중이 걸립니다.",
+  },
+  {
+    subject: "화물취급",
+    questionText: "냉동·냉장 화물을 운송할 때 온도 관리에 대한 설명으로 올바른 것은?",
+    options: [
+      { id: 1, text: "운송 중에는 온도 확인이 불필요하다" },
+      { id: 2, text: "적재 전에 냉동기가 정상 작동하는지 확인한다" },
+      { id: 3, text: "문을 자주 열어 온도를 확인하는 것이 좋다" },
+      { id: 4, text: "화물 온도는 운임과 무관하다" },
+    ],
+    correctOption: 2,
+    explanation: "냉동·냉장 화물은 적재 전 장비 점검과 온도 유지가 필수이며, 부패 시 손해 배상 책임이 발생할 수 있습니다.",
+  },
+  // 운송서비스 (3문항)
+  {
+    subject: "운송서비스",
+    questionText: "화물 운송 계약 체결 시 운송인과 의뢰인 간에 명확히 확인해야 할 사항이 아닌 것은?",
+    options: [
+      { id: 1, text: "운임과 결제 방식" },
+      { id: 2, text: "운송 경로와 인도 일시" },
+      { id: 3, text: "적재물의 종류와 수량" },
+      { id: 4, text: "운전자의 취미" },
+    ],
+    correctOption: 4,
+    explanation: "운송 계약에서는 운임, 운송 경로, 인도 일시, 화물 정보 등을 명확히 확인해야 합니다.",
+  },
+  {
+    subject: "운송서비스",
+    questionText: "화물 인도 후 운송 과정에서 발생한 하자나 손해에 대한 책임은 원칙적으로 누구에게 있는가?",
+    options: [
+      { id: 1, text: "항상 화물 의뢰인에게 있다" },
+      { id: 2, text: "운송인에게 있다" },
+      { id: 3, text: "모든 경우에 면책된다" },
+      { id: 4, text: "도로 관리 기관에게 있다" },
+    ],
+    correctOption: 2,
+    explanation: "운송인은 운송물을 수령한 때부터 인도할 때까지 선량한 관리자의 주의 의무를 지며, 손해 발생 시 책임을 집니다.",
+  },
+  {
+    subject: "운송서비스",
+    questionText: "화물 운송 후 하주에게 제공해야 할 서류로 가장 적절한 것은?",
+    options: [
+      { id: 1, text: "운임 영수증" },
+      { id: 2, text: "운전면허증 사본" },
+      { id: 3, text: "개인 신상 정보" },
+      { id: 4, text: "차량 정비 이력서" },
+    ],
+    correctOption: 1,
+    explanation: "운송 완료 후에는 정산을 위해 운임 영수증 등 증빙 서류를 제공해야 합니다.",
+  },
+];
+
+async function seedCbt(): Promise<void> {
+  const existingCategory = await prisma.cbtCategory.findUnique({
+    where: { slug: CBT_CATEGORY.slug },
+    include: { _count: { select: { questions: true } } },
+  });
+
+  if (existingCategory && existingCategory._count.questions > 0) {
+    console.log("이미 CBT 문제 데이터가 존재하여 CBT 시딩을 건너뜁니다.");
+    return;
+  }
+
+  const category = await prisma.cbtCategory.upsert({
+    where: { slug: CBT_CATEGORY.slug },
+    update: { name: CBT_CATEGORY.name, description: CBT_CATEGORY.description },
+    create: {
+      slug: CBT_CATEGORY.slug,
+      name: CBT_CATEGORY.name,
+      description: CBT_CATEGORY.description,
+      sortOrder: CBT_CATEGORY.sortOrder,
+    },
+  });
+
+  if (existingCategory && existingCategory._count.questions === 0) {
+    await prisma.cbtQuestion.deleteMany({ where: { categoryId: category.id } });
+  }
+
+  for (const question of CBT_SAMPLE_QUESTIONS) {
+    await prisma.cbtQuestion.create({
+      data: {
+        categoryId: category.id,
+        subject: question.subject,
+        questionText: question.questionText,
+        options: question.options,
+        correctOption: question.correctOption,
+        explanation: question.explanation,
+        status: "PUBLISHED",
+        source: "test",
+        metadata: { sample: true },
+      },
+    });
+  }
+
+  const subjectSummary = CBT_SUBJECTS.map(
+    (subject) =>
+      `${subject} ${CBT_SAMPLE_QUESTIONS.filter((q) => q.subject === subject).length}문항`,
+  ).join(", ");
+
+  console.log(`CBT 카테고리(${category.name})와 테스트 문제 ${CBT_SAMPLE_QUESTIONS.length}개를 시딩했습니다. (${subjectSummary})`);
+}
+
 async function main() {
   console.log("마스터 데이터 시딩을 시작합니다...");
 
@@ -501,6 +720,7 @@ async function main() {
   await seedSampleJobPosts({ provinces, vehicleTypes, tonnages });
   await seedDemoCompany();
   await seedDemoUserAndLeasePosts({ provinces, vehicleTypes, tonnages });
+  await seedCbt();
 
   console.log("시딩이 완료되었습니다.");
 }

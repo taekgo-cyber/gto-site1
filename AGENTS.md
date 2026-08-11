@@ -57,5 +57,10 @@ src/
 - 생성기는 `prisma-client`(출력: `src/generated/prisma`)를 사용한다.
   스키마 변경 후 `npm run prisma:generate`를 실행한다.
 - 클라이언트 생성 시 `@prisma/adapter-pg`의 `PrismaPg` Driver Adapter가 필요하다.
-- DB 스키마는 세션 02에서 완성(모델 18개). 마이그레이션(`prisma migrate dev`)은
-  PostgreSQL 환경이 준비된 이후에 진행한다. 현재 로컬에 PostgreSQL/Docker 미설치.
+- DB 스키마는 세션 02에서 시작해 세션별로 확장했다(현재 모델 22개).
+  로컬 PostgreSQL은 Docker(`gto_site_postgres`)로 실행하며, 스키마 변경 후
+  `npx prisma migrate dev --name <이름>`으로 마이그레이션한다.
+- CBT(CbtCategory/CbtQuestion) 정답 데이터는 최초 문제 조회 payload에 포함하지
+  않는다. `getPublicQuestionsByCategorySlug`는 `select`에서 `correctOption`/
+  `explanation`을 제외하고, 채점은 서버 액션 `gradeCbtAnswerAction`을 통해
+  수행한다.

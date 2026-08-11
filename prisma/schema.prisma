@@ -115,6 +115,12 @@ enum ReportStatus {
   DISMISSED
 }
 
+enum QuestionStatus {
+  DRAFT
+  PUBLISHED
+  HIDDEN
+}
+
 enum AdCampaignStatus {
   PENDING
   ACTIVE
@@ -476,6 +482,47 @@ model Report {
   @@index([targetType, targetId])
   @@index([status])
   @@map("reports")
+}
+
+// ---------------------------------------------------------------------------
+// CBT (화물운송종사자격시험 문제은행)
+// ---------------------------------------------------------------------------
+
+model CbtCategory {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  questions CbtQuestion[]
+
+  @@index([sortOrder])
+  @@map("cbt_categories")
+}
+
+model CbtQuestion {
+  id            String         @id @default(cuid())
+  categoryId    String
+  subject       String
+  questionText  String
+  options       Json
+  correctOption Int
+  explanation   String?
+  imageUrl      String?
+  status        QuestionStatus @default(DRAFT)
+  source        String?
+  metadata      Json?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  category CbtCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([categoryId, status])
+  @@map("cbt_questions")
 }
 
 // ---------------------------------------------------------------------------
