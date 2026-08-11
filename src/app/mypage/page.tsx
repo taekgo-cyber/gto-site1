@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Container } from "@/components/common/Container";
+import { Button } from "@/components/ui/Button";
 import { PasswordForm } from "@/components/auth/PasswordForm";
 import { ProfileForm } from "@/components/auth/ProfileForm";
 import { WithdrawForm } from "@/components/auth/WithdrawForm";
@@ -71,6 +73,20 @@ export default async function MyPage() {
               ))}
             </ul>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>내 CBT 학습</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            틀린 문제, 북마크, 모의고사 기록을 확인하고 복습할 수 있습니다.
+          </p>
+          <Link href="/cbt/my" className="mt-4 block">
+            <Button size="sm">내 CBT로 이동</Button>
+          </Link>
         </CardContent>
       </Card>
 

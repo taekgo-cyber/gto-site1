@@ -24,3 +24,5 @@ export type CbtCategoryPublic = {
   description: string | null;
   questionCount: number;
 };
+
+export type PracticeMode = "none" | "wrong" | "bookmark";

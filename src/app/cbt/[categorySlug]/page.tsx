@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import {
   getCbtCategoryBySlug,
+  getCbtUserCategoryProgress,
   getSubjectCountsByCategorySlug,
 } from "@/lib/cbt/dal";
+import { getCurrentUser } from "@/lib/auth/dal";
 
 type CbtCategoryPageProps = {
   params: Promise<{ categorySlug: string }>;
@@ -31,12 +33,17 @@ export async function generateMetadata(
 
 export default async function CbtCategoryPage(props: CbtCategoryPageProps) {
   const { categorySlug } = await props.params;
-  const [category, subjectCounts] = await Promise.all([
+  const [category, subjectCounts, user] = await Promise.all([
     getCbtCategoryBySlug(categorySlug),
     getSubjectCountsByCategorySlug(categorySlug),
+    getCurrentUser(),
   ]);
 
   if (!category || category.questionCount === 0) notFound();
+
+  const progress = user
+    ? await getCbtUserCategoryProgress(user.id, categorySlug)
+    : null;
 
   return (
     <Container className="mx-auto max-w-3xl space-y-6 py-8">
@@ -75,17 +82,54 @@ export default async function CbtCategoryPage(props: CbtCategoryPageProps) {
             ))}
           </ul>
           <p className="mt-3 border-t border-border pt-3 text-sm text-muted-foreground">
-            전체 {category.questionCount}문항 · 한 문제씩 풀고 바로 채점
-            결과와 해설을 확인할 수 있습니다.
+            전체 {category.questionCount}문항 · 한 문제씩 풀고 바로 채점 결과와
+            해설을 확인할 수 있습니다.
           </p>
         </CardContent>
       </Card>
 
-      <Link href={`/cbt/${category.slug}/practice`} className="block">
-        <Button size="lg" className="w-full">
-          문제 풀기 시작
-        </Button>
-      </Link>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Link href={`/cbt/${category.slug}/practice`} className="block">
+          <Button size="lg" className="w-full">
+            학습 모드 시작
+          </Button>
+        </Link>
+        <Link href={`/cbt/${category.slug}/exam`} className="block">
+          <Button variant="outline" size="lg" className="w-full">
+            모의고사 시작
+          </Button>
+        </Link>
+      </div>
+
+      {progress ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>내 학습</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-3">
+              <li className="flex items-center justify-between">
+                <span className="text-sm">오답 노트</span>
+                <Link
+                  href={`/cbt/${category.slug}/practice?mode=wrong`}
+                  className="text-sm font-medium text-primary"
+                >
+                  {progress.wrongCount}문제 {progress.wrongCount > 0 ? "다시 풀기" : ""}
+                </Link>
+              </li>
+              <li className="flex items-center justify-between">
+                <span className="text-sm">북마크</span>
+                <Link
+                  href={`/cbt/${category.slug}/practice?mode=bookmark`}
+                  className="text-sm font-medium text-primary"
+                >
+                  {progress.bookmarkCount}문제 {progress.bookmarkCount > 0 ? "다시 풀기" : ""}
+                </Link>
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+      ) : null}
     </Container>
   );
 }

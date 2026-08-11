@@ -57,10 +57,19 @@ src/
 - 생성기는 `prisma-client`(출력: `src/generated/prisma`)를 사용한다.
   스키마 변경 후 `npm run prisma:generate`를 실행한다.
 - 클라이언트 생성 시 `@prisma/adapter-pg`의 `PrismaPg` Driver Adapter가 필요하다.
-- DB 스키마는 세션 02에서 시작해 세션별로 확장했다(현재 모델 22개).
+- DB 스키마는 세션 02에서 시작해 세션별로 확장했다(현재 모델 24개).
   로컬 PostgreSQL은 Docker(`gto_site_postgres`)로 실행하며, 스키마 변경 후
   `npx prisma migrate dev --name <이름>`으로 마이그레이션한다.
 - CBT(CbtCategory/CbtQuestion) 정답 데이터는 최초 문제 조회 payload에 포함하지
   않는다. `getPublicQuestionsByCategorySlug`는 `select`에서 `correctOption`/
-  `explanation`을 제외하고, 채점은 서버 액션 `gradeCbtAnswerAction`을 통해
-  수행한다.
+  `explanation`을 제외하고, 학습 채점은 서버 액션 `gradeCbtAnswerAction`,
+  모의고사 채점은 서버 액션 `submitCbtExamAction`을 통해 수행한다.
+- 모의고사 진행 중에는 정답/해설을 클라이언트에 내려주지 않으며, 제출 후에만
+  서버가 점수·정답·해설을 반환한다.
+- 보기 랜덤화는 원본 `option.id`를 유지한 채 표시 순서만 셔플한다(`shuffle.ts`).
+  사용자가 보는 번호(1..n)와 DB `option.id`는 분리되며, "정답 N번"은
+  `getDisplayIndexOfOption`으로 화면 번호에 역매핑한다. 문제/보기 셔플은
+  서버 컴포넌트(force-dynamic)에서 수행해 hydration mismatch를 방지한다.
+- 사용자별 학습 상태는 `CbtQuestionActivity`(userId+questionId 복합키 upsert),
+  모의고사 결과는 `CbtExamRecord`에 저장한다. CBT 풀이 자체는 비로그인도
+  가능하며, 로그인은 오답/북마크/시험 기록 영구 저장에만 필요하다.
