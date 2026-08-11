@@ -20,7 +20,10 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { id } = await props.params;
   const post = await getJobPostById(id);
-  return { title: post?.title ?? "공고" };
+  return {
+    title: post?.title ?? "공고",
+    alternates: { canonical: `/jobs/${id}` },
+  };
 }
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {

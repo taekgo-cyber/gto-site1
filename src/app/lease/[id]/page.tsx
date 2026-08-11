@@ -15,9 +15,15 @@ import { leasePostStatusLabel, leasePostTypeLabel } from "@/lib/posts/labels";
 import { formatDate, formatPayAmount, workTypeLabel } from "@/lib/jobs/labels";
 import { buildAttachmentUrl } from "@/lib/attachments/url";
 
-export const metadata: Metadata = {
-  title: "지입 게시글",
-};
+export async function generateMetadata(
+  props: PageProps<"/lease/[id]">,
+): Promise<Metadata> {
+  const { id } = await props.params;
+  return {
+    title: "지입 게시글",
+    alternates: { canonical: `/lease/${id}` },
+  };
+}
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (

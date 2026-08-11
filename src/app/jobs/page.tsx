@@ -12,6 +12,7 @@ import type { JobPostType } from "@/generated/prisma/enums";
 
 export const metadata: Metadata = {
   title: "구인/운송 공고",
+  alternates: { canonical: "/jobs" },
 };
 
 export default async function JobsPage(props: PageProps<"/jobs">) {

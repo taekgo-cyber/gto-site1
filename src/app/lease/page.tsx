@@ -9,10 +9,19 @@ import { getLeaseMasterData } from "@/lib/lease/dal";
 import { parseLeaseListParams } from "@/lib/lease/query";
 import { getPostList } from "@/lib/posts/dal";
 import { DEFAULT_PAGE_SIZE } from "@/lib/posts/validation";
+import { shouldNoindexLeaseList } from "@/lib/seo/noindex";
 
-export const metadata: Metadata = {
-  title: "지입 구인/구직",
-};
+export async function generateMetadata(
+  props: PageProps<"/lease">,
+): Promise<Metadata> {
+  const searchParams = await props.searchParams;
+  const noindex = shouldNoindexLeaseList(searchParams);
+
+  if (noindex) {
+    return { title: "지입 구인/구직", robots: { index: false, follow: true } };
+  }
+  return { title: "지입 구인/구직", alternates: { canonical: "/lease" } };
+}
 
 export default async function LeasePage(props: PageProps<"/lease">) {
   const searchParams = await props.searchParams;
