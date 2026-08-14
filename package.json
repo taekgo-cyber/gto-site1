@@ -11,7 +11,14 @@
     "test": "vitest run",
     "prisma:generate": "prisma generate",
     "db:seed": "prisma db seed",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "cbt:collect": "tsx tools/cbt/cli.ts collect",
+    "cbt:extract": "tsx tools/cbt/cli.ts extract",
+    "cbt:parse": "tsx tools/cbt/cli.ts parse",
+    "cbt:validate": "tsx tools/cbt/cli.ts validate",
+    "cbt:dedupe": "tsx tools/cbt/cli.ts dedupe",
+    "cbt:run": "tsx tools/cbt/cli.ts run",
+    "cbt:step7": "tsx tools/cbt/run-ingestion-test.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
@@ -27,6 +34,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "cheerio": "^1.2.0",
     "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.3.0",

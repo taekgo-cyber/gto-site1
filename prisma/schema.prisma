@@ -697,3 +697,97 @@ model AdminLog {
   @@index([createdAt])
   @@map("admin_logs")
 }
+
+// ---------------------------------------------------------------------------
+// CBT Candidate 파이프라인 (STEP 6 영속화)
+// NormalizedQuestion → CandidateQuestion. 검증 상태/리뷰/중복 그룹을 보존한다.
+// 원칙: No Drop / No Auto Promotion / No Hard Delete / No Auto Merge.
+// ---------------------------------------------------------------------------
+
+enum CandidateValidationStatus {
+  VALID
+  REVIEW_REQUIRED
+  REJECTED
+}
+
+enum CandidateReviewStatus {
+  PENDING
+  RESOLVED
+  IGNORED
+}
+
+model CandidateQuestion {
+  id                   String    @id @default(cuid())
+  sourceName           String
+  sourceQuestionId     String
+  /** 원천 페이지 URL. 증거 추적을 위해 보존한다 */
+  originalUrl          String?
+  /** 원천 페이지 수집 시각 */
+  fetchedAt            DateTime?
+  /** SnippetStorage에 저장된 snippet id. 없으면 null */
+  rawHtmlSnippetId     String?
+  category             String
+  classificationMethod String
+  questionNumber       Int?
+  questionText         String
+  choices              Json
+  normalizedAnswers    Json
+  explanation          String?
+  explanationReference Json?
+  images               Json
+  validationStatus     CandidateValidationStatus
+  validationErrors     Json
+  contentFingerprint   String
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  reviews          CandidateReview[]           @relation("CandidateQuestionReviews")
+  duplicateMembers CandidateDuplicateMember[]
+
+  @@unique([sourceName, sourceQuestionId])
+  @@index([contentFingerprint])
+  @@map("candidate_questions")
+}
+
+model CandidateReview {
+  id                  String                 @id @default(cuid())
+  candidateQuestionId String
+  validationErrors    Json
+  reviewStatus        CandidateReviewStatus  @default(PENDING)
+  reviewedBy          String?
+  reviewNote          String?
+  resolvedAt          DateTime?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+
+  candidateQuestion CandidateQuestion @relation("CandidateQuestionReviews", fields: [candidateQuestionId], references: [id], onDelete: Cascade)
+
+  @@unique([candidateQuestionId])
+  @@index([reviewStatus])
+  @@map("candidate_reviews")
+}
+
+model CandidateDuplicateGroup {
+  id                String                       @id @default(cuid())
+  fingerprint       String                       @unique
+  isResolved        Boolean                      @default(false)
+  masterCandidateId String?
+  createdAt         DateTime                     @default(now())
+  updatedAt         DateTime                     @updatedAt
+
+  members CandidateDuplicateMember[]
+
+  @@map("candidate_duplicate_groups")
+}
+
+model CandidateDuplicateMember {
+  groupId             String
+  candidateQuestionId String
+
+  group     CandidateDuplicateGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  candidate CandidateQuestion       @relation(fields: [candidateQuestionId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, candidateQuestionId])
+  @@index([candidateQuestionId])
+  @@map("candidate_duplicate_members")
+}

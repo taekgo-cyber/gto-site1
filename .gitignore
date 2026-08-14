@@ -38,6 +38,9 @@ yarn-error.log*
 # local uploads
 /uploads
 
+# cbt pipeline data (raw sources, llm cache, candidate dataset)
+/data
+
 # vercel
 .vercel
 
