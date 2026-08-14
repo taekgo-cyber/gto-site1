@@ -741,12 +741,113 @@ model CandidateQuestion {
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
-  reviews          CandidateReview[]           @relation("CandidateQuestionReviews")
-  duplicateMembers CandidateDuplicateMember[]
+  reviews            CandidateReview[]           @relation("CandidateQuestionReviews")
+  duplicateMembers   CandidateDuplicateMember[]
+  generatedQuestions GeneratedQuestion[]
 
   @@unique([sourceName, sourceQuestionId])
   @@index([contentFingerprint])
   @@map("candidate_questions")
+}
+
+// ---------------------------------------------------------------------------
+// CBT Content Production (STEP 8 — AI 콘텐츠 생산 파이프라인)
+// CandidateQuestion → Fact Extraction → GeneratedQuestion → Auto-QA → Human Review
+// → MasterQuestion. 원칙: No Drop / Append-only / Provenance / Idempotent promotion.
+// Candidate는 절대 수정하지 않는다 (파생 레이어만 추가).
+// ---------------------------------------------------------------------------
+
+enum GeneratedQuestionStatus {
+  GENERATED
+  QA_PENDING
+  QA_PASSED
+  QA_FAILED
+  HUMAN_REVIEW
+  APPROVED
+  REJECTED
+  FAILED
+}
+
+model GeneratedQuestion {
+  id                  String                  @id @default(cuid())
+  candidateQuestionId String
+  status              GeneratedQuestionStatus @default(GENERATED)
+  /** 생성 성공 시에만 채워진다. 실패(FAILED) 행은 null 보존 */
+  questionText        String?
+  choices             Json?
+  answers             Json?
+  explanation         String?
+  category            String?
+  difficulty          String?
+  factSourceMapping   Json?
+  contentFingerprint  String?
+  /** 원문(후보 문제) 대비 유사도. 참고용 위험 플래그일 뿐 법적 판정 아님 */
+  similarityScore     Float?
+  similarityWarning   Boolean                 @default(false)
+  provider            String?
+  model               String?
+  promptVersion       String?
+  rawLlmResponse      Json?
+  errorCode           String?
+  errorMessage        String?
+  reviewedBy          String?
+  reviewedAt          DateTime?
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+
+  candidateQuestion CandidateQuestion     @relation(fields: [candidateQuestionId], references: [id], onDelete: Cascade)
+  qas               GeneratedQuestionQA[]
+  masterQuestion    MasterQuestion?
+
+  @@index([candidateQuestionId])
+  @@index([status])
+  @@index([contentFingerprint])
+  @@map("generated_questions")
+}
+
+model GeneratedQuestionQA {
+  id                  String   @id @default(cuid())
+  generatedQuestionId String
+  evaluationScores    Json?
+  hasHallucination    Boolean?
+  isCopyrightSafe     Boolean?
+  criticalFlaws       Json?
+  qaFeedback          String?
+  isPass              Boolean?
+  provider            String?
+  model               String?
+  promptVersion       String?
+  rawLlmResponse      Json?
+  errorCode           String?
+  errorMessage        String?
+  createdAt           DateTime @default(now())
+
+  generatedQuestion GeneratedQuestion @relation(fields: [generatedQuestionId], references: [id], onDelete: Cascade)
+
+  @@index([generatedQuestionId])
+  @@index([isPass])
+  @@map("generated_question_qas")
+}
+
+model MasterQuestion {
+  id                  String   @id @default(cuid())
+  generatedQuestionId String   @unique
+  category            String
+  questionText        String
+  choices             Json
+  answers             Json
+  explanation         String?
+  difficulty          String
+  isActive            Boolean  @default(true)
+  publishedAt         DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  generatedQuestion GeneratedQuestion @relation(fields: [generatedQuestionId], references: [id])
+
+  @@index([isActive])
+  @@index([category])
+  @@map("master_questions")
 }
 
 model CandidateReview {

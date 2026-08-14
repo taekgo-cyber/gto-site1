@@ -18,7 +18,10 @@
     "cbt:validate": "tsx tools/cbt/cli.ts validate",
     "cbt:dedupe": "tsx tools/cbt/cli.ts dedupe",
     "cbt:run": "tsx tools/cbt/cli.ts run",
-    "cbt:step7": "tsx tools/cbt/run-ingestion-test.ts"
+    "cbt:step7": "tsx tools/cbt/run-ingestion-test.ts",
+    "cbt:generate": "tsx tools/cbt/cli-step8.ts generate",
+    "cbt:review": "tsx tools/cbt/cli-step8.ts review",
+    "cbt:promote": "tsx tools/cbt/cli-step8.ts promote"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
@@ -27,7 +30,8 @@
     "next": "16.3.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "tailwind-merge": "^3.6.0"
+    "tailwind-merge": "^3.6.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
