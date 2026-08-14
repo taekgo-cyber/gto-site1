@@ -21,7 +21,12 @@
     "cbt:step7": "tsx tools/cbt/run-ingestion-test.ts",
     "cbt:generate": "tsx tools/cbt/cli-step8.ts generate",
     "cbt:review": "tsx tools/cbt/cli-step8.ts review",
-    "cbt:promote": "tsx tools/cbt/cli-step8.ts promote"
+    "cbt:promote": "tsx tools/cbt/cli-step8.ts promote",
+    "cbt:batch-ingest": "tsx tools/cbt/cli-batch-ingest.ts",
+    "cbt:batch-generate": "tsx tools/cbt/cli-batch-generate.ts",
+    "cbt:batch-review": "tsx tools/cbt/cli-batch-review.ts",
+    "cbt:batch-promote": "tsx tools/cbt/cli-batch-promote.ts",
+    "cbt:dataset-audit": "tsx tools/cbt/cli-dataset-audit.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
