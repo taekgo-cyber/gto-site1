@@ -119,16 +119,24 @@ export function buildQuestionGenerationPrompt(
 // ---------------------------------------------------------------------------
 
 export const AUTO_QA_SYSTEM_PROMPT =
-  "당신은 화물운송종사자격시험 문제 검수자(QA)입니다. 원문과 생성된 문제를 대조해 11개 기준으로 평가한다. isCopyrightSafe는 참고용 평가이며 법적 판정이 아니다.";
+  "당신은 화물운송종사자격시험 문제 검수자(QA)입니다. 원문과 생성된 문제를 대조해 11개 기준과 필수 검수 규칙에 따라 평가한다. 특히 '원문 정답의 보존'과 '질문 의도(초점)의 유지'를 반드시 확인한다. isCopyrightSafe는 참고용 평가이며 법적 판정이 아니다.";
 
 export function buildAutoQaPrompt(
   candidate: CandidateContent,
   content: { questionText: string; choices: { index: number; text: string }[]; answers: number[]; explanation: string; category: string; difficulty: string },
 ): string {
+  const sourceAnswerChoices = candidate.normalizedAnswers
+    .map((answerIndex) => {
+      const choice = candidate.choices.find((c) => c.index === answerIndex);
+      return choice ? `${answerIndex}. ${choice.text}` : `${answerIndex}`;
+    })
+    .join(", ");
+
   return [
     AUTO_QA_SYSTEM_PROMPT,
     "",
     candidateBlock(candidate),
+    `원문의 정답 보기: ${sourceAnswerChoices}`,
     "",
     "## 생성된 문제",
     `카테고리: ${content.category}`,
@@ -139,22 +147,44 @@ export function buildAutoQaPrompt(
     `해설: ${content.explanation}`,
     "",
     "## 평가 기준 (각 score 1~5, note는 이유)",
-    "1. fact_accuracy: 생성 내용이 원문 사실과 일치하는가",
-    "2. answer_accuracy: 정답이 사실에 근거하는가",
+    "1. fact_accuracy: 생성 내용이 원문 사실과 일치하는가 (질문 초점이 원문과 달라지면 낮게 평가)",
+    "2. answer_accuracy: 생성 정답이 '원문의 정답 보기'와 의미상 일치하는가 (번호가 아닌 보기 텍스트로 대조, 순서는 달라도 된다)",
     "3. single_answer: 정답이 명확히 1개인가",
     "4. option_plausibility: 오답 보기가 논리적으로 타당한가",
     "5. question_clarity: 질문이 명확한가",
     "6. ambiguity: 애매모호한 표현이 없는가",
     "7. explanation_accuracy: 해설이 정답을 정확히 설명하는가",
-    "8. hallucination: 원문에 없는 내용이 있는가",
+    "8. hallucination: 원문에 없는 사실이 쓰였는가 (표현 재구성·주어 보충은 환각으로 보지 않는다)",
     "9. fact_source_consistency: facts 근거와 일치하는가",
     "10. duplicate_risk: 원문과 지나치게 유사하거나 중복 위험이 있는가",
     "11. expression_quality: 표현 품질",
     "",
+    "## 필수 검수 규칙 (criticalFlaws 판단의 강제 기준. 아래에 해당하면 반드시 criticalFlaws에 기록하고 pass=false)",
+    "A. 질문 의도/초점 보존: 원문의 질문이 무엇을 묻는지 핵심 의도를 보존해야 한다.",
+    "   - 질문 대상, 조건, 수치, 범위, 비교 기준, 원인/결과 관계 중 하나라도 바뀌어 정답이 달라질 수 있으면 FAIL.",
+    "   - 특히 정량 질문(얼마나/몇 %/몇 회/몇 mm/몇 배 등)을 정성 질문(왜/어떤 이유/목적 등)으로 바꾼 경우 반드시 검출해 FAIL.",
+    "   - 질문 초점이 원문과 다르면 원문 정답 텍스트가 생성 보기에 보존됐는지와 무관하게 FAIL.",
+    "B. 원문 정답 보존: 생성된 선택지 중에 반드시 원문 정답의 의미가 하나라도 보존되어야 한다.",
+    "   - 정답 번호는 셔플될 수 있으므로 번호를 비교하지 않고, 반드시 보기 텍스트의 의미로 대조한다.",
+    "   - 원문의 정답 보기가 생성 보기 어디에도 보존되지 않았으면 FAIL.",
+    "   - 원문 정답이 오답으로 이동하고 원문 오답이 정답으로 승격된 경우 반드시 FAIL.",
+    "   - 생성 정답을 원문의 오답 보기와 '의미상 유사하다'는 이유만으로 PASS해서는 안 된다.",
+    "C. 오답(distractor) 무결성: 원문 오답이 정답으로 승격되면 FAIL, 원문 정답이 선택지에서 사라지면 FAIL.",
+    "   - 새 선택지가 추가되더라도 정답성을 훼손하거나 근거 없는 사실을 포함하면 FAIL.",
+    "D. hallucination 판정 완화: hallucination은 실제 사실관계, 조건, 정답성 또는 질문 의도를 변경한 경우에만 기록한다.",
+    "   - 표현을 자연스럽게 바꾸거나 문맥상 명백한 주어(예: '화물운송종사자가')를 보충한 것은 hallucination이 아니다.",
+    "   - hasHallucination은 위 기준으로 사실이 변경되었을 때만 true로 한다.",
+    "E. 질문↔정답 일관성: '원문 질문 → 원문 정답'의 의미 구조가 '생성 질문 → 생성 정답'에 그대로 유지되는지 확인한다.",
+    "   - 생성 질문과 생성 정답이 서로 맞더라도, 원문의 질문-정답 관계와 동일한 의미 구조가 아니면 FAIL.",
+    "",
     "## 응답 규칙",
-    "- criticalFlaws: 치명적 결함(환각/오답/복수 정답/원문 훼손 등) 있으면 목록, 없으면 []",
+    "- 보기 순서는 원문과 다를 수 있다. answer는 번호(index)가 아닌 보기 텍스트로 '원문의 정답 보기'와 직접 대조한다. 원문의 다른 보기와 비교하지 않는다.",
+    "- '원문의 정답 보기'의 의미가 생성된 선택지 중 적어도 하나에 보존되고, 그 보기가 생성 정답일 때만 answer_accuracy를 높게 판단한다.",
+    "- 생성 정답이 원문의 오답 보기와 의미상 유사하더라도, '원문의 정답 보기'가 생성 보기에 보존되지 않았다면 answer_accuracy를 낮게 판단하고 criticalFlaws에 기록한다.",
+    "- 필수 검수 규칙 A~E에 해당하면 반드시 criticalFlaws에 기록하고 pass=false로 한다.",
+    "- criticalFlaws: 치명적 결함(환각/오답/복수 정답/원문 훼손/의도 변경 등) 있으면 목록, 없으면 []",
     "- pass: criticalFlaws가 하나라도 있으면 반드시 false",
-    "- hasHallucination: 원문에 없는 사실이 하나라도 쓰였으면 true",
+    "- hasHallucination: 원문의 사실이 변경된 경우에만 true (표현 재구성·주어 보충은 false)",
     "- isCopyrightSafe: 참고용 평가값 (법적 판정 금지)",
     "",
     jsonSchemaHint({

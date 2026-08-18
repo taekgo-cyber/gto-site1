@@ -94,6 +94,6 @@ describe("STEP 8 schema validation", () => {
   it("prompt version 상수는 명시적이다", () => {
     expect(FACT_EXTRACTION_PROMPT_VERSION).toBe("step8-fact-extract-v1");
     expect(QUESTION_GENERATION_PROMPT_VERSION).toBe("step8-question-gen-v1");
-    expect(AUTO_QA_PROMPT_VERSION).toBe("step8-auto-qa-v1");
+    expect(AUTO_QA_PROMPT_VERSION).toBe("step8-auto-qa-v3");
   });
 });
