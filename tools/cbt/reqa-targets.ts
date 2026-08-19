@@ -1,7 +1,7 @@
 // QA v3 실측 검증 대상 38건 (PLAN READY 후 확정).
 // - sourceQuestionId: 원문(CandidateQuestion) ID
 // - generatedQuestionId: 기존 GeneratedQuestion (QA v3 재평가 대상)
-// - group: must-fail / must-pass / edge
+// - group: must-fail / must-pass / adjudicated-fail / edge
 // - expected: FAIL | PASS | OBSERVE
 // - reason: 선정 근거 (v3 기대값 판단)
 //
@@ -11,7 +11,7 @@
 // - 이 목록은 실측 실행·집계에 그대로 사용한다.
 
 export type ReQaExpected = "FAIL" | "PASS" | "OBSERVE";
-export type ReQaGroup = "must-fail" | "must-pass" | "edge";
+export type ReQaGroup = "must-fail" | "must-pass" | "adjudicated-fail" | "edge";
 
 export type ReQaTargetSpec = {
   sourceQuestionId: string;
@@ -113,7 +113,19 @@ export const REQA_TARGETS: ReQaTargetSpec[] = [
   },
 
   // ------------------------------------------------------------------
-  // Must PASS (24건) — 정상 변형, v3에서 PASS
+  // Adjudicated FAIL (1건) — human adjudication 확정, production rejection 대상
+  // ------------------------------------------------------------------
+  {
+    sourceQuestionId: "92462",
+    generatedQuestionId: "cmsx8cbrd0007ngroxcce1bfk",
+    group: "adjudicated-fail",
+    expected: "FAIL",
+    reason:
+      "HUMAN ADJUDICATION 확정(2026-08-19): 원문은 '운행차의 최고 속도'인데 생성본은 '화물차의 최고 속도'로 특정. 원천 스니펫·DB에 '운행차=화물차' 근거 없음, 원문에 없는 대상/조건 특정(Rule A/D), 생성 질문·해설 대상 표현도 불일치. source-grounded 정책상 실제 생성 결함 → production rejection/regeneration 대상.",
+  },
+
+  // ------------------------------------------------------------------
+  // Must PASS (23건) — 정상 변형, v3에서 PASS
   // ------------------------------------------------------------------
   {
     sourceQuestionId: "92613",
@@ -184,13 +196,6 @@ export const REQA_TARGETS: ReQaTargetSpec[] = [
     group: "must-pass",
     expected: "PASS",
     reason: "빨간 헝겊 규격 30cm×50cm. 수치 보존.",
-  },
-  {
-    sourceQuestionId: "92462",
-    generatedQuestionId: "cmsx8cbrd0007ngroxcce1bfk",
-    group: "must-pass",
-    expected: "PASS",
-    reason: "젖은 노면 일반도로 최고속도 40km/h. 수치·초점 보존.",
   },
   {
     sourceQuestionId: "92463",
