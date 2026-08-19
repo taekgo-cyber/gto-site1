@@ -17,7 +17,7 @@ import type { ReQaDb } from "../reqa";
 
 type Row = any;
 
-const QA_V3 = "step8-auto-qa-v3";
+const QA_V3 = "step8-auto-qa-v3.1";
 
 function makeCandidate(over: Row = {}): Row {
   return {

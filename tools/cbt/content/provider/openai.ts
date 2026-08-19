@@ -46,6 +46,7 @@ export class OpenAiCompatibleProvider implements LlmProvider {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${this.apiKey}`,
+          "User-Agent": "opencode/1.18.16",
         },
         body: JSON.stringify({
           model: this.model,

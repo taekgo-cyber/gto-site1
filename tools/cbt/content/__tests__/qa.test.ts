@@ -48,7 +48,7 @@ describe("AI Auto-QA (STEP 8 §14)", () => {
     if (result.ok) {
       expect(result.evaluation.pass).toBe(true);
       expect(result.evaluation.hasHallucination).toBe(false);
-      expect(result.promptVersion).toBe("step8-auto-qa-v3");
+      expect(result.promptVersion).toBe("step8-auto-qa-v3.1");
     }
   });
 
@@ -179,8 +179,8 @@ describe("QA 필수 검수 규칙 회귀 (92502/92510/92571)", () => {
 
   it("D: 92571형 — 자연스러운 표현 재구성·주어 보충은 hallucination이 아니다", () => {
     const prompt = buildAutoQaPrompt(candidate, content);
-    expect(prompt).toContain("문맥상 명백한 주어");
-    expect(prompt).toContain("화물운송종사자가");
+    expect(prompt).toContain("생략된 주어/목적어의 단순 보충");
+    expect(prompt).toContain("expression_quality: 표현 품질".replace("expression_quality: ", ""));
     expect(prompt).toContain("hallucination이 아니다");
   });
 
@@ -210,5 +210,53 @@ describe("QA 필수 검수 규칙 회귀 (92502/92510/92571)", () => {
     expect(prompt).toContain(
       "원문 정답이 오답으로 이동하고 원문 오답이 정답으로 승격된 경우",
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// QA v3.1 계약 회귀 고정.
+// (Mock/unit test는 prompt 실제 계약을 고정하는 용도이며 실제 LLM semantic 검증은
+// Stage A LIVE에서 수행한다.)
+// ---------------------------------------------------------------------------
+describe("QA v3.1 규칙 회귀 (92452/92570/92482/92571)", () => {
+  it("Rule D: Explanation에 Source 밖 행동요령 신규 추가(92452형)를 FAIL로 명시한다", () => {
+    const prompt = buildAutoQaPrompt(candidate, content);
+    expect(prompt).toContain("안전 행동요령");
+    expect(prompt).toContain("원문에 존재하지 않는");
+    expect(prompt).toContain("상식/도메인 지식을 이용한 Explanation 보강");
+    expect(prompt).toContain("source-grounded QA에서는 FAIL");
+  });
+
+  it("Rule D: 원인-결과/사고 위험성 신규 추가(92570형)를 FAIL로 명시한다", () => {
+    const prompt = buildAutoQaPrompt(candidate, content);
+    expect(prompt).toContain("새로운 원인-결과 관계, 사고 위험성");
+    expect(prompt).toContain("신규 사실 추가 또는 사실 변경이 있을 때만 true");
+  });
+
+  it("Rule B: 상태(unconditional) — 생성 정답 의미가 원문 정답과 다르면 FAIL(92482형)", () => {
+    const prompt = buildAutoQaPrompt(candidate, content);
+    expect(prompt).toContain("생성 정답의 의미가 원문의 정답 보기 의미와 다르면");
+    expect(prompt).toContain(
+      "외부 지식으로 '원문 정답이 틀렸다'거나 '생성 정답이 더 정확하다'고 판단해 생성 정답을 정당화할 수 없다",
+    );
+    expect(prompt).toContain("원문 정답의 사실 여부를 검증하지 않는다");
+  });
+
+  it("Answer accuracy는 외부 지식으로 옹호하지 않는다는 규칙이 명시된다", () => {
+    const prompt = buildAutoQaPrompt(candidate, content);
+    expect(prompt).toContain("외부 지식·상식으로 생성 정답을 옹호");
+  });
+
+  it("단순 주어 보충(92571형)은 PASS 허용이 유지된다", () => {
+    const prompt = buildAutoQaPrompt(candidate, content);
+    expect(prompt).toContain("생략된 주어/목적어의 단순 보충");
+    expect(prompt).toContain("이들은 hallucination이 아니다");
+  });
+
+  it("PASS 허용(재표현/동의어/재구성)과 FAIL(신규 사실) 경계가 명시된다", () => {
+    const prompt = buildAutoQaPrompt(candidate, content);
+    expect(prompt).toContain("동의어 치환");
+    expect(prompt).toContain("문장 순서 재구성");
+    expect(prompt).toContain("새로운 수치/기간, 조건/예외, 기술적 사실");
   });
 });
