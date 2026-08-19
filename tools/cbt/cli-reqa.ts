@@ -307,6 +307,7 @@ async function runReport(): Promise<void> {
   // 집계
   const failGroup = items.filter((it) => it.group === "must-fail");
   const passGroup = items.filter((it) => it.group === "must-pass");
+  const adjGroup = items.filter((it) => it.group === "adjudicated-fail");
   const edgeGroup = items.filter((it) => it.group === "edge");
 
   const valid = (it: ReportItem) => !isTransientErrorCode(it.v3ErrorCode);
@@ -321,13 +322,19 @@ async function runReport(): Promise<void> {
   const mustPassFailed = mustPassSemantic.filter((it) => it.v3Pass === false);
   const mustPassTransient = passGroup.filter((it) => !valid(it));
 
+  const adjSemantic = adjGroup.filter(valid);
+  const adjPassed = adjSemantic.filter((it) => it.v3Pass === true);
+  const adjFailed = adjSemantic.filter((it) => it.v3Pass === false);
+  const adjTransient = adjGroup.filter((it) => !valid(it));
+
   const edgeSemantic = edgeGroup.filter(valid);
 
   console.log("=== QA v3 실측 집계 ===");
-  console.log(`Must FAIL   : ${mustFailFailed.length}/${mustFailSemantic.length} FAIL (false-positive ${mustFailPassed.length}, transient ${mustFailTransient.length})`);
-  console.log(`Must PASS   : ${mustPassPassed.length}/${mustPassSemantic.length} PASS (false-rejection ${mustPassFailed.length}, transient ${mustPassTransient.length})`);
+  console.log(`Must FAIL        : ${mustFailFailed.length}/${mustFailSemantic.length} FAIL (false-positive ${mustFailPassed.length}, transient ${mustFailTransient.length})`);
+  console.log(`Adjudicated FAIL : ${adjFailed.length}/${adjSemantic.length} FAIL (false-${adjPassed.length}, transient ${adjTransient.length})`);
+  console.log(`Must PASS        : ${mustPassPassed.length}/${mustPassSemantic.length} PASS (false-rejection ${mustPassFailed.length}, transient ${mustPassTransient.length})`);
   console.log(`Edge        : ${edgeSemantic.map((it) => `${it.sourceQuestionId}=${it.v3Pass === null ? (it.v3ErrorCode ?? "?") : it.v3Pass ? "PASS" : "FAIL"}`).join(", ")}`);
-  console.log(`유효 표본   : ${mustFailSemantic.length + mustPassSemantic.length + edgeSemantic.length}/38 (transient 제외)`);
+  console.log(`유효 표본   : ${mustFailSemantic.length + mustPassSemantic.length + adjSemantic.length + edgeSemantic.length}/38 (transient 제외)`);
   console.log("");
   console.log(`DB 안전성   : ${safety.ok ? "OK" : "VIOLATION"} — ${safety.detail}`);
 
@@ -342,12 +349,15 @@ async function runReport(): Promise<void> {
       mustPassPassed: mustPassPassed.map((i) => i.sourceQuestionId),
       mustPassFailed: mustPassFailed.map((i) => i.sourceQuestionId),
       mustPassTransient: mustPassTransient.map((i) => i.sourceQuestionId),
+      adjudicatedFailed: adjFailed.map((i) => i.sourceQuestionId),
+      adjudicatedPassed: adjPassed.map((i) => i.sourceQuestionId),
+      adjudicatedTransient: adjTransient.map((i) => i.sourceQuestionId),
       edge: edgeSemantic.map((i) => ({
         sourceQuestionId: i.sourceQuestionId,
         expected: i.expected,
         v3: i.v3Pass === null ? (i.v3ErrorCode ?? null) : i.v3Pass ? "PASS" : "FAIL",
       })),
-      validSampleCount: mustFailSemantic.length + mustPassSemantic.length + edgeSemantic.length,
+      validSampleCount: mustFailSemantic.length + mustPassSemantic.length + adjSemantic.length + edgeSemantic.length,
     },
   };
   writeFileSync(REPORT_FILE, JSON.stringify(report, null, 2), "utf-8");
