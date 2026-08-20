@@ -72,7 +72,8 @@ async function main(): Promise<void> {
   }
 
   logger.info(
-    `완료: total=${summary.total} approved/rejected=${summary.succeeded} ` +
+    `완료: runId=${summary.runId ?? "-"} total=${summary.total} ` +
+      `approved/rejected=${summary.succeeded} ` +
       `skipped=${summary.skipped} failed=${summary.failed} (${summary.durationMs}ms)`,
   );
 
@@ -84,7 +85,12 @@ async function main(): Promise<void> {
     logger.info("개별 재실행: npm run cbt:review -- --id=<uuid> --approve|--reject");
   }
 
-  if (summary.failed > 0 && summary.succeeded === 0) {
+  if (summary.aborted) {
+    logger.error(
+      `중단 종료: aborted=${summary.aborted} abortReason=${summary.abortReason ?? "알 수 없음"}`,
+    );
+    process.exitCode = 1;
+  } else if (summary.failed > 0 && summary.succeeded === 0) {
     process.exitCode = 1;
   }
 }

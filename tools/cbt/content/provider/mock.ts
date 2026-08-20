@@ -12,7 +12,10 @@ export type MockBehavior =
   | { kind: "malformed_json"; raw?: string }
   | { kind: "empty_response" }
   | { kind: "timeout"; delayMs?: number }
-  | { kind: "provider_error"; message?: string };
+  | { kind: "provider_error"; message?: string }
+  | { kind: "rate_limited"; status?: number }
+  | { kind: "server_error"; status?: number }
+  | { kind: "http_client_error"; status?: number };
 
 export type MockScript = MockBehavior[];
 
@@ -102,6 +105,42 @@ export class MockLlmProvider implements LlmProvider {
           error: {
             code: "provider_error" satisfies LlmFailureCode,
             message: behavior.message ?? "Mock: provider error",
+            rawResponse: null,
+            ...meta,
+          },
+        };
+      }
+      case "rate_limited": {
+        return {
+          ok: false,
+          error: {
+            code: "rate_limited" satisfies LlmFailureCode,
+            message: `Mock: rate limited (HTTP ${behavior.status ?? 429})`,
+            status: behavior.status ?? 429,
+            rawResponse: null,
+            ...meta,
+          },
+        };
+      }
+      case "server_error": {
+        return {
+          ok: false,
+          error: {
+            code: "server_error" satisfies LlmFailureCode,
+            message: `Mock: server error (HTTP ${behavior.status ?? 503})`,
+            status: behavior.status ?? 503,
+            rawResponse: null,
+            ...meta,
+          },
+        };
+      }
+      case "http_client_error": {
+        return {
+          ok: false,
+          error: {
+            code: "http_client_error" satisfies LlmFailureCode,
+            message: `Mock: client error (HTTP ${behavior.status ?? 400})`,
+            status: behavior.status ?? 400,
             rawResponse: null,
             ...meta,
           },

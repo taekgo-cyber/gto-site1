@@ -116,10 +116,17 @@ export type QaEvaluation = {
   pass: boolean;
 };
 
-/** LLM 실패 코드 (STEP 8 §9/§16 No Drop에 기록) */
+/** LLM 실패 코드 (STEP 8 §9/§16 No Drop에 기록)
+ * transient(재시도 대상): timeout / provider_error(network) / rate_limited(429) / server_error(5xx)
+ * terminal(재시도 금지): http_client_error(그 외 4xx) / malformed_json / empty_response /
+ *                        schema_validation_failed / content_invalid / fact_extraction_failed / not_configured
+ */
 export type LlmFailureCode =
   | "timeout"
   | "provider_error"
+  | "rate_limited"
+  | "server_error"
+  | "http_client_error"
   | "malformed_json"
   | "empty_response"
   | "schema_validation_failed"
@@ -131,6 +138,8 @@ export type LlmFailure = {
   code: LlmFailureCode;
   message: string;
   rawResponse: string | null;
+  /** HTTP 상태 코드 (provider 응답 기반 실패 시). 분류 정보 보존용 */
+  status?: number;
   provider: string;
   model: string;
   promptVersion: string;

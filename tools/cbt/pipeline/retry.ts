@@ -25,7 +25,7 @@ export type RetryOptions = {
   sleep?: (ms: number) => Promise<void>;
 };
 
-const defaultSleep = (ms: number) =>
+export const defaultSleep = (ms: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 /** fn이 RetryableError만 재시도하고, 그 외 오류는 즉시 throw한다. */

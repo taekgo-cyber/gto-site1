@@ -25,6 +25,9 @@ export const CBT_CANDIDATE_DIR = path.join(CBT_DATA_DIR, "candidate");
 /** STEP 6 — rawHtmlSnippet 보관 디렉터리 (content-addressable) */
 export const CBT_SNIPPETS_DIR = path.join(CBT_DATA_DIR, "snippets");
 
+/** STEP 9 — batch runner durable run log 디렉터리 (runId별 JSONL) */
+export const CBT_BATCH_RUNS_DIR = path.join(CBT_DATA_DIR, "runs");
+
 export const CANDIDATE_FILES = {
   parsed: path.join(CBT_CANDIDATE_DIR, "parsed.ndjson"),
   review: path.join(CBT_CANDIDATE_DIR, "review.ndjson"),

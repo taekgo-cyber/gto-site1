@@ -52,7 +52,7 @@ describe("runBatchIngest", () => {
           limit: 3,
           force: false,
         },
-        { db: fake.db, storage: createSnippetStorage(snippetsDir), rawDir },
+        { db: fake.db, storage: createSnippetStorage(snippetsDir), rawDir, runLogDir: path.join(root, "runs") },
       );
 
       expect(summary.total).toBe(3);
@@ -72,7 +72,7 @@ describe("runBatchIngest", () => {
       const ids = ["92628"];
       await seedRawFiles(rawDir, ids);
       const fake = createFakePersistDb();
-      const deps = { db: fake.db, storage: createSnippetStorage(snippetsDir), rawDir };
+      const deps = { db: fake.db, storage: createSnippetStorage(snippetsDir), rawDir, runLogDir: path.join(root, "runs") };
 
       const first = await runBatchIngest({ source: NEWBT_SOURCE, ids, limit: 1 }, deps);
       const second = await runBatchIngest({ source: NEWBT_SOURCE, ids, limit: 1 }, deps);
@@ -95,7 +95,7 @@ describe("runBatchIngest", () => {
 
       const summary = await runBatchIngest(
         { source: NEWBT_SOURCE, ids, limit: 2 },
-        { db: fake.db, storage: createSnippetStorage(snippetsDir), rawDir },
+        { db: fake.db, storage: createSnippetStorage(snippetsDir), rawDir, runLogDir: path.join(root, "runs") },
       );
 
       expect(summary.total).toBe(2);
@@ -114,7 +114,7 @@ describe("runBatchIngest", () => {
 
       const summary = await runBatchIngest(
         { source: NEWBT_SOURCE, ids, limit: 2, dryRun: true },
-        { db: fake.db, storage: createSnippetStorage(snippetsDir), rawDir },
+        { db: fake.db, storage: createSnippetStorage(snippetsDir), rawDir, runLogDir: path.join(root, "runs") },
       );
 
       expect(summary.total).toBe(2);
@@ -143,7 +143,7 @@ describe("runBatchIngest", () => {
 
       const summary = await runBatchIngest(
         { source: NEWBT_SOURCE, ids, limit: 3 },
-        { db: fake.db, storage: createSnippetStorage(snippetsDir), rawDir },
+        { db: fake.db, storage: createSnippetStorage(snippetsDir), rawDir, runLogDir: path.join(root, "runs") },
       );
 
       expect(summary.total).toBe(3);

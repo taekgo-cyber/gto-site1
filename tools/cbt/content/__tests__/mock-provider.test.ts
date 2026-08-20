@@ -68,6 +68,36 @@ describe("MockLlmProvider 시나리오 (STEP 8 §9)", () => {
     }
   });
 
+  it("rate_limited → rate_limited + status 보존", async () => {
+    const provider = new MockLlmProvider({ kind: "rate_limited", status: 429 });
+    const result = await provider.generateStructured("p", TEST_SCHEMA);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("rate_limited");
+      expect(result.error.status).toBe(429);
+    }
+  });
+
+  it("server_error → server_error + status 보존", async () => {
+    const provider = new MockLlmProvider({ kind: "server_error", status: 503 });
+    const result = await provider.generateStructured("p", TEST_SCHEMA);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("server_error");
+      expect(result.error.status).toBe(503);
+    }
+  });
+
+  it("http_client_error → http_client_error + status 보존", async () => {
+    const provider = new MockLlmProvider({ kind: "http_client_error", status: 400 });
+    const result = await provider.generateStructured("p", TEST_SCHEMA);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("http_client_error");
+      expect(result.error.status).toBe(400);
+    }
+  });
+
   it("스크립트를 순서대로 소비하고, 소진 후 마지막을 반복한다", async () => {
     const script: MockBehavior[] = [
       { kind: "normal", data: { value: 1, label: "first" } },

@@ -1,7 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeAll, afterAll } from "vitest";
+import { mkdtemp, rm } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { runBatchPromote, MAX_PROMOTE_CONCURRENCY, DEFAULT_PROMOTE_CONCURRENCY } from "../promote";
+import { readRunLog } from "../runlog";
 import { createFakeBatchContentDb } from "./fakeContentStore";
+
+let runLogDir: string;
+beforeAll(async () => {
+  runLogDir = await mkdtemp(path.join(os.tmpdir(), "cbt-promote-runlog-"));
+});
+afterAll(async () => {
+  await rm(runLogDir, { recursive: true, force: true });
+});
 
 describe("runBatchPromote", () => {
   it("APPROVED 2건 → Master 2건 생성", async () => {
@@ -12,7 +24,7 @@ describe("runBatchPromote", () => {
 
     const summary = await runBatchPromote(
       { ids: ["g1", "g2"], limit: 10, concurrency: 2 },
-      { contentDb: fake.contentDb, batchDb: fake.batchContentDb },
+      { contentDb: fake.contentDb, batchDb: fake.batchContentDb, runLogDir },
     );
 
     expect(summary.succeeded).toBe(2);
@@ -33,7 +45,7 @@ describe("runBatchPromote", () => {
 
     const summary = await runBatchPromote(
       { ids: [], all: true, limit: null },
-      { contentDb: fake.contentDb, batchDb: fake.batchContentDb },
+      { contentDb: fake.contentDb, batchDb: fake.batchContentDb, runLogDir },
     );
 
     expect(summary.total).toBe(2);
@@ -63,7 +75,7 @@ describe("runBatchPromote", () => {
 
     const summary = await runBatchPromote(
       { ids: ["g1", "g2"], limit: 10 },
-      { contentDb: fake.contentDb, batchDb: fake.batchContentDb },
+      { contentDb: fake.contentDb, batchDb: fake.batchContentDb, runLogDir },
     );
 
     expect(summary.skipped).toBe(1);
@@ -76,6 +88,12 @@ describe("runBatchPromote", () => {
       (r) => r.generatedQuestionId === "g1",
     );
     expect(g1Masters).toHaveLength(1);
+
+    // run log 검증: skipped는 run_log에서 실패로 기록되지 않는다
+    const log = await readRunLog(runLogDir, summary.runId!);
+    expect(log.failedItemIds).not.toContain("g1");
+    expect(log.runEnd?.succeeded).toBe(summary.total);
+    expect(log.runEnd?.failed).toBe(0);
   });
 
   it("APPROVED가 아닌 문항 → promoteToMaster가 거부, 해당 건 failed (isolation)", async () => {
@@ -86,7 +104,7 @@ describe("runBatchPromote", () => {
 
     const summary = await runBatchPromote(
       { ids: ["g1", "g2"], limit: 10, concurrency: 2 },
-      { contentDb: fake.contentDb, batchDb: fake.batchContentDb },
+      { contentDb: fake.contentDb, batchDb: fake.batchContentDb, runLogDir },
     );
 
     expect(summary.succeeded).toBe(1);
@@ -123,7 +141,7 @@ describe("runBatchPromote", () => {
 
     const summary = await runBatchPromote(
       { ids: ["g1"], limit: 10 },
-      { contentDb: fake.contentDb, batchDb: fake.batchContentDb },
+      { contentDb: fake.contentDb, batchDb: fake.batchContentDb, runLogDir },
     );
 
     const result = summary.results[0];
@@ -142,7 +160,7 @@ describe("runBatchPromote", () => {
 
     const summary = await runBatchPromote(
       { ids: ["g1"], limit: 10, dryRun: true },
-      { contentDb: fake.contentDb, batchDb: fake.batchContentDb },
+      { contentDb: fake.contentDb, batchDb: fake.batchContentDb, runLogDir },
     );
 
     expect(summary.results).toHaveLength(0);
@@ -160,7 +178,7 @@ describe("runBatchPromote", () => {
 
     const summary = await runBatchPromote(
       { ids: ["g1", "g2", "g3", "g4"], limit: 10, concurrency: 2 },
-      { contentDb: fake.contentDb, batchDb: fake.batchContentDb },
+      { contentDb: fake.contentDb, batchDb: fake.batchContentDb, runLogDir },
     );
 
     expect(summary.results).toHaveLength(4);

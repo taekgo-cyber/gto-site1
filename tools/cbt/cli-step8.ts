@@ -4,13 +4,14 @@
 //   npm run cbt:review   -- --id=<uuid> --approve|--reject [--reviewer=<name>]
 //   npm run cbt:promote  -- --id=<uuid>
 //
-// API Key(CBT_LLM_API_KEY)가 없으면 Mock Provider로 전체 흐름을 검증할 수 있다.
-// 사람이 직접 확인하기 위한 진단 출력을 제공한다.
+// generate는 provider fail-closed preflight(API key/baseUrl/model)를 DB 조회/write 전에
+// 실행한다. 유효하지 않으면 거부하며 Mock으로 대체하지 않는다. 진단 출력을 제공한다.
 import "dotenv/config";
 import type { CandidateQuestion } from "@/generated/prisma/client";
 import { runContentProduction } from "./content/pipeline";
 import { reviewGeneratedQuestion, type ReviewAction } from "./content/review";
 import { promoteToMaster } from "./content/promotion";
+import { createConfiguredProvider } from "./content/provider";
 import {
   findGeneratedQuestionById,
   findMasterByGeneratedQuestionId,
@@ -68,10 +69,12 @@ async function cmdGenerate(args: CliArgs): Promise<void> {
   if (!args.candidateId) {
     throw new Error("--candidateId=<uuid> 가 필요합니다.");
   }
+  // DB 조회/쓰기 전 provider fail-closed preflight (API key/baseUrl/model guard).
+  const provider = createConfiguredProvider();
   const db = await getDefaultContentDb();
   const result = await runContentProduction(
     { candidateId: args.candidateId, llmFacts: args.llmFacts },
-    { db },
+    { db, provider },
   );
 
   console.log("[cbt:generate] 완료");

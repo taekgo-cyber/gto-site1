@@ -35,10 +35,18 @@ export type GenerateItemResult = {
 
 /** 배치 실행 최종 요약 */
 export type BatchSummary<T> = {
+  /** durable run log의 runId (Phase 0 D). batch-generate에서 세팅 */
+  runId?: string;
   total: number;
   succeeded: number;
   skipped: number;
   failed: number;
   results: T[];
   durationMs: number;
+  /** 중단 종료 여부 (run log 실패 / circuit open 등) */
+  aborted?: boolean;
+  /** 중단 사유. aborted=true일 때 설정 */
+  abortReason?: AbortReason;
 };
+
+export type AbortReason = "log_failure" | "circuit_open";

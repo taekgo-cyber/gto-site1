@@ -42,7 +42,10 @@ function createFakeBatchDb(candidates: Row[], generatedCandidateIds: string[]) {
     generatedQuestion: {
       async findMany(args: any) {
         if (args?.select?.candidateQuestionId) {
-          return generatedCandidateIds.map((candidateQuestionId) => ({ candidateQuestionId }));
+          return generatedCandidateIds.map((candidateQuestionId) => ({
+            candidateQuestionId,
+            status: "GENERATED",
+          }));
         }
         return [];
       },
@@ -116,5 +119,21 @@ describe("listGenerationTargets", () => {
     );
     const selection = await listGenerationTargets(db);
     expect(selection.targets.map((t) => t.id)).toEqual(["cq-1", "cq-2", "cq-3"]);
+  });
+
+  it("ids 제공 시 입력 순서를 유지하고 REJECTED는 제외한다", async () => {
+    const db = createFakeBatchDb(
+      [
+        makeCandidate("cq-a", "VALID", 1),
+        makeCandidate("cq-b", "REJECTED", 2),
+        makeCandidate("cq-c", "VALID", 3),
+      ],
+      [],
+    );
+    const selection = await listGenerationTargets(db, {
+      ids: ["cq-c", "cq-b", "cq-a"],
+    });
+    expect(selection.targets.map((t) => t.id)).toEqual(["cq-c", "cq-a"]);
+    expect(selection.totalEligible).toBe(2);
   });
 });

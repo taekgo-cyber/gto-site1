@@ -17,7 +17,9 @@ import {
 import { resolveBatchScope } from "./guard";
 import { createBatchLogger, type BatchLogger } from "./logger";
 import { runPool } from "../pipeline/pool";
-import type { BatchSummary } from "./types";
+import { createRunLogSession, type RunLogEntry } from "./runlog";
+import { CBT_BATCH_RUNS_DIR } from "../config";
+import type { AbortReason, BatchSummary } from "./types";
 
 export const MAX_PROMOTE_CONCURRENCY = 10;
 export const DEFAULT_PROMOTE_CONCURRENCY = 3;
@@ -45,6 +47,10 @@ export type BatchPromoteDeps = {
   contentDb?: ContentDb;
   batchDb?: BatchContentDb;
   logger?: BatchLogger;
+  /** run log 디렉터리 (기본 CBT_BATCH_RUNS_DIR). 테스트 주입용 */
+  runLogDir?: string;
+  /** run log append 주입 (테스트 전용. mid-run 실패 시뮬레이션) */
+  appendRunLog?: (dir: string, entry: RunLogEntry) => Promise<void>;
 };
 
 /** Prisma known request error P2002 (unique constraint violation) 여부 */
@@ -64,6 +70,7 @@ export async function runBatchPromote(
   const logger = deps.logger ?? createBatchLogger("batch-promote");
   const contentDb = deps.contentDb ?? (await getDefaultContentDb());
   const batchDb = deps.batchDb ?? (await getDefaultBatchContentDb());
+  const runLogDir = deps.runLogDir ?? CBT_BATCH_RUNS_DIR;
 
   const startedAt = Date.now();
 
@@ -104,57 +111,118 @@ export async function runBatchPromote(
     `concurrency=${concurrency} (기본 ${DEFAULT_PROMOTE_CONCURRENCY}, 최대 ${MAX_PROMOTE_CONCURRENCY})`,
   );
 
+  // fail-closed preflight: run log를 열 수 없으면 DB write를 시작하지 않는다.
+  const session = await createRunLogSession({
+    dir: runLogDir,
+    command: "batch-promote",
+    args: [
+      ...(opts.all ? ["--all"] : ids.map((id) => `--ids=${id}`)),
+      `--limit=${ids.length}`,
+      "--concurrency=" + concurrency,
+    ],
+    targets: ids,
+    total: ids.length,
+    concurrency,
+    append: deps.appendRunLog,
+  });
+  logger.info(`runId: ${session.runId} (대상 ${ids.length}건)`);
+
   const results = await runPool(ids, concurrency, async (id) => {
     const itemStartedAt = Date.now();
+
+    if (session.isBroken()) {
+      // mid-run run log append 실패 → 신규 항목 스케줄링 중단
+      return {
+        generatedQuestionId: id,
+        outcome: "failed" as const,
+        error: "runlog_broken: run log 실패로 신규 항목 스케줄링 중단",
+        durationMs: Date.now() - itemStartedAt,
+      };
+    }
+
+    let result: PromoteItemResult;
     try {
       const outcome = await promoteToMaster(contentDb, id);
       if (outcome.created) {
         logger.info(`${id} → promoted (${outcome.masterQuestionId})`);
-        return {
+        result = {
           generatedQuestionId: id,
           outcome: "promoted" as const,
           masterQuestionId: outcome.masterQuestionId,
           durationMs: Date.now() - itemStartedAt,
         };
+      } else {
+        logger.info(`${id} → skipped (이미 승격됨)`);
+        result = {
+          generatedQuestionId: id,
+          outcome: "skipped" as const,
+          masterQuestionId: outcome.masterQuestionId,
+          durationMs: Date.now() - itemStartedAt,
+        };
       }
-      logger.info(`${id} → skipped (이미 승격됨)`);
-      return {
-        generatedQuestionId: id,
-        outcome: "skipped" as const,
-        masterQuestionId: outcome.masterQuestionId,
-        durationMs: Date.now() - itemStartedAt,
-      };
     } catch (error) {
       // unique violation → 동시 승격 race. 이미 승격된 것으로 간주해 skip (batch 중단 금지)
       if (isUniqueViolation(error)) {
         logger.info(`${id} → skipped (unique conflict P2002)`);
-        return {
+        result = {
           generatedQuestionId: id,
           outcome: "skipped" as const,
           error: "unique violation (P2002): already promoted",
           durationMs: Date.now() - itemStartedAt,
         };
+      } else {
+        logger.info(`${id} → failed`);
+        result = {
+          generatedQuestionId: id,
+          outcome: "failed" as const,
+          error: error instanceof Error ? error.message : String(error),
+          durationMs: Date.now() - itemStartedAt,
+        };
       }
-      logger.info(`${id} → failed`);
-      return {
+    }
+
+    const appended = await session.appendItem(
+      id,
+      result.outcome === "failed" ? "failed" : "succeeded",
+      result.outcome === "skipped"
+        ? "skipped (이미 승격됨)"
+        : result.error ?? (result.outcome === "promoted" ? "promoted" : undefined),
+    );
+    if (!appended) {
+      // append failure(기록 실패 또는 broken 상태) → 감사 기록을 보존할 수 없으므로 실패 처리
+      result = {
         generatedQuestionId: id,
         outcome: "failed" as const,
-        error: error instanceof Error ? error.message : String(error),
+        error: "runlog_append_failed: 항목 결과를 run log에 기록하지 못했습니다",
         durationMs: Date.now() - itemStartedAt,
       };
     }
+    return result;
   });
 
   const promoted = results.filter((r) => r.outcome === "promoted").length;
   const skipped = results.filter((r) => r.outcome === "skipped").length;
   const failed = results.filter((r) => r.outcome === "failed").length;
 
+  // 중단 종료: run log 손상이면 log_failure
+  const aborted = session.isBroken();
+  const abortReason: AbortReason | undefined = aborted ? "log_failure" : undefined;
+
+  // finish는 항목 기록이 깨졌으면 throw한다 (fail-closed)
+  await session.finish(promoted + skipped, failed, Date.now() - startedAt, {
+    aborted,
+    abortReason,
+  });
+
   return {
+    runId: session.runId,
     total: ids.length,
     succeeded: promoted,
     skipped,
     failed,
     results,
     durationMs: Date.now() - startedAt,
+    aborted,
+    abortReason,
   };
 }

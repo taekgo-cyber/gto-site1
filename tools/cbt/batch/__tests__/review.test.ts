@@ -1,6 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeAll, afterAll } from "vitest";
+import { mkdtemp, rm } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { runBatchReview } from "../review";
+import { readRunLog } from "../runlog";
 import { createFakeBatchContentDb } from "./fakeContentStore";
+
+let runLogDir: string;
+beforeAll(async () => {
+  runLogDir = await mkdtemp(path.join(os.tmpdir(), "cbt-review-runlog-"));
+});
+afterAll(async () => {
+  await rm(runLogDir, { recursive: true, force: true });
+});
 
 describe("runBatchReview", () => {
   it("QA_PASSED 2건 approve → APPROVED + reviewer 기록", async () => {
@@ -11,7 +23,7 @@ describe("runBatchReview", () => {
 
     const summary = await runBatchReview(
       { action: "approve", ids: ["g1", "g2"], limit: 10, reviewer: "taekg" },
-      { contentDb: fake.contentDb, batchDb: fake.batchContentDb },
+      { contentDb: fake.contentDb, batchDb: fake.batchContentDb, runLogDir },
     );
 
     expect(summary.succeeded).toBe(2);
@@ -30,7 +42,7 @@ describe("runBatchReview", () => {
 
     const summary = await runBatchReview(
       { action: "reject", ids: ["g1"], limit: 10 },
-      { contentDb: fake.contentDb, batchDb: fake.batchContentDb },
+      { contentDb: fake.contentDb, batchDb: fake.batchContentDb, runLogDir },
     );
 
     expect(summary.results[0].outcome).toBe("rejected");
@@ -46,7 +58,7 @@ describe("runBatchReview", () => {
 
     const summary = await runBatchReview(
       { action: "approve", ids: ["g1", "g2"], limit: 10 },
-      { contentDb: fake.contentDb, batchDb: fake.batchContentDb },
+      { contentDb: fake.contentDb, batchDb: fake.batchContentDb, runLogDir },
     );
 
     expect(summary.succeeded).toBe(1);
@@ -70,13 +82,19 @@ describe("runBatchReview", () => {
 
     const summary = await runBatchReview(
       { action: "approve", ids: ["g1", "g2"], limit: 10 },
-      { contentDb: fake.contentDb, batchDb: fake.batchContentDb },
+      { contentDb: fake.contentDb, batchDb: fake.batchContentDb, runLogDir },
     );
 
     expect(summary.skipped).toBe(1);
     const skipped = summary.results.find((r) => r.generatedQuestionId === "g1");
     expect(skipped?.outcome).toBe("skipped");
     expect(skipped?.status).toBe("APPROVED");
+
+    // run log 검증: alreadyResolved skip은 run_log에서 실패로 기록되지 않는다
+    const log = await readRunLog(runLogDir, summary.runId!);
+    expect(log.failedItemIds).not.toContain("g1");
+    expect(log.runEnd?.succeeded).toBe(summary.total);
+    expect(log.runEnd?.failed).toBe(0);
   });
 
   it("--all 모드는 QA_PASSED 전체를 대상으로 한다", async () => {
@@ -88,7 +106,7 @@ describe("runBatchReview", () => {
 
     const summary = await runBatchReview(
       { action: "approve", ids: [], all: true, limit: null, confirmAll: true },
-      { contentDb: fake.contentDb, batchDb: fake.batchContentDb },
+      { contentDb: fake.contentDb, batchDb: fake.batchContentDb, runLogDir },
     );
 
     expect(summary.total).toBe(2);
@@ -105,7 +123,7 @@ describe("runBatchReview", () => {
     await expect(
       runBatchReview(
         { action: "approve", ids: [], all: true, limit: null },
-        { contentDb: fake.contentDb, batchDb: fake.batchContentDb },
+        { contentDb: fake.contentDb, batchDb: fake.batchContentDb, runLogDir },
       ),
     ).rejects.toThrow("confirm flag");
   });
@@ -117,7 +135,7 @@ describe("runBatchReview", () => {
 
     const summary = await runBatchReview(
       { action: "approve", ids: ["g1"], limit: 10, dryRun: true },
-      { contentDb: fake.contentDb, batchDb: fake.batchContentDb },
+      { contentDb: fake.contentDb, batchDb: fake.batchContentDb, runLogDir },
     );
 
     expect(summary.results).toHaveLength(0);
@@ -134,7 +152,7 @@ describe("runBatchReview", () => {
 
     await runBatchReview(
       { action: "approve", ids: ["g1"], limit: 10 },
-      { contentDb: fake.contentDb, batchDb: fake.batchContentDb },
+      { contentDb: fake.contentDb, batchDb: fake.batchContentDb, runLogDir },
     );
 
     const g1 = fake.store.generatedQuestions.find((r) => r.id === "g1");
