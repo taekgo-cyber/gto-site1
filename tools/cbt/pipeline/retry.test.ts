@@ -103,6 +103,97 @@ describe("withRetry", () => {
     ).rejects.toThrow("nope");
     expect(noopSleep).not.toHaveBeenCalled();
   });
+
+  it("computeDelay가 number를 반환하면 그 지연을 사용한다", async () => {
+    const delays: number[] = [];
+    const sleep = vi.fn(async (ms: number) => {
+      delays.push(ms);
+    });
+    let calls = 0;
+    const result = await withRetry(
+      async () => {
+        calls += 1;
+        if (calls < 2) throw new RetryableError("transient");
+        return "ok";
+      },
+      {
+        maxRetries: 3,
+        baseDelayMs: 100,
+        sleep,
+        computeDelay: () => 5000,
+      },
+    );
+    expect(result).toBe("ok");
+    expect(calls).toBe(2);
+    expect(delays).toEqual([5000]);
+  });
+
+  it("computeDelay가 fail-fast를 반환하면 추가 시도 없이 종료한다 (sleep 0, attempt 1)", async () => {
+    const sleep = vi.fn(async () => {});
+    let calls = 0;
+    const error = new RetryableError("always fails");
+    await expect(
+      withRetry(
+        async () => {
+          calls += 1;
+          throw error;
+        },
+        {
+          maxRetries: 3,
+          baseDelayMs: 100,
+          sleep,
+          computeDelay: () => "fail-fast" as const,
+        },
+      ),
+    ).rejects.toThrow("always fails");
+    expect(calls).toBe(1);
+    expect(sleep).not.toHaveBeenCalled();
+  });
+
+  it("computeDelay가 undefined면 기본 지수 backoff를 사용한다", async () => {
+    const delays: number[] = [];
+    const sleep = vi.fn(async (ms: number) => {
+      delays.push(ms);
+    });
+    const error = new RetryableError("always fails");
+    await expect(
+      withRetry(
+        async () => {
+          throw error;
+        },
+        {
+          maxRetries: 2,
+          baseDelayMs: 100,
+          sleep,
+          computeDelay: () => undefined,
+        },
+      ),
+    ).rejects.toThrow("always fails");
+    expect(delays).toEqual([100, 200]);
+  });
+
+  it("computeDelay가 0을 반환하면 즉시 재시도한다 (sleep 0)", async () => {
+    const delays: number[] = [];
+    const sleep = vi.fn(async (ms: number) => {
+      delays.push(ms);
+    });
+    let calls = 0;
+    const result = await withRetry(
+      async () => {
+        calls += 1;
+        if (calls < 2) throw new RetryableError("transient");
+        return "ok";
+      },
+      {
+        maxRetries: 3,
+        baseDelayMs: 100,
+        sleep,
+        computeDelay: () => 0,
+      },
+    );
+    expect(result).toBe("ok");
+    expect(delays).toEqual([0]);
+  });
 });
 
 describe("fetchWithRetry", () => {

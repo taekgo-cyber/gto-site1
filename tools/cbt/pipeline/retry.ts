@@ -16,6 +16,14 @@ export function isRetryableStatus(status: number): boolean {
   return status === 429 || status >= 500;
 }
 
+/**
+ * 재시도 대기 선택 결과.
+ * - number: 이 지연(ms)으로 sleep
+ * - "fail-fast": 대기/추가 시도 없이 즉시 마지막 오류로 종료
+ * - undefined: 기본 지수 backoff 사용
+ */
+export type RetryDelayResult = number | "fail-fast" | undefined;
+
 export type RetryOptions = {
   /** 최대 재시도 횟수 (0이면 1회만 시도) */
   maxRetries: number;
@@ -23,6 +31,15 @@ export type RetryOptions = {
   baseDelayMs: number;
   /** 재시도 대기용 시계 주입 (테스트에서 시간 가속/단축) */
   sleep?: (ms: number) => Promise<void>;
+  /**
+   * 재시도 대기 선택 훅. error를 보고 지연을 커스텀한다(예: 서버 Retry-After 반영).
+   * 반환값: number = 해당 지연 사용 / "fail-fast" = 추가 시도 없이 종료 / undefined = 기본 지수 backoff.
+   */
+  computeDelay?: (
+    error: unknown,
+    attempt: number,
+    baseDelayMs: number,
+  ) => RetryDelayResult;
 };
 
 export const defaultSleep = (ms: number) =>
@@ -46,7 +63,10 @@ export async function withRetry<T>(
       lastError = error;
       if (!(error instanceof RetryableError)) throw error;
       if (attempt >= maxRetries) break;
-      const delayMs = baseDelayMs * 2 ** attempt;
+      const computed = options.computeDelay?.(error, attempt, baseDelayMs);
+      if (computed === "fail-fast") break;
+      const delayMs =
+        typeof computed === "number" ? computed : baseDelayMs * 2 ** attempt;
       await sleep(delayMs);
     }
   }

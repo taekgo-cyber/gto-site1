@@ -140,6 +140,10 @@ export type LlmFailure = {
   rawResponse: string | null;
   /** HTTP 상태 코드 (provider 응답 기반 실패 시). 분류 정보 보존용 */
   status?: number;
+  /** Retry-After 헤더가 유효했을 때 서버가 요청한 대기(ms). transient에만 존재 (보존용) */
+  retryAfterMs?: number;
+  /** provider가 반환한 안전한 오류 detail (error.message/type/param/code만, bounded). raw body/secret 미포함 */
+  detail?: string;
   provider: string;
   model: string;
   promptVersion: string;

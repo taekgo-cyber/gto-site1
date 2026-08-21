@@ -11,6 +11,7 @@ import {
 import type { LlmProvider } from "./types";
 import { MockLlmProvider } from "./mock";
 import { OpenAiCompatibleProvider } from "./openai";
+import type { OpenAiCompatibleConfig } from "./openai";
 import type { GeneratedQuestionLlmOutput, QaLlmOutput } from "../schemas";
 
 // ---------------------------------------------------------------------------
@@ -80,10 +81,25 @@ export const MOCK_QA_PASS: QaLlmOutput = {
 };
 
 /**
+ * 런타임으로만 보정 가능한 provider 동작 override (테스트/probe 전용).
+ * API key/baseUrl/model은 env에서 읽으므로 여기서 변경할 수 없다.
+ * 예: probe --run이 maxRetries=0을 지정해 정확히 1 HTTP attempt를 만들 때 사용.
+ */
+export type ProviderRuntimeOverride = Partial<
+  Pick<
+    OpenAiCompatibleConfig,
+    "maxRetries" | "backoffBaseMs" | "sleep" | "timeoutMs" | "now"
+  >
+>;
+
+/**
  * OpenAI-compatible Provider 인스턴스 생성 (config에서 retry/backoff 주입).
  * 재시도 정책(최대 횟수/기본 backoff)은 config.ts의 값을 그대로 존중한다.
+ * 선택적 override로 maxRetries 등만 보정한다 (env는 변경 불가).
  */
-export function createOpenAiProvider(): OpenAiCompatibleProvider {
+export function createOpenAiProvider(
+  overrides?: ProviderRuntimeOverride,
+): OpenAiCompatibleProvider {
   const { apiKey, baseUrl, model } = readRuntimeProviderEnv();
   return new OpenAiCompatibleProvider({
     baseUrl,
@@ -92,6 +108,7 @@ export function createOpenAiProvider(): OpenAiCompatibleProvider {
     timeoutMs: CBT_LLM_TIMEOUT_MS,
     maxRetries: CBT_LLM_MAX_RETRIES,
     backoffBaseMs: CBT_RETRY_BASE_DELAY_MS,
+    ...overrides,
   });
 }
 
@@ -115,7 +132,9 @@ export function assertValidProviderConfig(): void {
  * CBT_LLM_BASE_URL/CBT_LLM_MODEL 무효 시 DB/LLM 쓰기 전에 throw한다.
  * mock이 필요한 단위테스트는 deps.provider로 명시 주입한다 (createDefaultProvider).
  */
-export function createConfiguredProvider(): LlmProvider {
+export function createConfiguredProvider(
+  overrides?: ProviderRuntimeOverride,
+): LlmProvider {
   const { apiKey } = readRuntimeProviderEnv();
   if (apiKey.trim() === "") {
     throw new Error(
@@ -123,7 +142,7 @@ export function createConfiguredProvider(): LlmProvider {
     );
   }
   assertValidProviderConfig();
-  return createOpenAiProvider();
+  return createOpenAiProvider(overrides);
 }
 
 /**

@@ -88,4 +88,30 @@ describe("createOpenAiProvider / createDefaultProvider", () => {
     const provider = createDefaultProvider();
     expect(provider.provider).toBe("mock");
   });
+
+  it("createOpenAiProvider({ maxRetries: 0 }) override를 반영해 생성한다", () => {
+    process.env.CBT_LLM_API_KEY = "k";
+    process.env.CBT_LLM_BASE_URL = "https://api.example.test/v1";
+    process.env.CBT_LLM_MODEL = "model-x";
+    const provider = createOpenAiProvider({ maxRetries: 0 });
+    expect(provider.provider).toBe("openai-compatible");
+    expect(provider.model).toBe("model-x");
+  });
+
+  it("createOpenAiProvider({ now }) override를 반영해 생성한다", () => {
+    process.env.CBT_LLM_API_KEY = "k";
+    process.env.CBT_LLM_BASE_URL = "https://api.example.test/v1";
+    process.env.CBT_LLM_MODEL = "model-x";
+    const provider = createOpenAiProvider({ now: () => new Date("2026-01-01T00:00:00Z") });
+    expect(provider.provider).toBe("openai-compatible");
+  });
+
+  it("createConfiguredProvider({ maxRetries: 0 }) override로 생성한다", () => {
+    process.env.CBT_LLM_API_KEY = "k";
+    process.env.CBT_LLM_BASE_URL = "https://api.example.test/v1";
+    process.env.CBT_LLM_MODEL = "model-x";
+    const provider = createConfiguredProvider({ maxRetries: 0 });
+    expect(provider.provider).toBe("openai-compatible");
+    expect(provider.model).toBe("model-x");
+  });
 });

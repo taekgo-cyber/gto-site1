@@ -16,6 +16,12 @@ import type { LlmProvider } from "./types";
 import type { LlmFailureCode } from "../types";
 import { RetryableError, withRetry, defaultSleep } from "../../pipeline/retry";
 
+/**
+ * Retry-After 헤더 최대 대기(ms). 유효한 Retry-After가 이 값을 초과하면 잘라 재시도하지 않고
+ * 해당 logical call 안에서 즉시 transient failure로 종료해 상위 breaker/runbook으로 제어를 넘긴다.
+ */
+export const MAX_RETRY_AFTER_WAIT_MS = 60_000;
+
 /** terminal 실패의 LLM 코드 */
 type TerminalLlmCode = "http_client_error" | "empty_response" | "malformed_json";
 
@@ -23,14 +29,24 @@ type TerminalLlmCode = "http_client_error" | "empty_response" | "malformed_json"
 class ProviderTerminalError extends Error {
   readonly code: TerminalLlmCode;
   readonly status?: number;
+  readonly detail?: string;
 
-  constructor(code: TerminalLlmCode, message: string, status?: number) {
+  constructor(
+    code: TerminalLlmCode,
+    message: string,
+    status?: number,
+    detail?: string,
+  ) {
     super(message);
     this.name = "ProviderTerminalError";
     this.code = code;
     this.status = status;
+    this.detail = detail;
   }
 }
+
+/** safe error detail 최대 길이 (raw body 노출 방지용 truncate) */
+const SAFE_ERROR_DETAIL_MAX_CHARS = 300;
 
 /**
  * transient provider 오류: retry.ts의 RetryableError를 상속해 withRetry 대상이 된다.
@@ -39,13 +55,54 @@ class ProviderTerminalError extends Error {
 class LlmTransientError extends RetryableError {
   readonly code: LlmFailureCode;
   readonly status?: number;
+  readonly retryAfterMs?: number;
+  readonly detail?: string;
 
-  constructor(code: LlmFailureCode, message: string, status?: number) {
+  constructor(
+    code: LlmFailureCode,
+    message: string,
+    status?: number,
+    retryAfterMs?: number,
+    detail?: string,
+  ) {
     super(message);
     this.name = "LlmTransientError";
     this.code = code;
     this.status = status;
+    this.retryAfterMs = retryAfterMs;
+    this.detail = detail;
   }
+}
+
+/**
+ * non-ok 응답의 body에서 안전한 오류 detail(error.message/type/param/code)만 추출한다.
+ * - body를 정확히 1회 읽는다 (empty/non-JSON이면 undefined → 기존 동작 유지).
+ * - raw body/Authorization/API key/token은 추출하지 않는다.
+ * - 반환 문자열은 SAFE_ERROR_DETAIL_MAX_CHARS로 bounded.
+ */
+async function extractSafeErrorDetail(
+  response: { json(): Promise<unknown> },
+): Promise<string | undefined> {
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch {
+    return undefined;
+  }
+  if (typeof body !== "object" || body === null) return undefined;
+  const err = (body as { error?: unknown }).error;
+  if (typeof err !== "object" || err === null) return undefined;
+  const e = err as {
+    message?: unknown;
+    type?: unknown;
+    param?: unknown;
+    code?: unknown;
+  };
+  const parts = [e.type, e.code, e.param, e.message]
+    .filter((v): v is string => typeof v === "string" && v.trim() !== "")
+    .map((v) => v.trim());
+  if (parts.length === 0) return undefined;
+  return parts.join(" | ").slice(0, SAFE_ERROR_DETAIL_MAX_CHARS);
 }
 
 /**
@@ -60,6 +117,34 @@ export function classifyHttpStatus(status: number): LlmFailureCode {
   return "http_client_error";
 }
 
+/**
+ * Retry-After 헤더(seconds 또는 HTTP-date)를 대기(ms)로 파싱한다.
+ * - invalid / NaN / 0 / 음수 / 과거 시간 → undefined (헤더 없음으로 취급 → 기본 exponential backoff)
+ * - 유효하면 대기 ms를 반환한다 (cap 초과 판단은 호출부 computeDelay가 담당)
+ */
+export function parseRetryAfterMs(
+  headerValue: string | null,
+  now: () => Date,
+): number | undefined {
+  if (headerValue === null) return undefined;
+  const trimmed = headerValue.trim();
+  if (trimmed === "") return undefined;
+
+  // Retry-After: <seconds>
+  if (/^[0-9]+$/.test(trimmed)) {
+    const seconds = Number.parseInt(trimmed, 10);
+    if (!Number.isFinite(seconds) || seconds <= 0) return undefined;
+    return seconds * 1000;
+  }
+
+  // Retry-After: <HTTP-date>
+  const dateMs = Date.parse(trimmed);
+  if (Number.isNaN(dateMs)) return undefined;
+  const delta = dateMs - now().getTime();
+  if (delta <= 0) return undefined;
+  return delta;
+}
+
 export type OpenAiCompatibleConfig = {
   baseUrl: string;
   apiKey: string;
@@ -71,6 +156,8 @@ export type OpenAiCompatibleConfig = {
   backoffBaseMs?: number;
   /** 재시도 대기용 sleep 주입 (테스트 전용. production에서는 주입하지 않는다) */
   sleep?: (ms: number) => Promise<void>;
+  /** Retry-After HTTP-date 계산용 시계 주입 (테스트 전용. 기본 new Date) */
+  now?: () => Date;
 };
 
 export class OpenAiCompatibleProvider implements LlmProvider {
@@ -83,6 +170,7 @@ export class OpenAiCompatibleProvider implements LlmProvider {
   private readonly maxRetries: number;
   private readonly backoffBaseMs: number;
   private readonly sleep: (ms: number) => Promise<void>;
+  private readonly now: () => Date;
 
   constructor(config: OpenAiCompatibleConfig) {
     this.baseUrl = config.baseUrl.replace(/\/+$/, "");
@@ -92,6 +180,7 @@ export class OpenAiCompatibleProvider implements LlmProvider {
     this.maxRetries = config.maxRetries ?? 3;
     this.backoffBaseMs = config.backoffBaseMs ?? 1000;
     this.sleep = config.sleep ?? defaultSleep;
+    this.now = config.now ?? (() => new Date());
   }
 
   private buildEndpoint(): string {
@@ -126,17 +215,25 @@ export class OpenAiCompatibleProvider implements LlmProvider {
 
       if (!response.ok) {
         const code = classifyHttpStatus(response.status);
+        const detail = await extractSafeErrorDetail(response);
         if (code === "http_client_error") {
           throw new ProviderTerminalError(
             "http_client_error",
             `API 응답 ${response.status} ${response.statusText}`,
             response.status,
+            detail,
           );
         }
+        const retryAfterMs = parseRetryAfterMs(
+          response.headers.get("retry-after"),
+          this.now,
+        );
         throw new LlmTransientError(
           code,
           `API 응답 ${response.status} ${response.statusText}`,
           response.status,
+          retryAfterMs,
+          detail,
         );
       }
 
@@ -196,6 +293,18 @@ export class OpenAiCompatibleProvider implements LlmProvider {
           maxRetries: this.maxRetries,
           baseDelayMs: this.backoffBaseMs,
           sleep: this.sleep,
+          computeDelay: (error, attempt) => {
+            if (
+              error instanceof LlmTransientError &&
+              error.retryAfterMs !== undefined
+            ) {
+              // 서버가 요청한 대기가 최대 허용 대기 초과 시 즉시 transient failure로 종료
+              if (error.retryAfterMs > MAX_RETRY_AFTER_WAIT_MS) return "fail-fast";
+              const exponential = this.backoffBaseMs * 2 ** attempt;
+              return Math.max(exponential, error.retryAfterMs);
+            }
+            return undefined; // 기본 exponential backoff 사용
+          },
         },
       );
       // schema 검증 실패는 retry하지 않는다 (No Drop, 원본 보존)
@@ -208,6 +317,8 @@ export class OpenAiCompatibleProvider implements LlmProvider {
             code: err.code,
             message: err.message,
             status: err.status,
+            retryAfterMs: err.retryAfterMs,
+            detail: err.detail,
             rawResponse: null,
             ...meta,
           },
@@ -220,6 +331,7 @@ export class OpenAiCompatibleProvider implements LlmProvider {
             code: err.code,
             message: err.message,
             status: err.status,
+            detail: err.detail,
             rawResponse: null,
             ...meta,
           },

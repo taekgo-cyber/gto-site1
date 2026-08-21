@@ -29,7 +29,8 @@
     "cbt:dataset-audit": "tsx tools/cbt/cli-dataset-audit.ts",
     "cbt:answer-fetch": "tsx tools/cbt/cli-answer-fetch.ts",
     "cbt:id-enum": "tsx tools/cbt/cli-id-enum.ts",
-    "cbt:category-backfill": "tsx tools/cbt/cli-category-backfill.ts"
+    "cbt:category-backfill": "tsx tools/cbt/cli-category-backfill.ts",
+    "cbt:provider-probe": "tsx tools/cbt/cli-provider-probe.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
