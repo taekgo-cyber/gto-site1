@@ -12,6 +12,12 @@ const prismaMock = vi.hoisted(() => ({
   candidateLead: { findUnique: vi.fn(), update: vi.fn() },
   leadMatch: { findUnique: vi.fn() },
   leadContactUnlock: { findUnique: vi.fn(), count: vi.fn(), create: vi.fn() },
+  companyRecruitmentEntitlement: { findMany: vi.fn() },
+  companyQuotaUsage: { findUnique: vi.fn(), upsert: vi.fn(), updateMany: vi.fn() },
+  companyQuotaConsumption: { findUnique: vi.fn(), create: vi.fn() },
+  creditAccount: { findUnique: vi.fn(), updateMany: vi.fn() },
+  creditGrant: { findMany: vi.fn(), updateMany: vi.fn() },
+  creditTransaction: { findUnique: vi.fn(), create: vi.fn() },
 }));
 
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
@@ -57,6 +63,18 @@ function configureTransaction() {
   prismaMock.$transaction.mockImplementation(async (callback: (tx: typeof prismaMock) => unknown) => callback(prismaMock));
   prismaMock.$queryRaw.mockResolvedValue([]);
   prismaMock.candidateLead.update.mockResolvedValue(lead());
+  prismaMock.companyRecruitmentEntitlement.findMany.mockResolvedValue([]);
+  prismaMock.companyQuotaConsumption.findUnique.mockResolvedValue(null);
+  prismaMock.companyQuotaUsage.findUnique.mockResolvedValue(null);
+  prismaMock.companyQuotaUsage.upsert.mockResolvedValue({ id: "quota-1", companyId: "company-a", allowanceType: "CONTACT_UNLOCK", windowStart: new Date(), windowEnd: new Date(), consumedCount: 0 });
+  prismaMock.companyQuotaUsage.updateMany.mockResolvedValue({ count: 0 });
+  prismaMock.companyQuotaConsumption.create.mockResolvedValue({ id: "quota-consumption-1" });
+  prismaMock.creditAccount.findUnique.mockResolvedValue(null);
+  prismaMock.creditAccount.updateMany.mockResolvedValue({ count: 1 });
+  prismaMock.creditGrant.findMany.mockResolvedValue([]);
+  prismaMock.creditGrant.updateMany.mockResolvedValue({ count: 1 });
+  prismaMock.creditTransaction.findUnique.mockResolvedValue(null);
+  prismaMock.creditTransaction.create.mockResolvedValue({ id: "credit-transaction-1" });
 }
 
 function configureActiveMatch() {
@@ -142,5 +160,17 @@ describe("contact unlock privacy and entitlement boundary", () => {
 
     prismaMock.candidateLead.findUnique.mockResolvedValue(lead("CLOSED"));
     await expect(readUnlockedLeadContact({ companyId: "company-a", leadId: "lead-1", actorUserId: "company-user" })).rejects.toThrow(/not active/);
+  });
+
+  it("uses generic Company Credit for a production-path unlock when free quota is zero", async () => {
+    prismaMock.leadContactUnlock.findUnique.mockResolvedValue(null);
+    prismaMock.leadContactUnlock.count.mockResolvedValue(0);
+    prismaMock.leadContactUnlock.create.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({ id: "unlock-paid", ...data }));
+    prismaMock.creditAccount.findUnique.mockResolvedValue({ id: "account-1", companyId: "company-a", balance: 20_000 });
+    prismaMock.creditGrant.findMany.mockResolvedValue([{ id: "grant-1", remainingAmount: 20_000, expiresAt: null, createdAt: new Date() }]);
+
+    const result = await unlockLeadContact({ companyId: "company-a", leadId: "lead-1", actorUserId: "company-user", policy: { maxContactUnlocksPerLead: 2, policyVersion: "v1" } });
+    expect(result.unlock.entitlementSource).toBe("CREDIT");
+    expect(prismaMock.creditTransaction.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ amountDelta: -20_000, allowanceType: "CONTACT_UNLOCK", referenceType: "LeadContactUnlock" }) }));
   });
 });

@@ -40,6 +40,13 @@ export type QuotaConsumeResult = QuotaStatus & {
   consumptionId: string | null;
 };
 
+export class QuotaIdempotencyConflictError extends Error {
+  constructor(message = "Quota idempotency key conflicts with a different logical operation") {
+    super(message);
+    this.name = "QuotaIdempotencyConflictError";
+  }
+}
+
 export type QuotaServiceInput = {
   actorUserId: string;
   companyId: string;
@@ -121,6 +128,85 @@ async function readQuotaStatus(db: QuotaDalDb, input: QuotaServiceInput, now: Da
   return buildStatus({ companyId: input.companyId, allowanceType: input.allowanceType, tier, window, usage });
 }
 
+async function consumeQuotaInTransaction(input: QuotaServiceInput, tx: QuotaDalDb): Promise<QuotaConsumeResult> {
+  const now = input.now ?? new Date();
+  const window = getWeeklyQuotaWindow(now);
+  const existing = await findQuotaConsumptionByIdempotency(tx, {
+    companyId: input.companyId,
+    idempotencyKey: input.idempotencyKey,
+  });
+  const existingUsage = existing ? await findQuotaUsage(tx, {
+    companyId: input.companyId,
+    allowanceType: input.allowanceType,
+    windowStart: window.start,
+  }) : null;
+  if (existing && (
+    !existingUsage ||
+    existing.quotaUsageId !== existingUsage.id ||
+    existing.allowanceType !== input.allowanceType ||
+    existing.operationReference !== (input.operationId ?? null)
+  )) {
+    throw new QuotaIdempotencyConflictError();
+  }
+  const entitlements = await getEntitlements(tx, input.companyId);
+  const tier = selectHighestActiveTier(toActiveEntitlements(entitlements), now);
+  const cap = resolveCap(input.allowanceType, tier);
+
+  if (existing) {
+    return resultFromStatus(buildStatus({ companyId: input.companyId, allowanceType: input.allowanceType, tier, window, usage: existingUsage }), "ALREADY_CONSUMED", existing.id);
+  }
+
+  if (cap === 0) {
+    return resultFromStatus(buildStatus({ companyId: input.companyId, allowanceType: input.allowanceType, tier, window, usage: null }), "NO_QUOTA", null);
+  }
+
+  const usage = await ensureQuotaUsage(tx, {
+    companyId: input.companyId,
+    allowanceType: input.allowanceType,
+    windowStart: window.start,
+    windowEnd: window.end,
+    now,
+  });
+  const incremented = await incrementQuotaUsageIfAvailable(tx, { usageId: usage.id, cap });
+  if (!incremented) {
+    const current = await findQuotaUsage(tx, {
+      companyId: input.companyId,
+      allowanceType: input.allowanceType,
+      windowStart: window.start,
+    });
+    return resultFromStatus(buildStatus({ companyId: input.companyId, allowanceType: input.allowanceType, tier, window, usage: current }), "NO_QUOTA", null);
+  }
+
+  const consumption = await tx.companyQuotaConsumption.create({
+    data: {
+      companyId: input.companyId,
+      quotaUsageId: usage.id,
+      allowanceType: input.allowanceType,
+      idempotencyKey: input.idempotencyKey,
+      operationReference: input.operationId ?? null,
+      consumedCount: 1,
+    },
+  });
+  const current = await findQuotaUsage(tx, {
+    companyId: input.companyId,
+    allowanceType: input.allowanceType,
+    windowStart: window.start,
+  });
+  return resultFromStatus(buildStatus({ companyId: input.companyId, allowanceType: input.allowanceType, tier, window, usage: current }), "CONSUMED", consumption.id);
+}
+
+/**
+ * Internal Gate 5 boundary. The caller must already be inside the authoritative
+ * transaction that will also write the Lead domain row.
+ */
+export async function consumeCompanyQuotaInTransaction(
+  input: QuotaServiceInput,
+  tx: QuotaDalDb,
+): Promise<QuotaConsumeResult> {
+  assertInput(input);
+  return consumeQuotaInTransaction(input, tx);
+}
+
 export async function getCompanyQuotaStatus(
   input: Omit<QuotaServiceInput, "idempotencyKey"> & { idempotencyKey?: string },
   db: QuotaDalDb = quotaDb,
@@ -146,66 +232,10 @@ export async function consumeCompanyQuota(
   assertInput(input);
   await assertQuotaActor(input);
   const now = input.now ?? new Date();
-  const window = getWeeklyQuotaWindow(now);
   const run = db.$transaction ? <T>(fn: (tx: QuotaDalDb) => Promise<T>) => db.$transaction!(fn) : <T>(fn: (tx: QuotaDalDb) => Promise<T>) => fn(db);
 
   try {
-    return await run(async (tx) => {
-      const existing = await findQuotaConsumptionByIdempotency(tx, {
-        companyId: input.companyId,
-        idempotencyKey: input.idempotencyKey,
-      });
-      const entitlements = await getEntitlements(tx, input.companyId);
-      const tier = selectHighestActiveTier(toActiveEntitlements(entitlements), now);
-      const cap = resolveCap(input.allowanceType, tier);
-
-      if (existing) {
-        const usage = await findQuotaUsage(tx, {
-          companyId: input.companyId,
-          allowanceType: input.allowanceType,
-          windowStart: window.start,
-        });
-        return resultFromStatus(buildStatus({ companyId: input.companyId, allowanceType: input.allowanceType, tier, window, usage }), "ALREADY_CONSUMED", existing.id);
-      }
-
-      if (cap === 0) {
-        return resultFromStatus(buildStatus({ companyId: input.companyId, allowanceType: input.allowanceType, tier, window, usage: null }), "NO_QUOTA", null);
-      }
-
-      const usage = await ensureQuotaUsage(tx, {
-        companyId: input.companyId,
-        allowanceType: input.allowanceType,
-        windowStart: window.start,
-        windowEnd: window.end,
-        now,
-      });
-      const incremented = await incrementQuotaUsageIfAvailable(tx, { usageId: usage.id, cap });
-      if (!incremented) {
-        const current = await findQuotaUsage(tx, {
-          companyId: input.companyId,
-          allowanceType: input.allowanceType,
-          windowStart: window.start,
-        });
-        return resultFromStatus(buildStatus({ companyId: input.companyId, allowanceType: input.allowanceType, tier, window, usage: current }), "NO_QUOTA", null);
-      }
-
-      const consumption = await tx.companyQuotaConsumption.create({
-        data: {
-          companyId: input.companyId,
-          quotaUsageId: usage.id,
-          allowanceType: input.allowanceType,
-          idempotencyKey: input.idempotencyKey,
-          operationReference: input.operationId ?? null,
-          consumedCount: 1,
-        },
-      });
-      const current = await findQuotaUsage(tx, {
-        companyId: input.companyId,
-        allowanceType: input.allowanceType,
-        windowStart: window.start,
-      });
-      return resultFromStatus(buildStatus({ companyId: input.companyId, allowanceType: input.allowanceType, tier, window, usage: current }), "CONSUMED", consumption.id);
-    });
+    return await run((tx) => consumeQuotaInTransaction(input, tx));
   } catch (error) {
     // A concurrent retry may win the unique companyId+idempotencyKey insert.
     // Never expose raw Prisma P2002 to the caller; resolve it as an idempotent replay.
@@ -215,6 +245,14 @@ export async function consumeCompanyQuota(
         idempotencyKey: input.idempotencyKey,
       });
       if (existing) {
+        const usage = await findQuotaUsage(db, {
+          companyId: input.companyId,
+          allowanceType: input.allowanceType,
+          windowStart: getWeeklyQuotaWindow(now).start,
+        });
+        if (!usage || existing.quotaUsageId !== usage.id || existing.allowanceType !== input.allowanceType || existing.operationReference !== (input.operationId ?? null)) {
+          throw new QuotaIdempotencyConflictError();
+        }
         const status = await readQuotaStatus(db, input, now);
         return resultFromStatus(status, "ALREADY_CONSUMED", existing.id);
       }

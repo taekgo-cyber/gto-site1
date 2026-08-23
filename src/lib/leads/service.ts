@@ -3,11 +3,10 @@ import { Prisma } from "@/generated/prisma/client";
 import {
   LEAD_CONSENT_VERSION,
   LEAD_POLICY_VERSION,
-  LEAD_ENTITLEMENT_SOURCE_FREE_MVP,
   assertUnlockCapacity,
   type LeadPolicy,
 } from "./constants";
-import { resolveActiveCompanyActor, canMatchOrUnlock } from "./authorization";
+import { resolveActiveCompanyActor, canMatchOrUnlock, validateCompanyActorForNormalEndpoint } from "./authorization";
 import type { CandidateLeadStatus, LeadCloseReason } from "./types";
 import {
   canTransitionLeadStatus,
@@ -17,8 +16,12 @@ import {
   validateLeadInput,
 } from "./validation";
 import type { LeadEntitlementAdapter } from "./entitlement";
-import { FreeMvpEntitlementAdapter } from "./entitlement";
 import { toPreUnlockDto, toUnlockedContactDto, toUnlockedDto, type UnlockedContactDto } from "./dto";
+import { consumeGenericCompanyCreditsInTransaction } from "@/lib/credits/prisma-service";
+import { consumeCompanyQuotaInTransaction } from "@/lib/quotas/service";
+import type { QuotaDalDb } from "@/lib/quotas/dal";
+
+type LeadTransactionClient = Omit<typeof prisma, "$connect" | "$disconnect" | "$on" | "$use" | "$extends">;
 
 // ---------------------------------------------------------------------------
 // Lead lifecycle service (prisma-backed)
@@ -289,6 +292,40 @@ export function isLeadEffectivelyActive(lead: {
   return true;
 }
 
+async function assertCompanyContextInTransaction(
+  tx: LeadTransactionClient,
+  input: { actorUserId: string; companyId: string },
+) {
+  const [user, company, membership] = await Promise.all([
+    tx.user.findUnique({ where: { id: input.actorUserId }, select: { id: true, status: true, role: true } }),
+    tx.company.findUnique({ where: { id: input.companyId }, select: { id: true, status: true } }),
+    tx.companyMember.findUnique({
+      where: { userId_companyId: { userId: input.actorUserId, companyId: input.companyId } },
+      select: { role: true, status: true },
+    }),
+  ]);
+  const result = validateCompanyActorForNormalEndpoint({
+    userId: input.actorUserId,
+    userStatus: user?.status ?? "WITHDRAWN",
+    userRole: user?.role ?? "USER",
+    companyId: input.companyId,
+    companyStatus: company?.status ?? "REJECTED",
+    memberRole: membership?.role ?? null,
+    memberStatus: membership?.status ?? null,
+  });
+  if (!result.ok) throw new Error(result.message);
+  if (!canMatchOrUnlock(result.actor)) throw new Error("Forbidden: company operation requires OWNER or MANAGER");
+  return result.actor;
+}
+
+function leadOperationKey(kind: "match" | "contact-unlock", companyId: string, leadId: string): string {
+  return `lead-${kind}:${companyId}:${leadId}`;
+}
+
+function asQuotaTx(tx: LeadTransactionClient): QuotaDalDb {
+  return tx as unknown as QuotaDalDb;
+}
+
 // Match creation idempotent
 export async function createLeadMatch(input: {
   companyId: string;
@@ -301,38 +338,11 @@ export async function createLeadMatch(input: {
   if (!auth.ok) throw new Error(auth.message);
   if (!canMatchOrUnlock(auth.actor)) throw new Error("Forbidden: match requires OWNER or MANAGER");
 
-  // Lead effectiveness
-  const lead = await prisma.candidateLead.findUnique({ where: { id: input.leadId } });
-  if (!lead) throw new Error("Lead not found");
-  // normalize expiry transactionally
-  if (isInactiveByExpiry(lead.expiresAt) && (lead.status === "ACTIVE" || lead.status === "PAUSED")) {
-    await prisma.candidateLead.update({ where: { id: lead.id }, data: { status: "EXPIRED" } });
-    throw new Error("Lead expired");
-  }
-  if (!isLeadEffectivelyActive(lead as never)) throw new Error("Lead not active");
-
-  // Consent
-  validateConsentForActivation({ consentVersion: lead.consentVersion, consentedAt: lead.consentedAt });
-
-  // Cap policy required – FREE_MVP always passes but we assert policy exists
+  // Cap policy must be present; no free fallback is used in the production path.
   if (!LEAD_POLICY_VERSION) throw new Error("cap policy not configured");
 
-  // Fast idempotency path; the transaction below closes the same-pair race.
-  const existing = await prisma.leadMatch.findUnique({
-    where: { companyId_leadId: { companyId: input.companyId, leadId: input.leadId } },
-  });
-  if (existing?.status === "ACTIVE") return existing;
-
-  // Entitlement advisory check (optional)
-  const adapter = input.entitlementAdapter ?? new FreeMvpEntitlementAdapter();
-  const check = await adapter.checkLeadUnlockEntitlement({
-    companyId: input.companyId,
-    leadId: input.leadId,
-    actorUserId: input.actorUserId,
-  });
-  if (!check.allowed) throw new Error(check.reason ?? "entitlement denied");
-
   return prisma.$transaction(async (tx) => {
+    await assertCompanyContextInTransaction(tx, input);
     await tx.$queryRaw(Prisma.sql`SELECT "id" FROM "candidate_leads" WHERE "id" = ${input.leadId} FOR UPDATE`);
     const current = await tx.leadMatch.findUnique({
       where: { companyId_leadId: { companyId: input.companyId, leadId: input.leadId } },
@@ -340,6 +350,36 @@ export async function createLeadMatch(input: {
     if (current?.status === "ACTIVE") return current;
     if (current?.status === "CANCELLED") {
       return tx.leadMatch.update({ where: { id: current.id }, data: { status: "ACTIVE", actorUserId: input.actorUserId } });
+    }
+
+    const lead = await tx.candidateLead.findUnique({ where: { id: input.leadId } });
+    if (!lead) throw new Error("Lead not found");
+    if (isInactiveByExpiry(lead.expiresAt) && (lead.status === "ACTIVE" || lead.status === "PAUSED")) {
+      await tx.candidateLead.update({ where: { id: lead.id }, data: { status: "EXPIRED" } });
+      throw new Error("Lead expired");
+    }
+    if (!isLeadEffectivelyActive(lead as never)) throw new Error("Lead not active");
+    validateConsentForActivation({ consentVersion: lead.consentVersion, consentedAt: lead.consentedAt });
+
+    const operationKey = leadOperationKey("match", input.companyId, input.leadId);
+    const quota = await consumeCompanyQuotaInTransaction({
+      actorUserId: input.actorUserId,
+      companyId: input.companyId,
+      allowanceType: "MATCH",
+      idempotencyKey: operationKey,
+      operationId: operationKey,
+    }, asQuotaTx(tx));
+    if (quota.status === "NO_QUOTA") {
+      await consumeGenericCompanyCreditsInTransaction(tx as never, {
+        companyId: input.companyId,
+        actorUserId: input.actorUserId,
+        amount: 2_000,
+        allowanceType: "MATCH",
+        idempotencyKey: `credit:${operationKey}`,
+        referenceType: "LeadMatch",
+        referenceId: input.leadId,
+        source: "LEAD_MATCH_CREDIT",
+      });
     }
     return tx.leadMatch.create({
       data: {
@@ -377,7 +417,7 @@ export async function unlockLeadContact(input: {
   companyId: string;
   leadId: string;
   actorUserId: string;
-  entitlementAdapter: LeadEntitlementAdapter;
+  entitlementAdapter?: LeadEntitlementAdapter;
   policy: LeadPolicy;
 }) {
   const auth = await resolveActiveCompanyActor(input.actorUserId, input.companyId);
@@ -386,6 +426,7 @@ export async function unlockLeadContact(input: {
 
   assertUnlockCapacity(0, input.policy);
   return prisma.$transaction(async (tx) => {
+    await assertCompanyContextInTransaction(tx, input);
     await tx.$queryRaw(Prisma.sql`SELECT "id" FROM "candidate_leads" WHERE "id" = ${input.leadId} FOR UPDATE`);
 
     const lead = await tx.candidateLead.findUnique({ where: { id: input.leadId } });
@@ -419,22 +460,55 @@ export async function unlockLeadContact(input: {
     const unlockCount = await tx.leadContactUnlock.count({ where: { leadId: input.leadId } });
     assertUnlockCapacity(unlockCount, input.policy);
 
-    const idempotencyKey = `lead-contact-unlock:${input.companyId}:${input.leadId}`;
-    const consume = await input.entitlementAdapter.consumeLeadUnlockEntitlement({
-      companyId: input.companyId,
-      leadId: input.leadId,
-      actorUserId: input.actorUserId,
-      idempotencyKey,
-    });
-    if (!consume.consumed && !consume.alreadyConsumed) throw new Error("entitlement consume failed");
+    const operationKey = leadOperationKey("contact-unlock", input.companyId, input.leadId);
+    let entitlementSource: string;
+    let policyVersion: string;
+    if (input.entitlementAdapter) {
+      // Explicit adapter injection remains available for test/development
+      // fixtures only. Production callers use the paid monetization path.
+      const consume = await input.entitlementAdapter.consumeLeadUnlockEntitlement({
+        companyId: input.companyId,
+        leadId: input.leadId,
+        actorUserId: input.actorUserId,
+        idempotencyKey: operationKey,
+      });
+      if (!consume.consumed && !consume.alreadyConsumed) throw new Error("entitlement consume failed");
+      entitlementSource = consume.entitlementSource;
+      policyVersion = consume.policyVersion;
+    } else {
+      const quota = await consumeCompanyQuotaInTransaction({
+        actorUserId: input.actorUserId,
+        companyId: input.companyId,
+        allowanceType: "CONTACT_UNLOCK",
+        idempotencyKey: operationKey,
+        operationId: operationKey,
+      }, asQuotaTx(tx));
+      if (quota.status === "CONSUMED" || quota.status === "ALREADY_CONSUMED") {
+        entitlementSource = "FREE_QUOTA";
+        policyVersion = input.policy.policyVersion;
+      } else {
+        await consumeGenericCompanyCreditsInTransaction(tx as never, {
+          companyId: input.companyId,
+          actorUserId: input.actorUserId,
+          amount: 20_000,
+          allowanceType: "CONTACT_UNLOCK",
+          idempotencyKey: `credit:${operationKey}`,
+          referenceType: "LeadContactUnlock",
+          referenceId: input.leadId,
+          source: "LEAD_CONTACT_UNLOCK_CREDIT",
+        });
+        entitlementSource = "CREDIT";
+        policyVersion = input.policy.policyVersion;
+      }
+    }
 
     const unlock = await tx.leadContactUnlock.create({
       data: {
         companyId: input.companyId,
         leadId: input.leadId,
         actorUserId: input.actorUserId,
-        entitlementSource: consume.entitlementSource ?? LEAD_ENTITLEMENT_SOURCE_FREE_MVP,
-        policyVersion: consume.policyVersion ?? input.policy.policyVersion ?? LEAD_POLICY_VERSION,
+        entitlementSource,
+        policyVersion,
         consentVersion: lead.consentVersion!,
       },
     });

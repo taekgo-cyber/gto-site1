@@ -1,7 +1,6 @@
 import { requireApiUser } from "@/lib/api/auth";
 import { badRequest, forbidden, notFound } from "@/lib/api/errors";
 import { errorResponse, json, toApiError } from "@/lib/api/response";
-import { freeMvpEntitlementAdapter } from "@/lib/leads/entitlement";
 import { resolveLeadPolicy } from "@/lib/leads/constants";
 import { readUnlockedLeadContact, unlockLeadContact } from "@/lib/leads/service";
 
@@ -23,7 +22,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   try {
     const user = await requireApiUser();
     const { companyId, leadId } = await ids(request, context);
-    const result = await unlockLeadContact({ companyId, leadId, actorUserId: user.id, entitlementAdapter: freeMvpEntitlementAdapter, policy: resolveLeadPolicy() });
+    const result = await unlockLeadContact({ companyId, leadId, actorUserId: user.id, policy: resolveLeadPolicy() });
     return json({ contact: result.contact, alreadyUnlocked: result.alreadyUnlocked });
   } catch (error) {
     return errorResponse(mapError(error));

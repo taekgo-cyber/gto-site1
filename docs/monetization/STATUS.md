@@ -1,6 +1,6 @@
 # Monetization Session 13 Status
 
-- 작성 시각: 2026-08-23 14:55:00 +09:00
+- 작성 시각: 2026-08-23 15:05:00 +09:00
 - current HEAD / previous checkpoint: `4304956` (Gate 4 checkpoint)
 - build baseline: `9a1adc1a28d9f062bfb8ab10bc817a77492c24e5`
 - branch: `monetization/session-13`
@@ -27,7 +27,7 @@ Session 13 Gate 4.1 quota usage service. 실제 PostgreSQL 적용, shared DB wri
 - ProductRecruitmentEntitlement와 CompanyRecruitmentEntitlement foundation
 - CompanyQuotaUsage와 append-only CompanyQuotaConsumption idempotency foundation
 - Asia/Seoul weekly Match quota policy (1 / 3 / 5 / 10) 및 highest-active-tier resolution
-- Sol High 최종 판정: `GATE 4 PASS`, Gate 4 checkpoint `AUTHORIZED`, Gate 4.1 `AUTHORIZED`, Gate 5 `NOT AUTHORIZED`
+- Sol High 최종 판정: `GATE 4 PASS`, Gate 4 checkpoint `AUTHORIZED`, Gate 4.1 `PASS`, Gate 5 `PASS`, Gate 6 `AUTHORIZED`
 - Gate 4.1 active-company authorization recheck and OWNER/MANAGER-only quota consumption
 - DB-backed status/consume service with Asia/Seoul window, highest active tier, atomic cap predicate, and idempotent consumption result
 - Contact Unlock quota remains 0; no credit fallback or Lead orchestration
@@ -110,9 +110,9 @@ Session 13 Gate 4.1 quota usage service. 실제 PostgreSQL 적용, shared DB wri
 
 ## 다음 실행 단계
 
-1. Gate 4.1 결과를 Sol High에 review 요청
-2. Sol High 승인 후 Gate 4.1 local checkpoint commit (push/merge/rebase/cherry-pick 금지)
-3. Gate 5는 별도 명시적 GO 전까지 진행하지 않음
+1. Gate 5 local checkpoint commit (push/merge/rebase/cherry-pick 금지)
+2. Gate 6 Phase A read-only environment audit
+3. Gate 6에서 shared/main DB를 사용하지 않고 disposable/staging PostgreSQL만 검증
 
 ## Sol High decision / 승인 상태
 
@@ -124,7 +124,8 @@ Session 13 Gate 4.1 quota usage service. 실제 PostgreSQL 적용, shared DB wri
 - Gate 4 checkpoint: `AUTHORIZED`
 - Gate 4.1: `AUTHORIZED` — quota usage service only; Lead/credit fallback/payment/UI/DB apply 금지
 - Gate 4.1 final: `PASS` — Sol High approved local checkpoint
-- Gate 5: `AUTHORIZED` — Lead monetization integration; single authoritative transaction; no PG/checkout/DB apply
+- Gate 5: `PASS` — Sol High approved local checkpoint
+- Gate 6: `AUTHORIZED` — real disposable/staging PostgreSQL verification mandatory
 
 ## Gate 4 locked policy
 
@@ -145,3 +146,20 @@ Session 13 Gate 4.1 quota usage service. 실제 PostgreSQL 적용, shared DB wri
 - 동일 `companyId + idempotencyKey`는 동일 logical operation일 때만 `ALREADY_CONSUMED`로 처리한다.
 - allowance type, weekly window, operation identity가 불일치하면 safe conflict/error로 처리한다.
 - quota 또는 Credit 소비와 Lead Match/Unlock 생성은 가능한 한 하나의 authoritative transaction 안에서 함께 성공/rollback한다.
+
+## Gate 5 execution checkpoint
+
+- Muse model requested: `opencode/muse-spark-1.2-contributor-free` (Zen Free High path)
+- Muse job: `ses_fd2d63f14ffe7P3Vz2qZ2o7KEn`
+- result: cancelled after approximately 66 seconds in `waiting_for_assistant_text`, with no tool parts and no repository changes
+- Gate 5 Muse path: blocked; no further Muse retry
+- Gate 5 BUILD: `CODEX DIRECT BOUNDED BUILD AUTHORIZED` by Sol High; exact scope unchanged
+- Schema/migration expansion: explicitly prohibited; structural blocker requires Sol escalation
+- Gate 5 bounded implementation completed locally; Sol High review PASS and checkpoint authorized
+- Gate 5 focused monetization: 23/23 PASS
+- Gate 5 full regression: 82 files / 946 tests PASS
+- Gate 5 typecheck: PASS; lint: 0 errors / 13 pre-existing warnings; build: PASS; git diff --check: PASS
+- Gate 5 changed code is limited to Lead service, quota transaction boundary, generic credit transaction boundary, production unlock callsites, focused tests, and this status document
+- Gate 5 schema delta: NONE; migration delta: NONE; DB apply/write: NOT RUN
+- Gate 6 authorized: separate disposable/staging PostgreSQL only; shared/main DB prohibited
+- current HEAD remains `50dc085`; main CBT worktree remains untouched by this task

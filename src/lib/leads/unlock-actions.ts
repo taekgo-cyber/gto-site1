@@ -2,7 +2,6 @@
 
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/dal";
-import { freeMvpEntitlementAdapter } from "./entitlement";
 import { resolveLeadPolicy } from "./constants";
 import { unlockLeadContact } from "./service";
 
@@ -22,7 +21,6 @@ export async function unlockCompanyLeadContact(formData: FormData): Promise<void
       companyId,
       leadId,
       actorUserId: user.id,
-      entitlementAdapter: freeMvpEntitlementAdapter,
       policy: resolveLeadPolicy(),
     });
   } catch {

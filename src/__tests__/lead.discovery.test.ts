@@ -10,15 +10,21 @@ const prismaMock = vi.hoisted(() => ({
   company: { findUnique: vi.fn() },
   companyMember: { findUnique: vi.fn() },
   leadMatch: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
+  companyRecruitmentEntitlement: { findMany: vi.fn() },
+  companyQuotaUsage: { findUnique: vi.fn(), upsert: vi.fn(), updateMany: vi.fn() },
+  companyQuotaConsumption: { findUnique: vi.fn(), create: vi.fn() },
+  creditAccount: { findUnique: vi.fn(), updateMany: vi.fn() },
+  creditGrant: { findMany: vi.fn(), updateMany: vi.fn() },
+  creditTransaction: { findUnique: vi.fn(), create: vi.fn() },
   $transaction: vi.fn(),
   $queryRaw: vi.fn(),
 }));
 
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 
-function activeLead() {
+function activeLead(id = "lead-1") {
   return {
-    id: "lead-1",
+    id,
     userId: "candidate-1",
     status: "ACTIVE",
     preferredRegionId: "region-1",
@@ -58,6 +64,18 @@ describe("company discovery and matching", () => {
     vi.clearAllMocks();
     prismaMock.$transaction.mockImplementation(async (callback: (tx: typeof prismaMock) => unknown) => callback(prismaMock));
     prismaMock.$queryRaw.mockResolvedValue([]);
+    prismaMock.companyRecruitmentEntitlement.findMany.mockResolvedValue([]);
+    prismaMock.companyQuotaConsumption.findUnique.mockResolvedValue(null);
+    prismaMock.companyQuotaUsage.findUnique.mockResolvedValue(null);
+    prismaMock.companyQuotaUsage.upsert.mockResolvedValue({ id: "quota-1", companyId: "company-1", allowanceType: "MATCH", windowStart: new Date(), windowEnd: new Date(), consumedCount: 0 });
+    prismaMock.companyQuotaUsage.updateMany.mockResolvedValue({ count: 1 });
+    prismaMock.companyQuotaConsumption.create.mockResolvedValue({ id: "quota-consumption-1" });
+    prismaMock.creditAccount.findUnique.mockResolvedValue(null);
+    prismaMock.creditAccount.updateMany.mockResolvedValue({ count: 1 });
+    prismaMock.creditGrant.findMany.mockResolvedValue([]);
+    prismaMock.creditGrant.updateMany.mockResolvedValue({ count: 1 });
+    prismaMock.creditTransaction.findUnique.mockResolvedValue(null);
+    prismaMock.creditTransaction.create.mockResolvedValue({ id: "credit-transaction-1" });
   });
 
   it("uses effective ACTIVE/no-expiry query with minimum filters and pagination", async () => {
@@ -113,6 +131,31 @@ describe("company discovery and matching", () => {
     prismaMock.leadMatch.update.mockResolvedValue({ id: "match-1", companyId: "company-1", leadId: "lead-1", status: "ACTIVE" });
     await expect(createLeadMatch({ companyId: "company-1", leadId: "lead-1", actorUserId: "company-user" })).resolves.toMatchObject({ status: "ACTIVE" });
     expect(prismaMock.leadMatch.update).toHaveBeenCalledWith(expect.objectContaining({ where: { id: "match-1" }, data: { status: "ACTIVE", actorUserId: "company-user" } }));
+    expect(prismaMock.leadMatch.create).not.toHaveBeenCalled();
+  });
+
+  it("falls back from exhausted free quota to generic Company Credit", async () => {
+    prismaMock.candidateLead.findUnique.mockResolvedValue(activeLead("lead-2"));
+    prismaMock.leadMatch.findUnique.mockResolvedValue(null);
+    prismaMock.leadMatch.create.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({ id: "match-2", ...data }));
+    prismaMock.companyQuotaUsage.upsert.mockResolvedValue({ id: "quota-1", companyId: "company-1", allowanceType: "MATCH", windowStart: new Date(), windowEnd: new Date(), consumedCount: 1 });
+    prismaMock.companyQuotaUsage.updateMany.mockResolvedValue({ count: 0 });
+    prismaMock.creditAccount.findUnique.mockResolvedValue({ id: "account-1", companyId: "company-1", balance: 2_000 });
+    prismaMock.creditGrant.findMany.mockResolvedValue([{ id: "grant-1", remainingAmount: 2_000, expiresAt: null, createdAt: new Date() }]);
+
+    await expect(createLeadMatch({ companyId: "company-1", leadId: "lead-2", actorUserId: "company-user" })).resolves.toMatchObject({ id: "match-2", status: "ACTIVE" });
+    expect(prismaMock.creditTransaction.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ amountDelta: -2_000, allowanceType: "MATCH", referenceType: "LeadMatch", referenceId: "lead-2" }) }));
+  });
+
+  it("does not create a Match when generic Credit is insufficient", async () => {
+    prismaMock.candidateLead.findUnique.mockResolvedValue(activeLead("lead-3"));
+    prismaMock.leadMatch.findUnique.mockResolvedValue(null);
+    prismaMock.companyQuotaUsage.upsert.mockResolvedValue({ id: "quota-1", companyId: "company-1", allowanceType: "MATCH", windowStart: new Date(), windowEnd: new Date(), consumedCount: 1 });
+    prismaMock.companyQuotaUsage.updateMany.mockResolvedValue({ count: 0 });
+    prismaMock.creditAccount.findUnique.mockResolvedValue({ id: "account-1", companyId: "company-1", balance: 0 });
+    prismaMock.creditGrant.findMany.mockResolvedValue([]);
+
+    await expect(createLeadMatch({ companyId: "company-1", leadId: "lead-3", actorUserId: "company-user" })).rejects.toThrow(/Insufficient generic/);
     expect(prismaMock.leadMatch.create).not.toHaveBeenCalled();
   });
 
