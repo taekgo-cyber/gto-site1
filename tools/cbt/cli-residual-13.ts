@@ -11,9 +11,10 @@ import {
   type ResidualLane,
   type ResidualLiveSnapshot,
 } from "./batch/residual-13-evidence";
+import { authorizeLaneARerun } from "./batch/residual-13-rerun-guard";
 
 const ALLOWED_FLAGS = new Set(["preflight", "dry-run", "execute"]);
-const ALLOWED_VALUES = new Set(["lane", "confirm"]);
+const ALLOWED_VALUES = new Set(["lane", "confirm", "evidence-dir", "rerun-confirm"]);
 
 function fail(message: string): never {
   throw new Error(`residual-13: ${message}`);
@@ -107,11 +108,18 @@ async function main(): Promise<void> {
   const modes = ["preflight", "dry-run", "execute"].filter((mode) => args.flags.has(mode));
   if (modes.length !== 1) fail("exactly one of --preflight, --dry-run, --execute is required");
   if (args.flags.has("execute") && args.values.get("confirm") !== EXECUTE_CONFIRMATION_TOKEN) fail("execute requires the exact confirmation token");
-  if (!args.flags.has("execute") && args.values.has("confirm")) fail("--confirm is only valid with --execute");
+  if (!args.flags.has("execute") && (args.values.has("confirm") || args.values.has("evidence-dir") || args.values.has("rerun-confirm"))) fail("execute authorization options are only valid with --execute");
 
   const lane: ResidualLane = laneRaw === "transient" ? "TRANSIENT" : "SEMANTIC";
   const mode = modes[0] as ResidualRunMode;
   const binding = await loadAndVerifyResidualR1();
+  if (mode === "execute" && lane === "TRANSIENT") {
+    await authorizeLaneARerun({
+      binding,
+      evidenceDirectory: args.values.get("evidence-dir"),
+      authorization: args.values.get("rerun-confirm"),
+    });
+  }
   const liveSnapshot = mode === "execute" ? await captureLiveSnapshot(binding) : undefined;
   const executor = mode === "execute" ? await createProductionExecutor() : undefined;
   const result = await runResidual13(
