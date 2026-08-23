@@ -5,6 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { requireRole } from "@/lib/auth/dal";
 import { getAdminAdvertisementOperations } from "@/lib/monetization/ads";
 import {
+  cancelAdvertisementEntitlementAction,
+  setAdvertisementProductStatusAction,
+} from "./actions";
+import {
   expireAdvertisementCampaignsAction,
   grantAdvertisementEntitlementAction,
   setAdvertisementCampaignStatusAction,
@@ -47,7 +51,7 @@ export default async function AdminAdsPage({ searchParams }: { searchParams: Pro
           </form>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead><tr className="border-b"><th className="p-2">코드</th><th className="p-2">상품</th><th className="p-2">가격</th><th className="p-2">등급/주간 Match</th><th className="p-2">상태</th></tr></thead>
+              <thead><tr className="border-b"><th className="p-2">코드</th><th className="p-2">상품</th><th className="p-2">가격</th><th className="p-2">등급/주간 Match</th><th className="p-2">상태</th><th className="p-2">관리</th></tr></thead>
               <tbody>
                 {data.products.map((product) => (
                   <tr key={product.id} className="border-b border-border/60">
@@ -56,6 +60,17 @@ export default async function AdminAdsPage({ searchParams }: { searchParams: Pro
                     <td className="p-2">{product.price.toLocaleString()}원</td>
                     <td className="p-2">{product.recruitmentEntitlement ? `${product.recruitmentEntitlement.recruitmentTier} / ${product.recruitmentEntitlement.weeklyMatchQuota}` : "-"}</td>
                     <td className="p-2">{product.status}</td>
+                    <td className="p-2">
+                      {product.code ? (
+                        <form action={setAdvertisementProductStatusAction}>
+                          <input type="hidden" name="productCode" value={product.code} />
+                          <input type="hidden" name="status" value={product.status === "ACTIVE" ? "INACTIVE" : "ACTIVE"} />
+                          <Button type="submit" variant="outline" size="sm">
+                            {product.status === "ACTIVE" ? "일시중지" : "활성화"}
+                          </Button>
+                        </form>
+                      ) : null}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -85,7 +100,7 @@ export default async function AdminAdsPage({ searchParams }: { searchParams: Pro
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>업체 상품 권한 부여</CardTitle></CardHeader>
+        <CardHeader><CardTitle>광고주 상품 계약 부여</CardTitle></CardHeader>
         <CardContent>
           <form action={grantAdvertisementEntitlementAction} className="grid gap-3 md:grid-cols-2">
             <select name="companyId" required defaultValue="" className={inputClass}>
@@ -94,7 +109,7 @@ export default async function AdminAdsPage({ searchParams }: { searchParams: Pro
             </select>
             <select name="productCode" required defaultValue="" className={inputClass}>
               <option value="" disabled>상품 선택</option>
-              {data.products.filter((p) => p.code).map((product) => <option key={product.id} value={product.code!}>{product.name}</option>)}
+              {data.products.filter((p) => p.code && p.status === "ACTIVE").map((product) => <option key={product.id} value={product.code!}>{product.name}</option>)}
             </select>
             <input name="sourceReference" required placeholder="예: manual:company:20260824" className={inputClass} />
             <input name="idempotencyKey" required placeholder="고유 처리키" className={inputClass} />
@@ -104,11 +119,22 @@ export default async function AdminAdsPage({ searchParams }: { searchParams: Pro
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>최근 권한</CardTitle></CardHeader>
+        <CardHeader><CardTitle>광고주 계약 이력</CardTitle></CardHeader>
         <CardContent className="space-y-2">
           {data.entitlements.length === 0 ? <p className="text-sm text-muted-foreground">부여된 권한이 없습니다.</p> : data.entitlements.map((entitlement) => (
-            <div key={entitlement.id} className="rounded-md border border-border p-3 text-sm">
-              <strong>{entitlement.company.name}</strong> · {entitlement.productEntitlement?.product.code ?? entitlement.recruitmentTier} · {formatDate(entitlement.validFrom)} ~ {formatDate(entitlement.expiresAt)} · {entitlement.source}
+            <div key={entitlement.id} className="space-y-2 rounded-md border border-border p-3 text-sm">
+              <div>
+                <strong>{entitlement.company.name}</strong> · {entitlement.productEntitlement?.product.code ?? entitlement.recruitmentTier} · {formatDate(entitlement.validFrom)} ~ {formatDate(entitlement.expiresAt)} · {entitlement.cancelledAt ? "CANCELLED" : "GRANTED"} · {entitlement.source}
+              </div>
+              {entitlement.cancelledAt ? (
+                <p className="text-xs text-muted-foreground">취소: {formatDate(entitlement.cancelledAt)}{entitlement.cancelReason ? ` · ${entitlement.cancelReason}` : ""}</p>
+              ) : (
+                <form action={cancelAdvertisementEntitlementAction} className="flex flex-wrap gap-2">
+                  <input type="hidden" name="entitlementId" value={entitlement.id} />
+                  <input name="reason" maxLength={300} placeholder="취소 사유(선택)" className={`${inputClass} min-w-64`} />
+                  <Button type="submit" variant="outline" size="sm">계약 취소</Button>
+                </form>
+              )}
             </div>
           ))}
         </CardContent>

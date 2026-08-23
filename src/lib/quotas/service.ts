@@ -84,7 +84,7 @@ function toActiveEntitlements(rows: QuotaEntitlementRecord[]): ActiveCompanyEnti
 
 async function getEntitlements(db: QuotaDalDb, companyId: string): Promise<QuotaEntitlementRecord[]> {
   return db.companyRecruitmentEntitlement.findMany({
-    where: { companyId },
+    where: { companyId, cancelledAt: null },
     select: { companyId: true, recruitmentTier: true, validFrom: true, expiresAt: true },
   });
 }

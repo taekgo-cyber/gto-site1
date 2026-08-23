@@ -107,6 +107,7 @@ async function assertEntitlementCoversCampaign(input: {
     where: {
       companyId: input.companyId,
       productEntitlementId: input.productEntitlementId,
+      cancelledAt: null,
       validFrom: { lte: input.startDate },
       OR: [{ expiresAt: null }, { expiresAt: { gte: input.endDate } }],
     },
@@ -268,6 +269,7 @@ export async function setAdvertisementCampaignStatusByAdmin(input: {
         where: {
           companyId: current.companyId,
           productEntitlementId: current.product.recruitmentEntitlement.id,
+          cancelledAt: null,
           validFrom: { lte: current.startDate },
           OR: [{ expiresAt: null }, { expiresAt: { gte: current.endDate } }],
         },
@@ -334,7 +336,6 @@ export async function syncManagedAdvertisementCatalog(input: { actorUserId: stri
           name: policy.displayName,
           type: "ADVERTISEMENT",
           price: policy.priceKrw,
-          status: "ACTIVE",
         },
         select: { id: true, code: true },
       });
@@ -419,16 +420,44 @@ export async function listPublicAdvertisementCampaigns(input: {
     },
     select: {
       id: true,
+      companyId: true,
       title: true,
       imageUrl: true,
       linkUrl: true,
       sortOrder: true,
       company: { select: { name: true } },
+      product: { select: { recruitmentEntitlement: { select: { id: true } } } },
     },
     orderBy: [{ sortOrder: "desc" }, { createdAt: "desc" }],
-    take: limit,
+    take: MAX_PUBLIC_ADS,
   });
-  return rows.map((row) => ({
+  const candidatePairs = rows
+    .map((row) => ({
+      companyId: row.companyId,
+      productEntitlementId: row.product?.recruitmentEntitlement?.id ?? null,
+    }))
+    .filter((row): row is { companyId: string; productEntitlementId: string } =>
+      Boolean(row.companyId && row.productEntitlementId),
+    );
+  const activeEntitlements = candidatePairs.length === 0
+    ? []
+    : await prisma.companyRecruitmentEntitlement.findMany({
+        where: {
+          cancelledAt: null,
+          validFrom: { lte: now },
+          OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+          companyId: { in: [...new Set(candidatePairs.map((row) => row.companyId))] },
+          productEntitlementId: { in: [...new Set(candidatePairs.map((row) => row.productEntitlementId))] },
+        },
+        select: { companyId: true, productEntitlementId: true },
+      });
+  const activePairs = new Set(
+    activeEntitlements.map((row) => `${row.companyId}:${row.productEntitlementId}`),
+  );
+  return rows.filter((row) => {
+    const entitlementId = row.product?.recruitmentEntitlement?.id;
+    return Boolean(row.companyId && entitlementId && activePairs.has(`${row.companyId}:${entitlementId}`));
+  }).slice(0, limit).map((row) => ({
     id: row.id,
     title: row.title,
     imageUrl: safeStoredUrl(row.imageUrl, "image"),
@@ -515,6 +544,8 @@ export async function getAdminAdvertisementOperations(actorUserId: string) {
         recruitmentTier: true,
         validFrom: true,
         expiresAt: true,
+        cancelledAt: true,
+        cancelReason: true,
         source: true,
         company: { select: { id: true, name: true } },
         productEntitlement: { select: { product: { select: { code: true, name: true } } } },

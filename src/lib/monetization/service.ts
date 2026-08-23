@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 import {
   ADVERTISEMENT_PRODUCT_CATALOG,
   getAdvertisementProductPolicy,
@@ -90,6 +91,13 @@ export type AdvertisementEntitlementGrantResult = {
 function normalizeRequiredToken(value: string, errorCode: string): string {
   const normalized = value.trim();
   if (!normalized) throw new Error(errorCode);
+  return normalized;
+}
+
+function normalizeOptionalReason(value: string | null | undefined): string | null {
+  const normalized = value?.trim() ?? "";
+  if (!normalized) return null;
+  if (normalized.length > 300) throw new Error("ADVERTISEMENT_ENTITLEMENT_CANCEL_REASON_TOO_LONG");
   return normalized;
 }
 
@@ -353,6 +361,7 @@ export async function listActiveCompanyAdvertisementEntitlements(input: {
   return prisma.companyRecruitmentEntitlement.findMany({
     where: {
       companyId: input.companyId,
+      cancelledAt: null,
       validFrom: { lte: now },
       OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
       productEntitlement: { product: { status: "ACTIVE", type: "ADVERTISEMENT" } },
@@ -370,6 +379,147 @@ export async function listActiveCompanyAdvertisementEntitlements(input: {
     },
     orderBy: [{ recruitmentTier: "desc" }, { validFrom: "desc" }],
   });
+}
+
+export async function setManagedAdvertisementProductStatus(input: {
+  actorUserId: string;
+  productCode: string;
+  status: "ACTIVE" | "INACTIVE";
+}) {
+  await assertActiveAdmin(input.actorUserId);
+  const policy = getAdvertisementProductPolicy(input.productCode.trim());
+  if (!policy) throw new Error("ADVERTISEMENT_PRODUCT_CODE_INVALID");
+
+  const product = await prisma.product.findUnique({
+    where: { code: policy.code },
+    select: {
+      id: true,
+      code: true,
+      type: true,
+      price: true,
+      status: true,
+      recruitmentEntitlement: {
+        select: { recruitmentTier: true, weeklyMatchQuota: true },
+      },
+    },
+  });
+  if (!product) throw new Error("ADVERTISEMENT_PRODUCT_NOT_FOUND");
+  if (
+    product.code !== policy.code ||
+    product.type !== "ADVERTISEMENT" ||
+    product.price !== policy.priceKrw ||
+    !product.recruitmentEntitlement ||
+    product.recruitmentEntitlement.recruitmentTier !== policy.recruitmentTier ||
+    product.recruitmentEntitlement.weeklyMatchQuota !== policy.weeklyMatchQuota
+  ) {
+    throw new Error("ADVERTISEMENT_PRODUCT_POLICY_MISMATCH");
+  }
+
+  if (product.status === input.status) {
+    return { id: product.id, code: policy.code, status: input.status, changed: false };
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.product.update({
+      where: { id: product.id },
+      data: { status: input.status },
+      select: { id: true, code: true, status: true },
+    });
+    await tx.adminLog.create({
+      data: {
+        adminId: input.actorUserId,
+        action: `ADVERTISEMENT_PRODUCT_${input.status}`,
+        targetType: "Product",
+        targetId: product.id,
+        metadata: { productCode: policy.code },
+      },
+    });
+    return { ...updated, changed: true };
+  });
+}
+
+export async function cancelCompanyAdvertisementEntitlement(input: {
+  actorUserId: string;
+  entitlementId: string;
+  reason?: string | null;
+  now?: Date;
+}) {
+  await assertActiveAdmin(input.actorUserId);
+  const entitlementId = normalizeRequiredToken(input.entitlementId, "ADVERTISEMENT_ENTITLEMENT_ID_REQUIRED");
+  const reason = normalizeOptionalReason(input.reason);
+  const now = input.now ?? new Date();
+  if (Number.isNaN(now.getTime())) throw new Error("INVALID_CANCEL_TIME");
+
+  return prisma.$transaction(async (tx) => {
+    const current = await tx.companyRecruitmentEntitlement.findUnique({
+      where: { id: entitlementId },
+      select: {
+        id: true,
+        companyId: true,
+        validFrom: true,
+        expiresAt: true,
+        cancelledAt: true,
+        productEntitlement: { select: { product: { select: { code: true } } } },
+      },
+    });
+    if (!current) throw new Error("ADVERTISEMENT_ENTITLEMENT_NOT_FOUND");
+    if (current.cancelledAt) {
+      return {
+        id: current.id,
+        companyId: current.companyId,
+        cancelledAt: current.cancelledAt,
+        expiresAt: current.expiresAt,
+        alreadyCancelled: true,
+      };
+    }
+    if (current.validFrom > now || (current.expiresAt && current.expiresAt <= now)) {
+      throw new Error("ADVERTISEMENT_ENTITLEMENT_NOT_ACTIVE");
+    }
+
+    const updated = await tx.companyRecruitmentEntitlement.updateMany({
+      where: { id: current.id, cancelledAt: null },
+      data: { cancelledAt: now, cancelReason: reason },
+    });
+    if (updated.count !== 1) {
+      const raced = await tx.companyRecruitmentEntitlement.findUnique({
+        where: { id: current.id },
+        select: { cancelledAt: true },
+      });
+      if (raced?.cancelledAt) {
+        return {
+          id: current.id,
+          companyId: current.companyId,
+          cancelledAt: raced.cancelledAt,
+          expiresAt: current.expiresAt,
+          alreadyCancelled: true,
+        };
+      }
+      throw new Error("ADVERTISEMENT_ENTITLEMENT_CANCEL_CONFLICT");
+    }
+
+    await tx.adminLog.create({
+      data: {
+        adminId: input.actorUserId,
+        action: "ADVERTISEMENT_ENTITLEMENT_CANCELLED",
+        targetType: "CompanyRecruitmentEntitlement",
+        targetId: current.id,
+        metadata: {
+          companyId: current.companyId,
+          productCode: current.productEntitlement?.product.code ?? null,
+          originalExpiresAt: current.expiresAt?.toISOString() ?? null,
+          reason,
+        },
+      },
+    });
+
+    return {
+      id: current.id,
+      companyId: current.companyId,
+      cancelledAt: now,
+      expiresAt: current.expiresAt,
+      alreadyCancelled: false,
+    };
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 }
 
 export const MANAGED_ADVERTISEMENT_PRODUCT_CODES = Object.values(

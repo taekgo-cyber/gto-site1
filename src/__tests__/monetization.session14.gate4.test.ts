@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   placementFindMany: vi.fn(),
   placementUpsert: vi.fn(),
   entitlementFindFirst: vi.fn(),
+  entitlementFindMany: vi.fn(),
   campaignCreate: vi.fn(),
   campaignFindUnique: vi.fn(),
   campaignFindMany: vi.fn(),
@@ -28,7 +29,7 @@ vi.mock("@/lib/monetization/service", () => ({
 vi.mock("@/lib/prisma", () => {
   const tx = {
     adCampaign: { findUnique: mocks.campaignFindUnique, updateMany: mocks.campaignUpdateMany },
-    companyRecruitmentEntitlement: { findFirst: mocks.entitlementFindFirst },
+    companyRecruitmentEntitlement: { findFirst: mocks.entitlementFindFirst, findMany: mocks.entitlementFindMany },
     product: { upsert: mocks.productUpsert },
     productRecruitmentEntitlement: { upsert: mocks.productEntitlementUpsert },
     adminLog: { create: mocks.adminLogCreate },
@@ -42,7 +43,7 @@ vi.mock("@/lib/prisma", () => {
         findMany: mocks.placementFindMany,
         upsert: mocks.placementUpsert,
       },
-      companyRecruitmentEntitlement: { findFirst: mocks.entitlementFindFirst },
+      companyRecruitmentEntitlement: { findFirst: mocks.entitlementFindFirst, findMany: mocks.entitlementFindMany },
       adCampaign: {
         create: mocks.campaignCreate,
         findUnique: mocks.campaignFindUnique,
@@ -83,6 +84,10 @@ describe("Session 14 Gate 4 advertisement operations", () => {
     });
     mocks.placementFindUnique.mockResolvedValue({ id: "placement-1", code: "HOME_TOP", name: "홈 상단", isActive: true });
     mocks.entitlementFindFirst.mockResolvedValue({ id: "company-ent-1", recruitmentTier: "GENERAL", validFrom: now, expiresAt: new Date("2026-08-31T01:00:00.000Z") });
+    mocks.entitlementFindMany.mockResolvedValue([
+      { companyId: "company-1", productEntitlementId: "product-ent-1" },
+      { companyId: "company-2", productEntitlementId: "product-ent-2" },
+    ]);
     mocks.campaignCreate.mockResolvedValue({ id: "campaign-1", status: "PENDING", startDate, endDate });
   });
 
@@ -132,8 +137,8 @@ describe("Session 14 Gate 4 advertisement operations", () => {
 
   it("public query requests ACTIVE/effective/non-deleted campaigns and strips unsafe legacy URLs", async () => {
     mocks.campaignFindMany.mockResolvedValue([
-      { id: "c1", title: "정상", imageUrl: "https://img.example/a.png", linkUrl: "/jobs", sortOrder: 1, company: { name: "업체A" } },
-      { id: "c2", title: "legacy", imageUrl: "javascript:bad", linkUrl: "data:text/html,bad", sortOrder: 0, company: { name: "업체B" } },
+      { id: "c1", companyId: "company-1", title: "정상", imageUrl: "https://img.example/a.png", linkUrl: "/jobs", sortOrder: 1, company: { name: "업체A" }, product: { recruitmentEntitlement: { id: "product-ent-1" } } },
+      { id: "c2", companyId: "company-2", title: "legacy", imageUrl: "javascript:bad", linkUrl: "data:text/html,bad", sortOrder: 0, company: { name: "업체B" }, product: { recruitmentEntitlement: { id: "product-ent-2" } } },
     ]);
     const result = await listPublicAdvertisementCampaigns({ placementCode: "home_top", now, limit: 99 });
     expect(mocks.campaignFindMany).toHaveBeenCalledWith(expect.objectContaining({
@@ -148,6 +153,9 @@ describe("Session 14 Gate 4 advertisement operations", () => {
     }));
     expect(result[0]).toMatchObject({ linkUrl: "/jobs", companyName: "업체A" });
     expect(result[1]).toMatchObject({ imageUrl: null, linkUrl: null });
+    expect(mocks.entitlementFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ cancelledAt: null }),
+    }));
   });
 
   it("allows ACTIVE transition only after admin and current campaign invariants are rechecked", async () => {
@@ -169,6 +177,9 @@ describe("Session 14 Gate 4 advertisement operations", () => {
 
     await expect(setAdvertisementCampaignStatusByAdmin({ actorUserId: "admin-1", campaignId: "campaign-1", status: "ACTIVE", now })).resolves.toEqual({ id: "campaign-1", status: "ACTIVE" });
     expect(mocks.entitlementFindFirst).toHaveBeenCalled();
+    expect(mocks.entitlementFindFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ cancelledAt: null }),
+    }));
     expect(mocks.adminLogCreate).toHaveBeenCalled();
   });
 
@@ -187,6 +198,9 @@ describe("Session 14 Gate 4 advertisement operations", () => {
     const result = await syncManagedAdvertisementCatalog({ actorUserId: "admin-1" });
     expect(result).toEqual(["AD_GENERAL_7D", "AD_PREMIUM_7D", "AD_MAIN_7D"]);
     expect(mocks.productUpsert).toHaveBeenCalledTimes(3);
+    for (const call of mocks.productUpsert.mock.calls) {
+      expect(call[0].update).not.toHaveProperty("status");
+    }
     expect(mocks.productEntitlementUpsert).toHaveBeenCalledTimes(3);
   });
 });

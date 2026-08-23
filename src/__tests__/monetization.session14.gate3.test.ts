@@ -8,6 +8,8 @@ const mocks = vi.hoisted(() => ({
   entitlementFindUnique: vi.fn(),
   entitlementFindMany: vi.fn(),
   entitlementCreate: vi.fn(),
+  entitlementUpdateMany: vi.fn(),
+  productUpdate: vi.fn(),
   adminLogCreate: vi.fn(),
 }));
 
@@ -17,7 +19,9 @@ vi.mock("@/lib/prisma", () => {
     companyRecruitmentEntitlement: {
       findUnique: mocks.entitlementFindUnique,
       create: mocks.entitlementCreate,
+      updateMany: mocks.entitlementUpdateMany,
     },
+    product: { update: mocks.productUpdate },
     adminLog: { create: mocks.adminLogCreate },
   };
   return {
@@ -39,6 +43,10 @@ import {
   assertCompanyAdvertisementWriteAccess,
   grantCompanyAdvertisementEntitlement,
   listActiveCompanyAdvertisementEntitlements,
+} from "@/lib/monetization/service";
+import {
+  cancelCompanyAdvertisementEntitlement,
+  setManagedAdvertisementProductStatus,
 } from "@/lib/monetization/service";
 
 const now = new Date("2026-08-24T00:00:00.000Z");
@@ -74,6 +82,12 @@ describe("Session 14 Gate 3 entitlement activation and company authorization", (
       expiresAt: data.expiresAt,
     }));
     mocks.adminLogCreate.mockResolvedValue({ id: "log-1" });
+    mocks.productUpdate.mockImplementation(async ({ data }: { data: { status: string } }) => ({
+      id: "product-general",
+      code: "AD_GENERAL_7D",
+      status: data.status,
+    }));
+    mocks.entitlementUpdateMany.mockResolvedValue({ count: 1 });
   });
 
   it("creates an auditable 7-day admin grant without touching Order history", async () => {
@@ -196,7 +210,68 @@ describe("Session 14 Gate 3 entitlement activation and company authorization", (
       now,
     })).resolves.toEqual([{ id: "ent-1", recruitmentTier: "GENERAL" }]);
     expect(mocks.entitlementFindMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: expect.objectContaining({ companyId: "company-1" }),
+      where: expect.objectContaining({ companyId: "company-1", cancelledAt: null }),
     }));
+  });
+
+  it("allows ACTIVE ADMIN to pause a managed product without changing locked policy", async () => {
+    await expect(setManagedAdvertisementProductStatus({
+      actorUserId: "admin-1",
+      productCode: "AD_GENERAL_7D",
+      status: "INACTIVE",
+    })).resolves.toMatchObject({ status: "INACTIVE", changed: true });
+    expect(mocks.productUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      data: { status: "INACTIVE" },
+    }));
+    expect(mocks.adminLogCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ action: "ADVERTISEMENT_PRODUCT_INACTIVE" }),
+    }));
+  });
+
+  it("cancels an active contract without rewriting its original expiry", async () => {
+    const expiresAt = new Date("2026-08-31T00:00:00.000Z");
+    mocks.entitlementFindUnique.mockResolvedValue({
+      id: "company-entitlement-1",
+      companyId: "company-1",
+      validFrom: now,
+      expiresAt,
+      cancelledAt: null,
+      productEntitlement: { product: { code: "AD_GENERAL_7D" } },
+    });
+    const result = await cancelCompanyAdvertisementEntitlement({
+      actorUserId: "admin-1",
+      entitlementId: "company-entitlement-1",
+      reason: "운영 취소",
+      now: new Date("2026-08-25T00:00:00.000Z"),
+    });
+    expect(result).toMatchObject({ alreadyCancelled: false, expiresAt });
+    expect(mocks.entitlementUpdateMany).toHaveBeenCalledWith({
+      where: { id: "company-entitlement-1", cancelledAt: null },
+      data: { cancelledAt: new Date("2026-08-25T00:00:00.000Z"), cancelReason: "운영 취소" },
+    });
+    expect(mocks.adminLogCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        action: "ADVERTISEMENT_ENTITLEMENT_CANCELLED",
+        metadata: expect.objectContaining({ originalExpiresAt: expiresAt.toISOString() }),
+      }),
+    }));
+  });
+
+  it("replays an already-cancelled contract safely without a second mutation", async () => {
+    const cancelledAt = new Date("2026-08-25T00:00:00.000Z");
+    mocks.entitlementFindUnique.mockResolvedValue({
+      id: "company-entitlement-1",
+      companyId: "company-1",
+      validFrom: now,
+      expiresAt: new Date("2026-08-31T00:00:00.000Z"),
+      cancelledAt,
+      productEntitlement: { product: { code: "AD_GENERAL_7D" } },
+    });
+    await expect(cancelCompanyAdvertisementEntitlement({
+      actorUserId: "admin-1",
+      entitlementId: "company-entitlement-1",
+      now: new Date("2026-08-26T00:00:00.000Z"),
+    })).resolves.toMatchObject({ alreadyCancelled: true, cancelledAt });
+    expect(mocks.entitlementUpdateMany).not.toHaveBeenCalled();
   });
 });

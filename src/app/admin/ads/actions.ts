@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/dal";
 import {
+  cancelCompanyAdvertisementEntitlement,
+  setManagedAdvertisementProductStatus,
+} from "@/lib/monetization/service";
+import {
   expireAdvertisementCampaignsByAdmin,
   setAdvertisementCampaignStatusByAdmin,
   syncManagedAdvertisementCatalog,
@@ -28,6 +32,11 @@ function safeMessage(error: unknown): string {
     ADVERTISEMENT_CAMPAIGN_TRANSITION_INVALID: "현재 상태에서는 해당 변경을 할 수 없습니다.",
     ADVERTISEMENT_CAMPAIGN_ENTITLEMENT_INVALID: "캠페인 기간을 보장하는 유효 상품 권한이 없습니다.",
     ADVERTISEMENT_PLACEMENT_INACTIVE: "활성 광고 위치가 아닙니다.",
+    ADVERTISEMENT_PRODUCT_INACTIVE: "비활성 광고상품입니다.",
+    ADVERTISEMENT_ENTITLEMENT_NOT_FOUND: "광고 계약을 찾을 수 없습니다.",
+    ADVERTISEMENT_ENTITLEMENT_NOT_ACTIVE: "활성 광고 계약만 취소할 수 있습니다.",
+    ADVERTISEMENT_ENTITLEMENT_CANCEL_REASON_TOO_LONG: "계약 취소 사유가 너무 깁니다.",
+    ADVERTISEMENT_ENTITLEMENT_CANCEL_CONFLICT: "계약 취소 상태가 동시에 변경되었습니다. 다시 확인해 주세요.",
   };
   return known[message] ?? "처리 중 오류가 발생했습니다.";
 }
@@ -123,4 +132,44 @@ export async function expireAdvertisementCampaignsAction() {
   revalidatePath("/admin/ads");
   revalidatePath("/");
   done(`${expiredCount}개 캠페인을 만료 상태로 동기화했습니다.`);
+}
+
+export async function setAdvertisementProductStatusAction(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) done("로그인이 필요합니다.", true);
+  const rawStatus = text(formData, "status");
+  if (rawStatus !== "ACTIVE" && rawStatus !== "INACTIVE") {
+    done("상품 상태가 올바르지 않습니다.", true);
+  }
+  try {
+    await setManagedAdvertisementProductStatus({
+      actorUserId: user.id,
+      productCode: text(formData, "productCode"),
+      status: rawStatus,
+    });
+  } catch (error) {
+    done(safeMessage(error), true);
+  }
+  revalidatePath("/admin/ads");
+  revalidatePath("/company/ads");
+  revalidatePath("/");
+  done(rawStatus === "ACTIVE" ? "광고상품을 활성화했습니다." : "광고상품을 일시중지했습니다.");
+}
+
+export async function cancelAdvertisementEntitlementAction(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) done("로그인이 필요합니다.", true);
+  try {
+    await cancelCompanyAdvertisementEntitlement({
+      actorUserId: user.id,
+      entitlementId: text(formData, "entitlementId"),
+      reason: text(formData, "reason") || null,
+    });
+  } catch (error) {
+    done(safeMessage(error), true);
+  }
+  revalidatePath("/admin/ads");
+  revalidatePath("/company/ads");
+  revalidatePath("/");
+  done("광고 계약을 취소했습니다.");
 }
