@@ -94,6 +94,12 @@ enum PostStatus {
   BLOCKED
 }
 
+enum BlogArticleStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
 enum CommentStatus {
   PUBLISHED
   HIDDEN
@@ -211,6 +217,7 @@ model User {
   posts                 Post[]
   comments              Comment[]
   likes                 Like[]
+  blogArticles          BlogArticle[]
   reports               Report[]        @relation("ReportReporter")
   handledReports        Report[]        @relation("ReportHandler")
   orders                Order[]
@@ -544,6 +551,49 @@ model Report {
   @@index([targetType, targetId])
   @@index([status])
   @@map("reports")
+}
+
+model BlogCategory {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  articles BlogArticle[]
+
+  @@index([isActive, sortOrder])
+  @@map("blog_categories")
+}
+
+model BlogArticle {
+  id              String            @id @default(cuid())
+  categoryId      String?
+  authorId        String?
+  slug            String            @unique
+  title           String
+  excerpt         String?
+  contentMarkdown   String
+  tags              Json              @default("[]")
+  featuredImageUrl  String?
+  featuredImageAlt  String?
+  status            BlogArticleStatus @default(DRAFT)
+  seoTitle        String?
+  seoDescription  String?
+  publishedAt     DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  category BlogCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  author   User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([categoryId, status, publishedAt(sort: Desc)])
+  @@index([authorId])
+  @@map("blog_articles")
 }
 
 // ---------------------------------------------------------------------------

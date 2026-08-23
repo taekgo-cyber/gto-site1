@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { getSeoLandingMasterData } from "@/lib/seo/landing";
 import { getCbtCategories } from "@/lib/cbt/dal";
+import { listPublishedBlogSitemapRows } from "@/lib/blog/dal";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const tonnageIdToSlug = new Map<string, string>();
   for (const [slug, tonnage] of tonnages) tonnageIdToSlug.set(tonnage.id, slug);
 
-  const [leasePosts, jobPosts, cbtCategories] = await Promise.all([
+  const [leasePosts, jobPosts, cbtCategories, blogRows] = await Promise.all([
     prisma.leasePost.findMany({
       where: { status: "PUBLISHED", deletedAt: null, publishedAt: { not: null } },
       select: { id: true, publishedAt: true, regionId: true, tonnageId: true },
@@ -30,6 +31,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       select: { id: true, publishedAt: true },
     }),
     getCbtCategories(),
+    listPublishedBlogSitemapRows(),
   ]);
 
   const regionLanding = new Map<string, string | undefined>();
@@ -40,6 +42,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/jobs`, changeFrequency: "daily", priority: 0.9 },
     { url: `${baseUrl}/lease`, changeFrequency: "daily", priority: 0.9 },
     { url: `${baseUrl}/cbt`, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${baseUrl}/blog`, changeFrequency: "daily", priority: 0.8 },
   ];
 
   for (const category of cbtCategories) {
@@ -98,6 +101,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${baseUrl}/jobs/${post.id}`,
       lastModified: post.publishedAt ?? undefined,
       changeFrequency: "daily",
+      priority: 0.7,
+    });
+  }
+
+  for (const category of blogRows.categories) {
+    entries.push({
+      url: `${baseUrl}/blog/category/${category.slug}`,
+      lastModified: category.updatedAt,
+      changeFrequency: "weekly",
+      priority: 0.6,
+    });
+  }
+  for (const article of blogRows.articles) {
+    entries.push({
+      url: `${baseUrl}/blog/${article.slug}`,
+      lastModified: article.updatedAt,
+      changeFrequency: "weekly",
       priority: 0.7,
     });
   }
