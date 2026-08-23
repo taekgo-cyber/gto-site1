@@ -3,23 +3,26 @@ import { Container } from "@/components/common/Container";
 import { Button } from "@/components/ui/Button";
 import { JobCard } from "@/components/jobs/JobCard";
 import { LeaseCard } from "@/components/lease/LeaseCard";
+import { AdPlacementSlot } from "@/components/ads/AdPlacementSlot";
 import { getJobPostList } from "@/lib/jobs/dal";
 import { getPostList } from "@/lib/posts/dal";
-import { DEFAULT_PAGE_SIZE } from "@/lib/posts/validation";
+import { listPublicAdvertisementCampaigns } from "@/lib/monetization/ads";
 
 const HOME_JOB_COUNT = 5;
 const HOME_LEASE_COUNT = 5;
 
 export default async function Home() {
-  const [jobResult, leaseResult] = await Promise.all([
+  const [jobResult, leaseResult, homeAds] = await Promise.all([
     getJobPostList({ page: 1 }),
     getPostList({ page: 1, pageSize: HOME_LEASE_COUNT }),
+    listPublicAdvertisementCampaigns({ placementCode: "HOME_TOP", limit: 3 }),
   ]);
 
   const jobs = jobResult.items.slice(0, HOME_JOB_COUNT);
 
   return (
     <div className="bg-surface">
+      <AdPlacementSlot campaigns={homeAds} />
       <section className="border-b border-border bg-background">
         <Container className="flex flex-col items-start gap-4 py-12 sm:py-16">
           <h1 className="text-2xl font-bold sm:text-3xl">

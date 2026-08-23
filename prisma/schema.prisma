@@ -679,6 +679,7 @@ model AdCampaign {
 
 model Product {
   id          String        @id @default(cuid())
+  code        String?       @unique
   name        String
   description String?
   type        ProductType   @default(ADVERTISEMENT)
@@ -735,6 +736,7 @@ model CompanyRecruitmentEntitlement {
   expiresAt             DateTime?
   source                String
   sourceReference       String?
+  idempotencyKey        String?                        @unique
   createdAt             DateTime                       @default(now())
   updatedAt             DateTime                       @updatedAt
 

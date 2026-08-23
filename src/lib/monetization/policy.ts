@@ -22,6 +22,56 @@ export const WEEKLY_MATCH_QUOTA = {
 } as const;
 
 export type RecruitmentTier = keyof typeof WEEKLY_MATCH_QUOTA;
+export type PaidRecruitmentTier = Exclude<RecruitmentTier, "NONE">;
+
+export const ADVERTISEMENT_PRODUCT_CATALOG = {
+  GENERAL: {
+    code: "AD_GENERAL_7D",
+    displayName: "일반 광고 7일",
+    recruitmentTier: "GENERAL",
+    priceKrw: 40_000,
+    durationDays: 7,
+    weeklyMatchQuota: WEEKLY_MATCH_QUOTA.GENERAL,
+  },
+  PREMIUM: {
+    code: "AD_PREMIUM_7D",
+    displayName: "프리미엄 광고 7일",
+    recruitmentTier: "PREMIUM",
+    priceKrw: 80_000,
+    durationDays: 7,
+    weeklyMatchQuota: WEEKLY_MATCH_QUOTA.PREMIUM,
+  },
+  MAIN: {
+    code: "AD_MAIN_7D",
+    displayName: "메인 광고 7일",
+    recruitmentTier: "MAIN",
+    priceKrw: 150_000,
+    durationDays: 7,
+    weeklyMatchQuota: WEEKLY_MATCH_QUOTA.MAIN,
+  },
+} as const satisfies Record<PaidRecruitmentTier, {
+  code: string;
+  displayName: string;
+  recruitmentTier: PaidRecruitmentTier;
+  priceKrw: number;
+  durationDays: number;
+  weeklyMatchQuota: number;
+}>;
+
+export type ManagedAdvertisementProductCode =
+  (typeof ADVERTISEMENT_PRODUCT_CATALOG)[PaidRecruitmentTier]["code"];
+
+const ADVERTISEMENT_PRODUCTS_BY_CODE = Object.values(ADVERTISEMENT_PRODUCT_CATALOG).reduce(
+  (acc, product) => {
+    acc[product.code] = product;
+    return acc;
+  },
+  {} as Record<ManagedAdvertisementProductCode, (typeof ADVERTISEMENT_PRODUCT_CATALOG)[PaidRecruitmentTier]>,
+);
+
+export function getAdvertisementProductPolicy(code: string) {
+  return ADVERTISEMENT_PRODUCTS_BY_CODE[code as ManagedAdvertisementProductCode] ?? null;
+}
 
 export const WEEKLY_QUOTA_TIME_ZONE = "Asia/Seoul" as const;
 
