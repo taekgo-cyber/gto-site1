@@ -1,7 +1,7 @@
 # Monetization Session 13 Status
 
-- 작성 시각: 2026-08-23 14:35:00 +09:00
-- current HEAD / previous checkpoint: `4ec0c6d1050be5f3d7e817c18f4528077b8c4d84`
+- 작성 시각: 2026-08-23 14:55:00 +09:00
+- current HEAD / previous checkpoint: `4304956` (Gate 4 checkpoint)
 - build baseline: `9a1adc1a28d9f062bfb8ab10bc817a77492c24e5`
 - branch: `monetization/session-13`
 - worktree: `C:/Users/taekg/Documents/Codex/gto-site1-monetization-session13`
@@ -9,7 +9,7 @@
 
 ## 승인 scope
 
-Session 13 Gate 4 Product/Quota bounded foundation. 실제 PostgreSQL 적용, shared DB write, live PG/payment, checkout UI는 제외한다.
+Session 13 Gate 4.1 quota usage service. 실제 PostgreSQL 적용, shared DB write, live PG/payment, checkout UI는 제외한다.
 
 ## 완료 작업
 
@@ -28,6 +28,11 @@ Session 13 Gate 4 Product/Quota bounded foundation. 실제 PostgreSQL 적용, sh
 - CompanyQuotaUsage와 append-only CompanyQuotaConsumption idempotency foundation
 - Asia/Seoul weekly Match quota policy (1 / 3 / 5 / 10) 및 highest-active-tier resolution
 - Sol High 최종 판정: `GATE 4 PASS`, Gate 4 checkpoint `AUTHORIZED`, Gate 4.1 `AUTHORIZED`, Gate 5 `NOT AUTHORIZED`
+- Gate 4.1 active-company authorization recheck and OWNER/MANAGER-only quota consumption
+- DB-backed status/consume service with Asia/Seoul window, highest active tier, atomic cap predicate, and idempotent consumption result
+- Contact Unlock quota remains 0; no credit fallback or Lead orchestration
+- focused Gate 4.1 tests and full regression verification
+- Sol High final review: `GATE 4.1 PASS`, Gate 4.1 checkpoint `AUTHORIZED`, Gate 5 `AUTHORIZED`
 
 ## 변경 파일
 
@@ -44,10 +49,13 @@ Session 13 Gate 4 Product/Quota bounded foundation. 실제 PostgreSQL 적용, sh
 - `src/lib/quotas/policy.ts`
 - `src/lib/quotas/dal.ts`
 - `src/__tests__/monetization.gate4.test.ts`
+- `src/lib/quotas/dal.ts`
+- `src/lib/quotas/service.ts`
+- `src/__tests__/quotas.service.test.ts`
 
 ## DB / migration 상태
 
-- Gate 3.1 / Gate 4 migration 생성 및 정적 검토: 완료
+- Gate 3.1 / Gate 4 migration 생성 및 정적 검토: 완료; Gate 4.1에서 schema/migration 변경 없음
 - Prisma validate/generate: PASS
 - migration apply: 하지 않음
 - shared/main DB write: 없음
@@ -58,14 +66,17 @@ Session 13 Gate 4 Product/Quota bounded foundation. 실제 PostgreSQL 적용, sh
 - focused credits: 23/23 PASS
 - focused Gate 4: 5/5 PASS
 - full: 80 files / 933 tests PASS
+- focused Gate 4.1: 6/6 PASS
+- full after Gate 4.1: 81 files / 939 tests PASS
 - lint: 0 errors / 13 pre-existing warnings
 - build: PASS
 - typecheck after build: PASS
 - git diff --check: PASS
+- Gate 4.1 `npx prisma validate` 재실행은 환경의 Prisma engine cache `EPERM`으로 종료; Gate 4 checkpoint에서 validate/generate PASS였고 Gate 4.1은 schema 변경 없음
 
 ## known dirty/untracked
 
-- Monetization worktree: Gate 4 bounded foundation 및 이 STATUS 문서는 local checkpoint commit 대상
+- Monetization worktree: Gate 4.1 quota service/DAL/tests 및 이 STATUS 문서는 local checkpoint commit 대상
 - main CBT worktree: 기존 untracked 파일만 유지; 수정/정리/stash/restore/commit하지 않음
   - `cbt-400-analysis.txt`
   - `check-env-pattern.js`
@@ -99,9 +110,9 @@ Session 13 Gate 4 Product/Quota bounded foundation. 실제 PostgreSQL 적용, sh
 
 ## 다음 실행 단계
 
-1. Gate 4 bounded foundation을 local checkpoint commit으로 고정 (push/merge/rebase/cherry-pick 금지)
-2. Sol High 승인 범위 안에서 Gate 4.1 quota usage service를 Codex direct bounded implementation으로 수행
-3. Gate 4.1 검증 결과를 Sol High에 보고하고 Gate 5 명시적 GO를 대기
+1. Gate 4.1 결과를 Sol High에 review 요청
+2. Sol High 승인 후 Gate 4.1 local checkpoint commit (push/merge/rebase/cherry-pick 금지)
+3. Gate 5는 별도 명시적 GO 전까지 진행하지 않음
 
 ## Sol High decision / 승인 상태
 
@@ -112,7 +123,8 @@ Session 13 Gate 4 Product/Quota bounded foundation. 실제 PostgreSQL 적용, sh
 - Gate 4 build: `PASS`
 - Gate 4 checkpoint: `AUTHORIZED`
 - Gate 4.1: `AUTHORIZED` — quota usage service only; Lead/credit fallback/payment/UI/DB apply 금지
-- Gate 5: `NOT AUTHORIZED`
+- Gate 4.1 final: `PASS` — Sol High approved local checkpoint
+- Gate 5: `AUTHORIZED` — Lead monetization integration; single authoritative transaction; no PG/checkout/DB apply
 
 ## Gate 4 locked policy
 
@@ -127,3 +139,9 @@ Session 13 Gate 4 Product/Quota bounded foundation. 실제 PostgreSQL 적용, sh
 - Weekly window: Asia/Seoul Monday 00:00 inclusive to next Monday 00:00 exclusive; no rollover
 - Existing Product remains advertisement catalog; CreditPackage is a separate catalog domain
 - Ad exposure reference prices: GENERAL 40,000/7d, PREMIUM 80,000/7d, MAIN 150,000/7d; initial discount policy remains promotion configuration
+
+## Gate 5 locked guardrail
+
+- 동일 `companyId + idempotencyKey`는 동일 logical operation일 때만 `ALREADY_CONSUMED`로 처리한다.
+- allowance type, weekly window, operation identity가 불일치하면 safe conflict/error로 처리한다.
+- quota 또는 Credit 소비와 Lead Match/Unlock 생성은 가능한 한 하나의 authoritative transaction 안에서 함께 성공/rollback한다.
