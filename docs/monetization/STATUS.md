@@ -1,7 +1,7 @@
 # Monetization Session 13 Status
 
-- 작성 시각: 2026-08-23 15:05:00 +09:00
-- current HEAD / previous checkpoint: `4304956` (Gate 4 checkpoint)
+- 작성 시각: 2026-08-23 15:12:00 +09:00
+- current HEAD / previous checkpoint: `505d836` (Gate 5 checkpoint)
 - build baseline: `9a1adc1a28d9f062bfb8ab10bc817a77492c24e5`
 - branch: `monetization/session-13`
 - worktree: `C:/Users/taekg/Documents/Codex/gto-site1-monetization-session13`
@@ -105,14 +105,15 @@ Session 13 Gate 4.1 quota usage service. 실제 PostgreSQL 적용, shared DB wri
 
 ## 남은 blocker
 
-- 실제 PostgreSQL migration/concurrency/locking 검증 미수행. Gate 6 hard blocker.
-- Gate 6에서 실제 PostgreSQL migration/concurrency/locking 검증 필요.
+- None. Gate 6 disposable PostgreSQL verification and Gate 7 final release audit are complete.
+- Gate 6 actual evidence: 10 migrations applied, schema up to date, 43 public tables, FK/index/unique/partial-unique checks, concurrency, and real Prisma service E2E PASS.
+- Gate 7 final result: `PASS` — Session 13 Monetization Foundation passed by Sol High.
 
 ## 다음 실행 단계
 
-1. Gate 5 local checkpoint commit (push/merge/rebase/cherry-pick 금지)
-2. Gate 6 Phase A read-only environment audit
-3. Gate 6에서 shared/main DB를 사용하지 않고 disposable/staging PostgreSQL만 검증
+1. Create the local final checkpoint commit on `monetization/session-13`
+2. Push only `monetization/session-13` to the verified `origin`
+3. Keep main integration as a separate Integration Gate and STOP
 
 ## Sol High decision / 승인 상태
 
@@ -125,7 +126,9 @@ Session 13 Gate 4.1 quota usage service. 실제 PostgreSQL 적용, shared DB wri
 - Gate 4.1: `AUTHORIZED` — quota usage service only; Lead/credit fallback/payment/UI/DB apply 금지
 - Gate 4.1 final: `PASS` — Sol High approved local checkpoint
 - Gate 5: `PASS` — Sol High approved local checkpoint
-- Gate 6: `AUTHORIZED` — real disposable/staging PostgreSQL verification mandatory
+- Gate 6: `PASS` — real disposable PostgreSQL verification complete
+- Gate 6 Phase A: `PASS` — disposable migration/schema/concurrency/E2E evidence recorded
+- Gate 7: `PASS` — Session 13 Monetization Foundation passed
 
 ## Gate 4 locked policy
 
@@ -162,4 +165,22 @@ Session 13 Gate 4.1 quota usage service. 실제 PostgreSQL 적용, shared DB wri
 - Gate 5 changed code is limited to Lead service, quota transaction boundary, generic credit transaction boundary, production unlock callsites, focused tests, and this status document
 - Gate 5 schema delta: NONE; migration delta: NONE; DB apply/write: NOT RUN
 - Gate 6 authorized: separate disposable/staging PostgreSQL only; shared/main DB prohibited
-- current HEAD remains `50dc085`; main CBT worktree remains untouched by this task
+- current HEAD remains `505d836`; main CBT worktree remains untouched by this task
+
+## Gate 7 final release audit — authoritative current handoff
+
+- 기준 시각: 2026-08-23 Gate 7 final audit
+- Sol High decision: `GATE 6 GO / GATE 7 AUTHORIZED`
+- Gate 7 scope: Session 13 final release audit only; no new feature, schema/model/index, migration, payment integration, CBT, shared DB, merge, rebase, cherry-pick, or push.
+- Gate 6 disposable PostgreSQL: `gto_session13_gate6_pg_98a32994c974`, `127.0.0.1:55432`, database/user `gate6_db` / `gate6_user`; container remains healthy and must not be stopped or deleted during handoff.
+- Existing `gto_site_postgres` on `5432` remains healthy and untouched.
+- Actual Gate 6 DB evidence: 10 migrations applied, schema up to date, 43 public tables, FK/index/unique/partial-unique checks PASS, real concurrency and Prisma service E2E PASS.
+- Gate 7 rerun evidence: 82 test files / 947 tests PASS; typecheck PASS; lint 0 errors / 13 pre-existing warnings; Prisma validate PASS; Prisma generate PASS; build PASS; `git diff --check` PASS.
+- Gate 6 bounded implementation correction remains limited to PrismaPg `TransactionWriteConflict` safe mapping in `src/lib/company/service.ts` and its focused regression test.
+- No schema or migration delta; no package.json/lockfile change; main CBT worktree and shared/main DB remain outside scope and untouched.
+- Earlier Gate 6 Phase A `POSTGRESQL ENVIRONMENT REQUIRED` entries in this historical document are superseded by the actual disposable-DB evidence above.
+- Gate 7 result: `PASS` — Sol High final decision recorded.
+
+### Deferred after Session 13 foundation audit
+
+- Actual PG provider selection, live credentials/charges, final prices, final free-quota numbers, credit conversion ratio, cash-credit expiry policy, partial-refund policy, advanced billing/member roles, notifications, AI matching, production rate-limit hardening, and main integration/merge/push remain deferred.

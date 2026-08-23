@@ -458,6 +458,15 @@ describe("Gate6 Sol High: Serializable isolation + bounded serialization conflic
     expect(prismaMock.$transaction).toHaveBeenCalledTimes(2); // two attempts above, each once
   });
 
+  it("PrismaPg DriverAdapterError TransactionWriteConflict maps to the bounded duplicate result", async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ id: "u1", status: "ACTIVE" } as never);
+    prismaMock.companyMember.findFirst.mockResolvedValue(null);
+    prismaMock.company.findUnique.mockResolvedValue(null);
+    const adapterConflict = Object.assign(new Error("TransactionWriteConflict"), { name: "DriverAdapterError" });
+    prismaMock.$transaction.mockRejectedValue(adapterConflict as never);
+    await expect(applyForCompany({ actorUserId: "u1", data: validInput() })).rejects.toThrow("DUPLICATE_COMPANY_APPLICATION");
+  });
+
   it("PostgreSQL 40001 and 40P01 codes also map bounded to DUPLICATE_COMPANY_APPLICATION without raw leak", async () => {
     prismaMock.user.findUnique.mockResolvedValue({ id: "u1", status: "ACTIVE" } as never);
     prismaMock.companyMember.findFirst.mockResolvedValue(null);

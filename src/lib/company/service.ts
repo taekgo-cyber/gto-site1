@@ -118,7 +118,9 @@ export async function applyForCompany(input: {
         throw new Error("DUPLICATE_COMPANY_APPLICATION");
       }
       // Bounded serialization/deadlock conflict mapping: Prisma P2034 or PostgreSQL 40001/40P01
-      if (prismaCode === "P2034" || prismaCode === "40001" || prismaCode === "40P01") {
+      // PrismaPg can surface PostgreSQL SERIALIZABLE aborts as a DriverAdapterError
+      // with the stable message "TransactionWriteConflict" and no numeric code.
+      if (prismaCode === "P2034" || prismaCode === "40001" || prismaCode === "40P01" || msg === "TransactionWriteConflict") {
         throw new Error("DUPLICATE_COMPANY_APPLICATION");
       }
       // Also handle native driver error codes surfaced via message-less code property
