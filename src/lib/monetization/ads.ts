@@ -565,3 +565,48 @@ export async function getAdminAdvertisementOperations(actorUserId: string) {
 
 export type AdvertisementCampaignAdminStatus = "ACTIVE" | "PAUSED" | "CANCELLED";
 export type AdvertisementProductCode = ManagedAdvertisementProductCode;
+
+export async function getTrackablePublicCampaign(campaignId: string, now = new Date()) {
+  const id = campaignId.trim();
+  if (!id || Number.isNaN(now.getTime())) return null;
+  const campaign = await prisma.adCampaign.findFirst({
+    where: {
+      id,
+      status: "ACTIVE",
+      deletedAt: null,
+      startDate: { lte: now },
+      endDate: { gt: now },
+      placement: { isActive: true },
+      company: { status: "ACTIVE" },
+      product: { type: "ADVERTISEMENT", status: "ACTIVE" },
+    },
+    select: {
+      id: true,
+      companyId: true,
+      placementId: true,
+      title: true,
+      linkUrl: true,
+      product: { select: { recruitmentEntitlement: { select: { id: true } } } },
+    },
+  });
+  const productEntitlementId = campaign?.product?.recruitmentEntitlement?.id;
+  if (!campaign?.companyId || !productEntitlementId) return null;
+  const entitlement = await prisma.companyRecruitmentEntitlement.findFirst({
+    where: {
+      companyId: campaign.companyId,
+      productEntitlementId,
+      cancelledAt: null,
+      validFrom: { lte: now },
+      OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+    },
+    select: { id: true },
+  });
+  if (!entitlement) return null;
+  return {
+    id: campaign.id,
+    companyId: campaign.companyId,
+    placementId: campaign.placementId,
+    title: campaign.title,
+    linkUrl: safeStoredUrl(campaign.linkUrl, "link"),
+  };
+}

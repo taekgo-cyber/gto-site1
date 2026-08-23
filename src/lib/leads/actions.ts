@@ -1,8 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/dal";
+import {
+  AD_ATTRIBUTION_COOKIE,
+  recordAdvertisementConversionFromAttribution,
+} from "@/lib/analytics/ads";
 import { LEAD_CONSENT_VERSION } from "./constants";
 import {
   activateCandidateLead,
@@ -102,6 +107,19 @@ export async function activateCandidateLeadAction(
       leadId,
       consentVersion: LEAD_CONSENT_VERSION,
     });
+    try {
+      const cookieStore = await cookies();
+      const attributionToken = cookieStore.get(AD_ATTRIBUTION_COOKIE)?.value;
+      if (attributionToken) {
+        try {
+          await recordAdvertisementConversionFromAttribution({ attributionToken });
+        } finally {
+          cookieStore.delete(AD_ATTRIBUTION_COOKIE);
+        }
+      }
+    } catch {
+      // Analytics attribution is best-effort and must never invalidate a successful Lead activation.
+    }
     revalidatePath("/mypage");
     revalidatePath("/mypage/lead");
     return { success: true, message: "구직정보가 공개되었습니다." };

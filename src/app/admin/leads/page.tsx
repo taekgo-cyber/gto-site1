@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Container } from "@/components/common/Container";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { getAdvertisingMetrics } from "@/lib/analytics/ads";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { getLeadMetrics } from "@/lib/leads/metrics";
 import { validateMetricsDateRange } from "@/lib/leads/metrics-validation";
@@ -88,12 +89,16 @@ export default async function AdminLeadsPage({
   }
 
   let metrics: Awaited<ReturnType<typeof getLeadMetrics>> | null = null;
+  let adMetrics: Awaited<ReturnType<typeof getAdvertisingMetrics>> | null = null;
   let error: string | null = null;
   let isAdminRequired = false;
 
   try {
     // Session actor is authoritative; ignore any client adminUserId
-    metrics = await getLeadMetrics({ actorUserId: user.id, from: params.from, to: params.to });
+    [metrics, adMetrics] = await Promise.all([
+      getLeadMetrics({ actorUserId: user.id, from: params.from, to: params.to }),
+      getAdvertisingMetrics({ actorUserId: user.id, from: params.from, to: params.to }),
+    ]);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "조회 중 오류가 발생했습니다.";
     if (msg === "ADMIN_REQUIRED") {
@@ -101,6 +106,8 @@ export default async function AdminLeadsPage({
       error = "관리자 권한이 필요합니다. (ACTIVE ADMIN만 접근 가능)";
     } else if (msg.includes("INVALID_FROM") || msg.includes("INVALID_TO") || msg.includes("INVALID_DATE")) {
       error = "날짜 형식이 올바르지 않습니다.";
+    } else if (msg === "METRICS_DATE_RANGE_TOO_LARGE") {
+      error = "광고 성과 통계는 한 번에 최대 90일까지 조회할 수 있습니다.";
     } else if (msg.toLowerCase().includes("prisma") || msg.includes("DATABASE_URL") || msg.includes("stack") || msg.length > 200) {
       error = "조회 중 오류가 발생했습니다.";
     } else {
@@ -126,7 +133,7 @@ export default async function AdminLeadsPage({
     );
   }
 
-  if (error || !metrics) {
+  if (error || !metrics || !adMetrics) {
     return (
       <Container className="mx-auto max-w-3xl space-y-6 py-8">
         <Card>
@@ -144,13 +151,13 @@ export default async function AdminLeadsPage({
   }
 
   return (
-    <Container className="mx-auto max-w-3xl space-y-6 py-8">
+    <Container className="mx-auto max-w-6xl space-y-6 py-8">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-muted-foreground">관리자</p>
-          <h1 className="text-2xl font-bold">리드 현황</h1>
+          <h1 className="text-2xl font-bold">리드·광고 KPI</h1>
           <p className="text-sm text-muted-foreground">
-            읽기 전용 집계 — CandidateLead / LeadMatch / LeadContactUnlock / Company
+            읽기 전용 집계 — Lead 퍼널 + 광고 노출·클릭·전환
           </p>
           {(params.from || params.to) && (
             <p className="mt-1 text-xs text-muted-foreground">
@@ -305,7 +312,88 @@ export default async function AdminLeadsPage({
         </CardContent>
       </Card>
 
-      <p className="text-xs text-muted-foreground">집계는 기존 인덱스 기반 read-only 쿼리만 사용하며, PII(이름/전화/이메일 등)는 조회하지 않습니다.</p>
+      <div className="space-y-2 border-t border-border pt-6">
+        <h2 className="text-xl font-bold">광고 성과</h2>
+        <p className="text-xs text-muted-foreground">
+          집계 기간: {adMetrics.from} ~ {adMetrics.to} · 기본 조회는 최근 30일, 최대 90일입니다.
+        </p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader><CardTitle>노출</CardTitle></CardHeader>
+          <CardContent className="text-2xl font-bold">{adMetrics.totals.impressions.toLocaleString()}</CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle>클릭 / CTR</CardTitle></CardHeader>
+          <CardContent className="space-y-1">
+            <p className="text-2xl font-bold">{adMetrics.totals.clicks.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground">
+              {(adMetrics.totals.ctr * 100).toFixed(2)}% ({adMetrics.totals.clicks}/{adMetrics.totals.impressions})
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle>Lead 전환</CardTitle></CardHeader>
+          <CardContent className="text-2xl font-bold">{adMetrics.totals.conversions.toLocaleString()}</CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle>클릭→Lead</CardTitle></CardHeader>
+          <CardContent className="space-y-1">
+            <p className="text-2xl font-bold">{(adMetrics.totals.clickConversionRate * 100).toFixed(2)}%</p>
+            <p className="text-xs text-muted-foreground">
+              ({adMetrics.totals.conversions}/{adMetrics.totals.clicks})
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>캠페인별 광고 KPI</CardTitle>
+          <p className="text-xs text-muted-foreground">노출 → 클릭(CTR) → Lead 활성화 전환</p>
+        </CardHeader>
+        <CardContent>
+          {adMetrics.perCampaign.length === 0 ? (
+            <p className="py-4 text-center text-sm text-muted-foreground">집계된 광고 이벤트가 없습니다.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="border-b text-left text-xs text-muted-foreground"><th className="px-2 py-2">캠페인</th><th className="px-2 py-2">광고주</th><th className="px-2 py-2">위치</th><th className="px-2 py-2">노출</th><th className="px-2 py-2">클릭</th><th className="px-2 py-2">CTR</th><th className="px-2 py-2">전환</th><th className="px-2 py-2">클릭→Lead</th></tr></thead>
+                <tbody>
+                  {adMetrics.perCampaign.map((row) => (
+                    <tr key={row.campaignId} className="border-b last:border-0">
+                      <td className="px-2 py-2 font-medium">{row.title}</td><td className="px-2 py-2">{row.companyName}</td><td className="px-2 py-2">{row.placementName}</td><td className="px-2 py-2">{row.impressions}</td><td className="px-2 py-2">{row.clicks}</td><td className="px-2 py-2">{(row.ctr * 100).toFixed(2)}%</td><td className="px-2 py-2">{row.conversions}</td><td className="px-2 py-2">{(row.clickConversionRate * 100).toFixed(2)}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader><CardTitle>광고주별 KPI</CardTitle></CardHeader>
+          <CardContent>
+            {adMetrics.perCompany.length === 0 ? <p className="py-4 text-center text-sm text-muted-foreground">집계된 광고주가 없습니다.</p> : (
+              <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b text-left text-xs text-muted-foreground"><th className="px-2 py-2">광고주</th><th className="px-2 py-2">노출</th><th className="px-2 py-2">클릭</th><th className="px-2 py-2">CTR</th><th className="px-2 py-2">전환</th><th className="px-2 py-2">클릭→Lead</th></tr></thead><tbody>{adMetrics.perCompany.map((row) => <tr key={row.companyId} className="border-b last:border-0"><td className="px-2 py-2 font-medium">{row.companyName}</td><td className="px-2 py-2">{row.impressions}</td><td className="px-2 py-2">{row.clicks}</td><td className="px-2 py-2">{(row.ctr * 100).toFixed(2)}%</td><td className="px-2 py-2">{row.conversions}</td><td className="px-2 py-2">{(row.clickConversionRate * 100).toFixed(2)}%</td></tr>)}</tbody></table></div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>노출 위치별 KPI</CardTitle></CardHeader>
+          <CardContent>
+            {adMetrics.perPlacement.length === 0 ? <p className="py-4 text-center text-sm text-muted-foreground">집계된 광고 위치가 없습니다.</p> : (
+              <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b text-left text-xs text-muted-foreground"><th className="px-2 py-2">위치</th><th className="px-2 py-2">노출</th><th className="px-2 py-2">클릭</th><th className="px-2 py-2">CTR</th><th className="px-2 py-2">전환</th><th className="px-2 py-2">클릭→Lead</th></tr></thead><tbody>{adMetrics.perPlacement.map((row) => <tr key={row.placementId} className="border-b last:border-0"><td className="px-2 py-2 font-medium">{row.placementName}</td><td className="px-2 py-2">{row.impressions}</td><td className="px-2 py-2">{row.clicks}</td><td className="px-2 py-2">{(row.ctr * 100).toFixed(2)}%</td><td className="px-2 py-2">{row.conversions}</td><td className="px-2 py-2">{(row.clickConversionRate * 100).toFixed(2)}%</td></tr>)}</tbody></table></div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <p className="text-xs text-muted-foreground">Lead 집계와 광고 이벤트 집계는 PII(이름/전화/이메일), raw IP, raw User-Agent를 광고 분석 데이터에 저장하지 않습니다.</p>
     </Container>
   );
 }

@@ -129,6 +129,12 @@ enum AdCampaignStatus {
   CANCELLED
 }
 
+enum AdAnalyticsEventType {
+  IMPRESSION
+  CLICK
+  CONVERSION
+}
+
 enum ProductType {
   ADVERTISEMENT
 }
@@ -666,11 +672,33 @@ model AdCampaign {
   product   Product?    @relation(fields: [productId], references: [id], onDelete: SetNull)
   placement AdPlacement @relation(fields: [placementId], references: [id])
   region    Region?     @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  analyticsEvents AdAnalyticsEvent[]
 
   @@index([placementId, status, sortOrder])
   @@index([companyId])
   @@index([startDate, endDate])
   @@map("ad_campaigns")
+}
+
+model AdAnalyticsEvent {
+  id               String               @id @default(cuid())
+  campaignId       String
+  companyId        String?
+  placementId      String
+  eventType        AdAnalyticsEventType
+  occurredAt       DateTime             @default(now())
+  dedupeKey        String?              @unique
+  attributionToken String?              @unique
+  sourceEventId    String?              @unique
+  createdAt        DateTime             @default(now())
+
+  campaign AdCampaign @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+
+  @@index([campaignId, eventType, occurredAt])
+  @@index([companyId, eventType, occurredAt])
+  @@index([placementId, eventType, occurredAt])
+  @@index([eventType, occurredAt])
+  @@map("ad_analytics_events")
 }
 
 // ---------------------------------------------------------------------------
