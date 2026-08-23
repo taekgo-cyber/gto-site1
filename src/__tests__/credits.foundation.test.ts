@@ -436,7 +436,73 @@ describe("Credits Foundation — Gate 3 STATIC/ISOLATED", () => {
       expect(getBalance(db, "c11")).toBe(13); // 20 -4 -3
     });
 
-    it("allowanceType is required and distinct in ledger rows", () => {
+    it("generic paid Company credit funds both purposes without splitting the wallet", () => {
+      const db = createInMemoryCreditDb();
+      grantCredits(db, {
+        companyId: "c13",
+        amount: asCreditAmount(20),
+        source: "PAID_CREDIT",
+        idempotencyKey: "g-generic",
+      });
+
+      const match = consumeCredits(db, {
+        companyId: "c13",
+        amount: asCreditAmount(4),
+        allowanceType: CreditAllowanceType.MATCH,
+        idempotencyKey: "c13-match",
+      });
+      const unlock = consumeCredits(db, {
+        companyId: "c13",
+        amount: asCreditAmount(6),
+        allowanceType: CreditAllowanceType.CONTACT_UNLOCK,
+        idempotencyKey: "c13-unlock",
+      });
+
+      expect(getGrants(db, "c13")).toHaveLength(1);
+      expect(getGrants(db, "c13")[0]!.allowanceType).toBeNull();
+      expect(match.transaction.allowanceType).toBe(CreditAllowanceType.MATCH);
+      expect(unlock.transaction.allowanceType).toBe(CreditAllowanceType.CONTACT_UNLOCK);
+      expect(getBalance(db, "c13")).toBe(10);
+    });
+
+    it("typed free/promotion quota cannot cross purposes", () => {
+      const db = createInMemoryCreditDb();
+      grantCredits(db, {
+        companyId: "c14",
+        amount: asCreditAmount(5),
+        allowanceType: CreditAllowanceType.MATCH,
+        source: "FREE_QUOTA",
+        idempotencyKey: "g-match-only",
+      });
+      grantCredits(db, {
+        companyId: "c15",
+        amount: asCreditAmount(5),
+        allowanceType: CreditAllowanceType.CONTACT_UNLOCK,
+        source: "FREE_QUOTA",
+        idempotencyKey: "g-unlock-only",
+      });
+
+      expect(() =>
+        consumeCredits(db, {
+          companyId: "c15",
+          amount: asCreditAmount(1),
+          allowanceType: CreditAllowanceType.MATCH,
+          idempotencyKey: "wrong-purpose-1",
+        }),
+      ).toThrow();
+      expect(() =>
+        consumeCredits(db, {
+          companyId: "c14",
+          amount: asCreditAmount(1),
+          allowanceType: CreditAllowanceType.CONTACT_UNLOCK,
+          idempotencyKey: "wrong-purpose-2",
+        }),
+      ).toThrow();
+      expect(getBalance(db, "c14")).toBe(5);
+      expect(getBalance(db, "c15")).toBe(5);
+    });
+
+    it("allowanceType is required for usage provenance in ledger rows", () => {
       const db = createInMemoryCreditDb();
       const g = grantCredits(db, {
         companyId: "c12",

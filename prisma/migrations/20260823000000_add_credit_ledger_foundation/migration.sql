@@ -20,7 +20,7 @@ CREATE TABLE "credit_grants" (
     "id" TEXT NOT NULL,
     "companyId" TEXT NOT NULL,
     "creditAccountId" TEXT NOT NULL,
-    "allowanceType" "CreditAllowanceType" NOT NULL,
+    "allowanceType" "CreditAllowanceType",
     "source" TEXT NOT NULL,
     "referenceId" TEXT,
     "amount" INTEGER NOT NULL,

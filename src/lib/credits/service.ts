@@ -66,7 +66,7 @@ export type GrantCreditsInput = {
   companyId: string;
   actorUserId?: string | null;
   amount: CreditAmount;
-  allowanceType: CreditAllowanceType;
+  allowanceType?: CreditAllowanceType | null;
   source: string;
   referenceId?: string | null;
   expiresAt?: Date | null;
@@ -115,7 +115,7 @@ export function grantCredits(db: InMemoryCreditDb, input: GrantCreditsInput): Le
     id: grantId,
     companyId: input.companyId,
     creditAccountId: account.id,
-    allowanceType: input.allowanceType,
+    allowanceType: input.allowanceType ?? null,
     source: input.source,
     referenceId: input.referenceId ?? null,
     amount: input.amount,
@@ -134,7 +134,7 @@ export function grantCredits(db: InMemoryCreditDb, input: GrantCreditsInput): Le
     companyId: input.companyId,
     actorUserId: input.actorUserId ?? null,
     type: "GRANT" as CreditTransactionType,
-    allowanceType: input.allowanceType,
+    allowanceType: input.allowanceType ?? null,
     amountDelta,
     balanceAfter: newBalance,
     source: input.source,
@@ -182,9 +182,12 @@ export function consumeCredits(db: InMemoryCreditDb, input: ConsumeCreditsInput)
     throw new NegativeBalanceError(`Insufficient balance: have ${currentBalance}, need ${input.amount}`);
   }
 
-  // Expiry-aware grant selection - only grants of matching allowanceType are eligible
+  // Generic paid grants are eligible for either purpose; typed free/promotion grants
+  // are eligible only for their matching operation purpose.
   const allGrants = db.grants.get(input.companyId) ?? [];
-  const eligibleGrants = allGrants.filter((g) => g.allowanceType === input.allowanceType);
+  const eligibleGrants = allGrants.filter(
+    (g) => g.allowanceType === null || g.allowanceType === input.allowanceType,
+  );
   const selection = selectGrantsForConsumption(eligibleGrants as CreditGrant[], input.amount, new Date());
 
   // Atomic decrement of remainingAmount on selected grants

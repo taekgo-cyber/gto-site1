@@ -1,7 +1,7 @@
 # Monetization Session 13 Status
 
 - 작성 시각: 2026-08-23 14:15:09 +09:00
-- current HEAD / checkpoint: `fa6920a8271572618c1dc2cdf635f5384c30f602`
+- current HEAD / previous checkpoint: `2246f2e36465e633f40a4dcd61433c77e2861b66`
 - build baseline: `9a1adc1a28d9f062bfb8ab10bc817a77492c24e5`
 - branch: `monetization/session-13`
 - worktree: `C:/Users/taekg/Documents/Codex/gto-site1-monetization-session13`
@@ -9,7 +9,7 @@
 
 ## 승인 scope
 
-Session 13 Gate 3 Credit/Ledger static/isolated foundation. 실제 PostgreSQL 적용, shared DB write, live PG/payment, Product 가격/quota 정책, checkout UI는 제외한다.
+Session 13 Gate 3.1 credit semantics correction and Gate 4 Product/Quota bounded foundation. 실제 PostgreSQL 적용, shared DB write, live PG/payment, checkout UI는 제외한다.
 
 ## 완료 작업
 
@@ -20,8 +20,9 @@ Session 13 Gate 3 Credit/Ledger static/isolated foundation. 실제 PostgreSQL �
 - MATCH / CONTACT_UNLOCK allowance 분리
 - expiry-aware selection, negative balance, idempotency foundation
 - provider-neutral payment boundary types/interfaces
+- paid Credit generic Company balance semantics; MATCH / CONTACT_UNLOCK retained as quota/purpose provenance
 - focused tests와 static migration 생성
-- Sol High 최종 판정: `GATE 3 GO`
+- Sol High 최종 판정: `GATE 3 GO`, `GATE 3.1 PASS`, `GATE 4 BUILD AUTHORIZED`
 
 ## 변경 파일
 
@@ -43,8 +44,8 @@ Session 13 Gate 3 Credit/Ledger static/isolated foundation. 실제 PostgreSQL �
 
 ## 검증 결과
 
-- focused: 21/21 PASS
-- full: 79 files / 926 tests PASS
+- focused credits: 23/23 PASS
+- full: 79 files / 928 tests PASS
 - lint: 0 errors / 13 pre-existing warnings
 - build: PASS
 - typecheck after build: PASS
@@ -52,7 +53,7 @@ Session 13 Gate 3 Credit/Ledger static/isolated foundation. 실제 PostgreSQL �
 
 ## known dirty/untracked
 
-- Monetization worktree: checkpoint commit 후 clean
+- Monetization worktree: Gate 3.1 correction 및 이 STATUS 문서는 다음 local checkpoint commit 대상
 - main CBT worktree: 기존 untracked 파일만 유지; 수정/정리/stash/restore/commit하지 않음
   - `cbt-400-analysis.txt`
   - `check-env-pattern.js`
@@ -82,16 +83,32 @@ Session 13 Gate 3 Credit/Ledger static/isolated foundation. 실제 PostgreSQL �
 ## 남은 blocker
 
 - 실제 PostgreSQL migration/concurrency/locking 검증 미수행. Gate 6 hard blocker.
-- Gate 4에서 광고상품, 가격, 무료 quota, credit conversion/expiry 정책을 먼저 확정해야 함.
+- Gate 6에서 실제 PostgreSQL migration/concurrency/locking 검증 필요.
 
 ## 다음 실행 단계
 
-1. Sol High 승인 하의 Gate 4 READ-ONLY Product/Quota policy contract 작성
-2. Gate 4 BUILD는 별도 GO 이후에만 Muse Spark 1.2 Free High로 수행
-3. Gate 6 전 disposable/staging PostgreSQL 확보 여부 재확인
+1. 현재 Gate 3.1 correction을 local checkpoint commit으로 고정 (push/merge/rebase/cherry-pick 금지)
+2. Sol High 승인 범위 안에서 Gate 4 Product/Quota bounded BUILD를 Muse Spark 1.2 Free High로 수행
+3. Codex가 실제 diff와 검증 결과를 검수한 뒤 Gate 5를 Sol High에 보고
 
 ## Sol High decision / 승인 상태
 
 - Gate 2: `CONDITIONAL GO — REAL DB VERIFICATION DEFERRED`
 - Gate 3: `GO`
-- Gate 4: `AUTHORIZED — POLICY / PRODUCT CONTRACT ONLY` (READ-ONLY 설계 단계, BUILD 미승인)
+- Gate 3.1: `PASS` — Muse blocked, Codex bounded correction authorized
+- Gate 4 policy: `GO`
+- Gate 4 build: `AUTHORIZED`
+
+## Gate 4 locked policy
+
+- Match: 2,000 Credit per operation
+- Contact Unlock: 20,000 Credit per operation
+- 1 KRW = 1 Credit; minimum credit charge 20,000 KRW
+- Free weekly Match quota: NONE/미등록 1, GENERAL 3, PREMIUM 5, MAIN 10
+- Free Contact Unlock: default 0
+- Paid Credit: generic Company wallet, non-expiring by default
+- Free/promotion quota: operation-specific and expiry-aware
+- Same recruitment tier: highest active tier only; no stacking
+- Weekly window: Asia/Seoul Monday 00:00 inclusive to next Monday 00:00 exclusive; no rollover
+- Existing Product remains advertisement catalog; CreditPackage is a separate catalog domain
+- Ad exposure reference prices: GENERAL 40,000/7d, PREMIUM 80,000/7d, MAIN 150,000/7d; initial discount policy remains promotion configuration

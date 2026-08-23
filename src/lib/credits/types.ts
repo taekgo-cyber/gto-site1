@@ -50,7 +50,8 @@ export type CreditGrant = {
   id: string;
   companyId: string;
   creditAccountId: string;
-  allowanceType: CreditAllowanceType;
+  // Null is a generic paid Company credit grant; non-null is free/promotion quota provenance.
+  allowanceType: CreditAllowanceType | null;
   source: string;
   referenceId: string | null;
   amount: CreditAmount;
@@ -138,6 +139,10 @@ export function selectGrantsForConsumption(
   if (!Number.isInteger(amount) || amount <= 0) throw new Error("amount must be positive integer");
   const usable = grants.filter((g) => isGrantUsable(g, now));
   const sorted = [...usable].sort((a, b) => {
+    // Operation-specific free/promotion grants are consumed before generic paid credit.
+    const aGeneric = a.allowanceType === null;
+    const bGeneric = b.allowanceType === null;
+    if (aGeneric !== bGeneric) return aGeneric ? 1 : -1;
     if (a.expiresAt === null && b.expiresAt === null) {
       return a.createdAt.getTime() - b.createdAt.getTime();
     }

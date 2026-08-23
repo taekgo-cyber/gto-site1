@@ -1058,7 +1058,8 @@ model CreditGrant {
   id              String              @id @default(cuid())
   companyId       String
   creditAccountId String
-  allowanceType   CreditAllowanceType
+  // Null means generic paid Company credit; non-null is an operation-specific free/promotion grant.
+  allowanceType   CreditAllowanceType?
   source          String
   referenceId     String?
   amount          Int
