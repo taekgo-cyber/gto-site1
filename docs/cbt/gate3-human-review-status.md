@@ -26,3 +26,13 @@ The Phase 3A artifact must bind the exact 39 QA_PASSED entries from the immutabl
 - Build: three pre-compilation `.next/trace-build` EPERM failures; accepted by Sol High as an execution-environment exception, with no further retries
 - DB writes, provider/network calls, auto-QA, Human Review, approve/reject, residual, recovery/resume, Canary/Probe, Promote/Bulk, migration, commit, push: **0**
 - Sol High final review: `FINAL PHASE3A PASS`; Phase 3A is complete. Next action requires separate authorization for Phase 3B Human Review; Phase 3C remains **NO-GO**.
+
+## Gate2 + Gate3A Git Checkpoint
+
+- Previous HEAD: `ac6635d5123ce22b3efccf7f205788a4dfe602fc`
+- Checkpoint commit: `715794254e4a4a6d85fbe471c2430250cedb5425`
+- Branch: `main`
+- Push: `origin/main` advanced from `ac6635d...` to `7157942...` by normal fast-forward; no force push, merge, or rebase
+- Committed scope: Gate2 operational closeout/evidence/integrity/recovery implementation and tests, Gate3A freeze/export implementation and tests, required runlog/content contract dependencies, and CBT status/runbook documentation
+- Preserved unrelated dirty entries (unstaged/uncommitted): `cbt-400-analysis.txt`, `check-env-pattern.js`, `check-env.js`, `docs/screen-reference.html`, `exam.html`, `stage-b-report-final.log`, `stage-b-report.log`, `stage-b-retry.log`, `stage-b.log`, `tools/cbt/_tmp-before2.ts`
+- Production evidence under `data/cbt/evidence/**` was not staged or mutated
