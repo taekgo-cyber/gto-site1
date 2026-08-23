@@ -96,6 +96,8 @@ export function buildQuestionGenerationPrompt(
     "- category: 4개 코드 중 하나 (CAT-LAW/CAT-HANDLING/CAT-SAFETY/CAT-SERVICE)",
     "- difficulty: EASY/MEDIUM/HARD",
     "- factSourceMapping: [{ statement: 위 facts의 원문 문장, usedAs: question_basis|answer_basis|distractor_basis|explanation_basis }]",
+    "- 중요: 입력 facts의 importance(answer_basis/context/distractor_basis)와 출력 factSourceMapping.usedAs는 서로 다른 enum이다.",
+    "- context는 입력 fact의 importance로만 사용할 수 있으며 factSourceMapping.usedAs에 절대 쓰지 않는다.",
     "",
     jsonSchemaHint({
       name: "GeneratedQuestion",

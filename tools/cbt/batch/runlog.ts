@@ -11,8 +11,7 @@ import { randomUUID } from "node:crypto";
 import { appendFile, mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
-export type RunLogEntry =
-  | {
+export type RunStartEntry = {
       type: "run_start";
       runId: string;
       command: string;
@@ -21,8 +20,17 @@ export type RunLogEntry =
       total: number;
       /** 실제 병렬도 (순차면 1, pool 기반이면 적용 concurrency) */
       concurrency?: number;
+      /** Gate 2 recovery 등 특수 실행의 provenance. legacy run에는 없다. */
+      runType?: "gate2_post_failure_recovery";
+      policyVersion?: string;
+      lane?: "contract" | "provider";
+      parentRunId?: string;
+      targetSetHash?: string;
       createdAt: string;
-    }
+    };
+
+export type RunLogEntry =
+  | RunStartEntry
   | {
       type: "item_result";
       runId: string;
@@ -43,7 +51,7 @@ export type RunLogEntry =
       abortReason?: string;
     };
 
-export type AbortReason = "log_failure" | "circuit_open";
+export type AbortReason = "log_failure" | "circuit_open" | "recovery_stop" | "transient_failure" | "consecutive_transient_limit" | "terminal_failure";
 
 export class RunLogError extends Error {
   constructor(message: string) {
@@ -120,6 +128,12 @@ export type RunLogSessionOptions = {
   concurrency?: number | null;
   /** append 주입 (테스트 전용. 기본 appendRunLogEntry) — run_start에도 적용된다 */
   append?: (dir: string, entry: RunLogEntry) => Promise<void>;
+  recovery?: {
+    policyVersion: string;
+    lane: "contract" | "provider";
+    parentRunId: string;
+    targetSetHash: string;
+  };
 };
 
 export type RunLogSession = {
@@ -157,7 +171,7 @@ export async function createRunLogSession(
 
   try {
     await mkdir(opts.dir, { recursive: true });
-    await append(opts.dir, {
+    const start: RunStartEntry = {
       type: "run_start",
       runId,
       command: opts.command,
@@ -165,8 +179,18 @@ export async function createRunLogSession(
       targets: opts.targets,
       total: opts.total,
       concurrency: opts.concurrency ?? undefined,
+      ...(opts.recovery
+        ? {
+            runType: "gate2_post_failure_recovery" as const,
+            policyVersion: opts.recovery.policyVersion,
+            lane: opts.recovery.lane,
+            parentRunId: opts.recovery.parentRunId,
+            targetSetHash: opts.recovery.targetSetHash,
+          }
+        : {}),
       createdAt: new Date().toISOString(),
-    });
+    };
+    await append(opts.dir, start);
   } catch (err) {
     throw new RunLogError(
       `run log를 열 수 없어 실행을 거부합니다 (${opts.dir}): ${
@@ -230,6 +254,7 @@ export async function createRunLogSession(
 export type RunLogRead = {
   entries: RunLogEntry[];
   runId: string;
+  runStart: RunStartEntry;
   /** run_start.targets (원래 대상 목록) */
   targets: string[];
   /**
@@ -251,6 +276,7 @@ export async function readRunLog(dir: string, runId: string): Promise<RunLogRead
 
   const entries: RunLogEntry[] = [];
   let targets: string[] = [];
+  let runStart: RunStartEntry | null = null;
   let runEnd: (RunLogEntry & { type: "run_end" }) | null = null;
 
   for (const [index, line] of content.split(/\r?\n/).entries()) {
@@ -273,7 +299,10 @@ export async function readRunLog(dir: string, runId: string): Promise<RunLogRead
     }
     const entry = parsed as RunLogEntry;
     entries.push(entry);
-    if (entry.type === "run_start") targets = entry.targets;
+    if (entry.type === "run_start") {
+      targets = entry.targets;
+      runStart = entry;
+    }
     if (entry.type === "run_end") runEnd = entry;
   }
 
@@ -302,5 +331,8 @@ export async function readRunLog(dir: string, runId: string): Promise<RunLogRead
     new Set([...explicitlyFailed, ...incomplete]),
   );
 
-  return { entries, runId, targets, failedItemIds, runEnd };
+  if (runStart === null) {
+    throw new RunLogError(`run log 손상 (${runId}): run_start가 없습니다`);
+  }
+  return { entries, runId, runStart, targets, failedItemIds, runEnd };
 }

@@ -93,7 +93,15 @@ describe("STEP 8 schema validation", () => {
 
   it("prompt version 상수는 명시적이다", () => {
     expect(FACT_EXTRACTION_PROMPT_VERSION).toBe("step8-fact-extract-v1");
-    expect(QUESTION_GENERATION_PROMPT_VERSION).toBe("step8-question-gen-v1");
+    expect(QUESTION_GENERATION_PROMPT_VERSION).toBe("step8-question-gen-v1.1");
     expect(AUTO_QA_PROMPT_VERSION).toBe("step8-auto-qa-v3.1");
+  });
+
+  it("generation schema: input importance 전용 context는 usedAs로 거부한다", () => {
+    expect(GENERATED_QUESTION_SCHEMA.safeParse({
+      questionText: "질문", choices: [{ text: "a" }, { text: "b" }, { text: "c" }, { text: "d" }],
+      answers: [1], explanation: "해설", category: "CAT-HANDLING", difficulty: "MEDIUM",
+      factSourceMapping: [{ statement: "사실", usedAs: "context" }],
+    }).success).toBe(false);
   });
 });

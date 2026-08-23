@@ -30,7 +30,12 @@
     "cbt:answer-fetch": "tsx tools/cbt/cli-answer-fetch.ts",
     "cbt:id-enum": "tsx tools/cbt/cli-id-enum.ts",
     "cbt:category-backfill": "tsx tools/cbt/cli-category-backfill.ts",
-    "cbt:provider-probe": "tsx tools/cbt/cli-provider-probe.ts"
+    "cbt:provider-probe": "tsx tools/cbt/cli-provider-probe.ts",
+    "cbt:gate2-recovery": "tsx tools/cbt/cli-gate2-recovery.ts",
+    "cbt:gate2-evaluate": "tsx tools/cbt/cli-gate2-evaluate.ts",
+    "cbt:gate2-integrity": "tsx tools/cbt/cli-gate2-integrity-evidence.ts",
+    "cbt:gate2-closeout": "tsx tools/cbt/cli-gate2-closeout.ts",
+    "cbt:gate3-human-review-export": "tsx tools/cbt/cli-gate3-human-review-export.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",

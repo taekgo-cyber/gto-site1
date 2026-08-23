@@ -13,7 +13,7 @@ import {
 // ---------------------------------------------------------------------------
 
 export const FACT_EXTRACTION_PROMPT_VERSION = "step8-fact-extract-v1";
-export const QUESTION_GENERATION_PROMPT_VERSION = "step8-question-gen-v1";
+export const QUESTION_GENERATION_PROMPT_VERSION = "step8-question-gen-v1.1";
 export const AUTO_QA_PROMPT_VERSION = "step8-auto-qa-v3.1";
 
 // ---------------------------------------------------------------------------

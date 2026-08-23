@@ -15,6 +15,10 @@ import {
   type BatchContentDb,
 } from "./content-query";
 import { resolveBatchScope } from "./guard";
+import {
+  requireGate2CloseoutManifestForGate2DerivedPromotion,
+  type Gate2PromotionGuardDeps,
+} from "./gate2-closeout-promotion-guard";
 import { createBatchLogger, type BatchLogger } from "./logger";
 import { runPool } from "../pipeline/pool";
 import { createRunLogSession, type RunLogEntry } from "./runlog";
@@ -51,7 +55,7 @@ export type BatchPromoteDeps = {
   runLogDir?: string;
   /** run log append 주입 (테스트 전용. mid-run 실패 시뮬레이션) */
   appendRunLog?: (dir: string, entry: RunLogEntry) => Promise<void>;
-};
+} & Gate2PromotionGuardDeps;
 
 /** Prisma known request error P2002 (unique constraint violation) 여부 */
 function isUniqueViolation(error: unknown): boolean {
@@ -75,11 +79,21 @@ export async function runBatchPromote(
   const startedAt = Date.now();
 
   let ids: string[];
+  let candidateIdsForGuard: (string | null)[] = [];
   if (opts.all === true) {
     const rows = await listGeneratedByStatus(batchDb, "APPROVED");
     ids = rows.map((r) => r.id);
+    candidateIdsForGuard = rows.map((r) => r.candidateQuestionId ?? null);
   } else {
     ids = opts.ids;
+    // Gate 2-derived promotion guard requires candidateQuestionId for each generated question id.
+    const lookups = await Promise.all(
+      ids.map(async (id) => {
+        const gq = await contentDb.generatedQuestion.findUnique({ where: { id } });
+        return gq?.candidateQuestionId ?? null;
+      }),
+    );
+    candidateIdsForGuard = lookups;
   }
 
   const targetCount = resolveBatchScope(
@@ -87,6 +101,17 @@ export async function runBatchPromote(
     ids.length,
   );
   ids = ids.slice(0, targetCount);
+  candidateIdsForGuard = candidateIdsForGuard.slice(0, targetCount);
+
+  // Gate 2-derived promotion guard: fail-closed before any DB write.
+  // Dry-run does not mutate DB, so the guard is skipped to allow planning.
+  if (opts.dryRun !== true) {
+    await requireGate2CloseoutManifestForGate2DerivedPromotion(
+      candidateIdsForGuard,
+      ids,
+      deps,
+    );
+  }
 
   if (opts.dryRun === true) {
     logger.info(`dry-run: 승격 대상 ${ids.length}건 (DB 변경 없음)`);

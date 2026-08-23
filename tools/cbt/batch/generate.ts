@@ -29,6 +29,7 @@ import {
   type RunLogSession,
 } from "./runlog";
 import { CircuitBreaker } from "./breaker";
+import { isProviderTransient } from "./failure-classification";
 import type { AbortReason, BatchSummary, GenerateItemResult } from "./types";
 
 /** concurrency 상한 (실수로 지나치게 높은 값을 주지 않도록) */
@@ -41,13 +42,6 @@ const DEFAULT_SEMANTIC_BREAKER_THRESHOLD = 10;
 const DEFAULT_BREAKER_RESET_MS = 60_000;
 
 /** transient(재시도 대상) LLM 실패 코드 → providerBreaker 실패로 계수 (terminal은 계수 금지) */
-const PROVIDER_TRANSIENT_CODES = new Set([
-  "timeout",
-  "provider_error",
-  "rate_limited",
-  "server_error",
-]);
-
 /** runContentProduction 결과를 기준으로 독립 breaker 2개를 갱신한다 */
 export function classifyGenerationOutcome(
   status: string,
@@ -56,7 +50,7 @@ export function classifyGenerationOutcome(
   semanticBreaker: CircuitBreaker,
 ): void {
   // 1) transient LLM 실패 → providerBreaker 실패 (FAILED/QA_FAILED 무관)
-  if (errorCode !== null && PROVIDER_TRANSIENT_CODES.has(errorCode)) {
+  if (isProviderTransient(errorCode)) {
     providerBreaker.recordFailure();
     semanticBreaker.cancelProbe(); // semantic half_open 예약은 해제 (고착 방지)
     return;
@@ -157,6 +151,9 @@ export async function runBatchGenerate(
   }
   if (opts.resume) {
     const previous = await readRunLog(runLogDir, opts.resume);
+    if (previous.runStart.runType === "gate2_post_failure_recovery") {
+      throw new Error("Gate 2 post-failure recovery run은 --resume source로 사용할 수 없습니다.");
+    }
     explicitIds = dedupe([...explicitIds, ...previous.failedItemIds]);
     logger.info(
       `resume: runId=${opts.resume} 실패 재시도 ${previous.failedItemIds.length}건`,

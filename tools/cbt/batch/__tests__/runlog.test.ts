@@ -101,6 +101,7 @@ describe("readRunLog", () => {
     const read = await readRunLog(dir, runId);
     expect(read.targets).toEqual(["t1", "t2"]);
     expect(read.runEnd?.failed).toBe(1);
+    expect(read.runStart.type).toBe("run_start");
   });
 
   it("존재하지 않는 runId → throw", async () => {

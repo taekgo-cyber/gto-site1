@@ -52,7 +52,7 @@ describe("STEP 8 Golden Path", () => {
     expect(gq.questionText).toBe(MOCK_GENERATED_QUESTION.questionText);
     expect(gq.rawLlmResponse).toEqual(MOCK_GENERATED_QUESTION);
     expect(gq.provider).toBe("mock");
-    expect(gq.promptVersion).toBe("step8-question-gen-v1");
+    expect(gq.promptVersion).toBe("step8-question-gen-v1.1");
     expect(gq.similarityWarning).toBe(false);
 
     const qaRows = fake.store.qaRecords.filter(

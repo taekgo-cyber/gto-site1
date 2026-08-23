@@ -49,4 +49,4 @@ export type BatchSummary<T> = {
   abortReason?: AbortReason;
 };
 
-export type AbortReason = "log_failure" | "circuit_open";
+export type AbortReason = "log_failure" | "circuit_open" | "recovery_stop" | "transient_failure" | "consecutive_transient_limit" | "terminal_failure";
