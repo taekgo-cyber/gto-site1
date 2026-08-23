@@ -138,6 +138,25 @@ enum ProductStatus {
   INACTIVE
 }
 
+enum CandidateLeadStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  CLOSED
+  EXPIRED
+}
+
+enum LeadCloseReason {
+  HIRED
+  USER_CLOSED
+  ADMIN_CLOSED
+}
+
+enum LeadMatchStatus {
+  ACTIVE
+  CANCELLED
+}
+
 enum OrderStatus {
   PENDING
   PAID
@@ -164,18 +183,21 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  companyMemberships CompanyMember[]
-  jobPosts           JobPost[]       @relation("JobPostAuthor")
-  leasePosts         LeasePost[]     @relation("LeasePostAuthor")
-  posts              Post[]
-  comments           Comment[]
-  likes              Like[]
-  reports            Report[]        @relation("ReportReporter")
-  handledReports     Report[]        @relation("ReportHandler")
-  orders             Order[]
-  adminLogs          AdminLog[]      @relation("AdminLogAdmin")
+  companyMemberships    CompanyMember[]
+  jobPosts              JobPost[]       @relation("JobPostAuthor")
+  leasePosts            LeasePost[]     @relation("LeasePostAuthor")
+  posts                 Post[]
+  comments              Comment[]
+  likes                 Like[]
+  reports               Report[]        @relation("ReportReporter")
+  handledReports        Report[]        @relation("ReportHandler")
+  orders                Order[]
+  adminLogs             AdminLog[]      @relation("AdminLogAdmin")
   cbtQuestionActivities CbtQuestionActivity[]
-  cbtExamRecords     CbtExamRecord[]
+  cbtExamRecords        CbtExamRecord[]
+  candidateLeads        CandidateLead[]
+  leadMatchesActed      LeadMatch[]         @relation("LeadMatchActor")
+  leadUnlocksActed      LeadContactUnlock[] @relation("LeadUnlockActor")
 
   @@map("users")
 }
@@ -196,11 +218,13 @@ model Company {
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
-  region      Region?         @relation(fields: [regionId], references: [id], onDelete: SetNull)
-  members     CompanyMember[]
-  jobPosts    JobPost[]
-  leasePosts  LeasePost[]
-  adCampaigns AdCampaign[]
+  region             Region?              @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  members            CompanyMember[]
+  jobPosts           JobPost[]
+  leasePosts         LeasePost[]
+  adCampaigns        AdCampaign[]
+  leadMatches        LeadMatch[]
+  leadContactUnlocks LeadContactUnlock[]
 
   @@index([name])
   @@map("companies")
@@ -342,13 +366,14 @@ model Region {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  parent       Region?      @relation("RegionTree", fields: [parentId], references: [id], onDelete: SetNull)
-  children     Region[]     @relation("RegionTree")
-  companies    Company[]
-  jobPostsFrom JobPost[]    @relation("JobPostOrigin")
-  jobPostsTo   JobPost[]    @relation("JobPostDest")
-  leasePosts   LeasePost[]
-  adCampaigns  AdCampaign[]
+  parent         Region?         @relation("RegionTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children       Region[]        @relation("RegionTree")
+  companies      Company[]
+  jobPostsFrom   JobPost[]       @relation("JobPostOrigin")
+  jobPostsTo     JobPost[]       @relation("JobPostDest")
+  leasePosts     LeasePost[]
+  adCampaigns    AdCampaign[]
+  candidateLeads CandidateLead[]
 
   @@index([parentId])
   @@index([depth])
@@ -364,8 +389,9 @@ model VehicleType {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  jobPosts   JobPost[]
-  leasePosts LeasePost[]
+  jobPosts       JobPost[]
+  leasePosts     LeasePost[]
+  candidateLeads CandidateLead[]
 
   @@map("vehicle_types")
 }
@@ -380,8 +406,9 @@ model Tonnage {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  jobPosts   JobPost[]
-  leasePosts LeasePost[]
+  jobPosts       JobPost[]
+  leasePosts     LeasePost[]
+  candidateLeads CandidateLead[]
 
   @@map("tonnages")
 }
@@ -696,6 +723,93 @@ model AdminLog {
   @@index([adminId])
   @@index([createdAt])
   @@map("admin_logs")
+}
+
+// ---------------------------------------------------------------------------
+// CandidateLead 도메인 (Gate 2 — Lead Foundation)
+// 독립 Lead: LeasePost SEEK과 분리, User 소유. PII는 User에 재사용.
+// ---------------------------------------------------------------------------
+
+model CandidateLead {
+  id                String               @id @default(cuid())
+  userId            String
+  status            CandidateLeadStatus  @default(DRAFT)
+  preferredRegionId String?
+  vehicleTypeId     String?
+  tonnageId         String?
+  experienceYears   Int?
+  leaseExperience   Boolean?
+  vehicleOwned      Boolean?
+  licenseInfo       String?
+  desiredWorkType   WorkType?
+  desiredIncomeMin  Int?
+  desiredIncomeMax  Int?
+  availableFrom     DateTime?
+  careerSummary     String?
+  consentVersion    String?
+  consentedAt       DateTime?
+  expiresAt         DateTime?
+  pausedAt          DateTime?
+  closedAt          DateTime?
+  closeReason       LeadCloseReason?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preferredRegion Region?      @relation(fields: [preferredRegionId], references: [id], onDelete: SetNull)
+  vehicleType     VehicleType? @relation(fields: [vehicleTypeId], references: [id], onDelete: SetNull)
+  tonnage         Tonnage?     @relation(fields: [tonnageId], references: [id], onDelete: SetNull)
+  matches         LeadMatch[]
+  unlocks         LeadContactUnlock[]
+
+  @@index([userId, status])
+  @@index([status, expiresAt])
+  @@index([preferredRegionId])
+  @@index([vehicleTypeId])
+  @@index([tonnageId])
+  @@map("candidate_leads")
+}
+
+model LeadMatch {
+  id          String         @id @default(cuid())
+  companyId   String
+  leadId      String
+  actorUserId String
+  status      LeadMatchStatus @default(ACTIVE)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  company Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  lead    CandidateLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  actor   User          @relation("LeadMatchActor", fields: [actorUserId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, leadId])
+  @@index([companyId, status])
+  @@index([leadId])
+  @@index([actorUserId])
+  @@map("lead_matches")
+}
+
+model LeadContactUnlock {
+  id                String   @id @default(cuid())
+  companyId         String
+  leadId            String
+  actorUserId       String
+  unlockedAt        DateTime @default(now())
+  entitlementSource String
+  policyVersion     String
+  consentVersion    String
+  createdAt         DateTime @default(now())
+
+  company Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  lead    CandidateLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  actor   User          @relation("LeadUnlockActor", fields: [actorUserId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, leadId])
+  @@index([companyId])
+  @@index([leadId])
+  @@index([actorUserId])
+  @@map("lead_contact_unlocks")
 }
 
 // ---------------------------------------------------------------------------

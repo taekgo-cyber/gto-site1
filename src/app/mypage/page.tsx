@@ -92,6 +92,30 @@ export default async function MyPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle>구직정보</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            희망 근무조건과 경력을 등록하고 기업 매칭 후보로 참여할 수 있습니다.
+          </p>
+          <Link href="/mypage/lead" className="mt-4 block">
+            <Button size="sm">내 구직정보 관리</Button>
+          </Link>
+        </CardContent>
+      </Card>
+
+      {memberships.length > 0 ? (
+        <Card>
+          <CardHeader><CardTitle>기업 인재찾기</CardTitle></CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">소속 기업의 권한으로 익명 구직 후보를 탐색하고 매칭 관심을 등록할 수 있습니다.</p>
+            <Link href="/company/leads" className="mt-4 block"><Button size="sm">인재찾기로 이동</Button></Link>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <Card>
+        <CardHeader>
           <CardTitle>프로필 수정</CardTitle>
         </CardHeader>
         <CardContent>
