@@ -199,6 +199,9 @@ model User {
   leadMatchesActed      LeadMatch[]         @relation("LeadMatchActor")
   leadUnlocksActed      LeadContactUnlock[] @relation("LeadUnlockActor")
 
+  // Credit foundation (Session 13) - Company-owned ledger, actor provenance distinct
+  creditTransactionsActed CreditTransaction[] @relation("CreditTransactionActor")
+
   @@map("users")
 }
 
@@ -225,6 +228,11 @@ model Company {
   adCampaigns        AdCampaign[]
   leadMatches        LeadMatch[]
   leadContactUnlocks LeadContactUnlock[]
+
+  // Credit foundation (Session 13)
+  creditAccount      CreditAccount?
+  creditGrants       CreditGrant[]
+  creditTransactions CreditTransaction[]
 
   @@index([name])
   @@map("companies")
@@ -1005,4 +1013,92 @@ model CandidateDuplicateMember {
   @@id([groupId, candidateQuestionId])
   @@index([candidateQuestionId])
   @@map("candidate_duplicate_members")
+}
+
+// ---------------------------------------------------------------------------
+// Monetization Credit/Ledger Foundation (Gate 3 - STATIC/ISOLATED)
+// Economic owner is Company; actorUserId is distinct provenance.
+// Ledger is source of truth; no arbitrary balance mutation.
+// Append-only CreditTransaction; idempotency prevents duplicate grant/consume.
+// Grant/Batch expiry is nullable with no fixed policy.
+// Match allowance and ContactUnlock allowance are distinct.
+// Money KRW integer and credit integer are conceptually separate (foundation fields/types only).
+// No product/price numbers, quota numeric constants, checkout/payment UI.
+// ---------------------------------------------------------------------------
+
+enum CreditTransactionType {
+  GRANT
+  CONSUME
+  ADJUSTMENT
+  EXPIRE
+}
+
+enum CreditAllowanceType {
+  MATCH
+  CONTACT_UNLOCK
+}
+
+model CreditAccount {
+  id        String   @id @default(cuid())
+  companyId String   @unique
+  // Projection of ledger sum; source of truth remains CreditTransaction. No unsafe direct mutation exposed in service API.
+  balance   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company      Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  transactions CreditTransaction[]
+  grants       CreditGrant[]
+
+  @@index([companyId])
+  @@map("credit_accounts")
+}
+
+model CreditGrant {
+  id              String              @id @default(cuid())
+  companyId       String
+  creditAccountId String
+  allowanceType   CreditAllowanceType
+  source          String
+  referenceId     String?
+  amount          Int
+  remainingAmount Int
+  expiresAt       DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  creditAccount CreditAccount @relation(fields: [creditAccountId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, allowanceType])
+  @@index([creditAccountId])
+  @@index([expiresAt])
+  @@index([companyId, expiresAt])
+  @@map("credit_grants")
+}
+
+model CreditTransaction {
+  id              String                @id @default(cuid())
+  creditAccountId String
+  companyId       String
+  actorUserId     String?
+  type            CreditTransactionType
+  allowanceType   CreditAllowanceType?
+  amountDelta     Int
+  balanceAfter    Int
+  source          String?
+  referenceType   String?
+  referenceId     String?
+  idempotencyKey  String
+  createdAt       DateTime              @default(now())
+
+  creditAccount CreditAccount @relation(fields: [creditAccountId], references: [id], onDelete: Cascade)
+  company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  actor         User?         @relation("CreditTransactionActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@unique([companyId, idempotencyKey])
+  @@index([creditAccountId, createdAt(sort: Desc)])
+  @@index([companyId, type])
+  @@index([actorUserId])
+  @@map("credit_transactions")
 }
