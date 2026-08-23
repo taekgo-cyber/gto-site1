@@ -1,7 +1,7 @@
 # Monetization Session 13 Status
 
-- 작성 시각: 2026-08-23 14:15:09 +09:00
-- current HEAD / previous checkpoint: `2246f2e36465e633f40a4dcd61433c77e2861b66`
+- 작성 시각: 2026-08-23 14:35:00 +09:00
+- current HEAD / previous checkpoint: `4ec0c6d1050be5f3d7e817c18f4528077b8c4d84`
 - build baseline: `9a1adc1a28d9f062bfb8ab10bc817a77492c24e5`
 - branch: `monetization/session-13`
 - worktree: `C:/Users/taekg/Documents/Codex/gto-site1-monetization-session13`
@@ -9,7 +9,7 @@
 
 ## 승인 scope
 
-Session 13 Gate 3.1 credit semantics correction and Gate 4 Product/Quota bounded foundation. 실제 PostgreSQL 적용, shared DB write, live PG/payment, checkout UI는 제외한다.
+Session 13 Gate 4 Product/Quota bounded foundation. 실제 PostgreSQL 적용, shared DB write, live PG/payment, checkout UI는 제외한다.
 
 ## 완료 작업
 
@@ -23,6 +23,11 @@ Session 13 Gate 3.1 credit semantics correction and Gate 4 Product/Quota bounded
 - paid Credit generic Company balance semantics; MATCH / CONTACT_UNLOCK retained as quota/purpose provenance
 - focused tests와 static migration 생성
 - Sol High 최종 판정: `GATE 3 GO`, `GATE 3.1 PASS`, `GATE 4 BUILD AUTHORIZED`
+- CreditPackage catalog foundation (20,000 / 50,000 / 100,000 KRW, 1 KRW = 1 Credit)
+- ProductRecruitmentEntitlement와 CompanyRecruitmentEntitlement foundation
+- CompanyQuotaUsage와 append-only CompanyQuotaConsumption idempotency foundation
+- Asia/Seoul weekly Match quota policy (1 / 3 / 5 / 10) 및 highest-active-tier resolution
+- Sol High 최종 판정: `GATE 4 PASS`, Gate 4 checkpoint `AUTHORIZED`, Gate 4.1 `AUTHORIZED`, Gate 5 `NOT AUTHORIZED`
 
 ## 변경 파일
 
@@ -33,10 +38,16 @@ Session 13 Gate 3.1 credit semantics correction and Gate 4 Product/Quota bounded
 - `src/lib/credits/service.ts`
 - `src/lib/payments/boundary.ts`
 - `src/__tests__/credits.foundation.test.ts`
+- `prisma/migrations/20260823010000_add_product_quota_foundation/migration.sql`
+- `src/lib/monetization/policy.ts`
+- `src/lib/monetization/types.ts`
+- `src/lib/quotas/policy.ts`
+- `src/lib/quotas/dal.ts`
+- `src/__tests__/monetization.gate4.test.ts`
 
 ## DB / migration 상태
 
-- migration 생성 및 정적 검토: 완료
+- Gate 3.1 / Gate 4 migration 생성 및 정적 검토: 완료
 - Prisma validate/generate: PASS
 - migration apply: 하지 않음
 - shared/main DB write: 없음
@@ -45,7 +56,8 @@ Session 13 Gate 3.1 credit semantics correction and Gate 4 Product/Quota bounded
 ## 검증 결과
 
 - focused credits: 23/23 PASS
-- full: 79 files / 928 tests PASS
+- focused Gate 4: 5/5 PASS
+- full: 80 files / 933 tests PASS
 - lint: 0 errors / 13 pre-existing warnings
 - build: PASS
 - typecheck after build: PASS
@@ -53,7 +65,7 @@ Session 13 Gate 3.1 credit semantics correction and Gate 4 Product/Quota bounded
 
 ## known dirty/untracked
 
-- Monetization worktree: Gate 3.1 correction 및 이 STATUS 문서는 다음 local checkpoint commit 대상
+- Monetization worktree: Gate 4 bounded foundation 및 이 STATUS 문서는 local checkpoint commit 대상
 - main CBT worktree: 기존 untracked 파일만 유지; 수정/정리/stash/restore/commit하지 않음
   - `cbt-400-analysis.txt`
   - `check-env-pattern.js`
@@ -87,9 +99,9 @@ Session 13 Gate 3.1 credit semantics correction and Gate 4 Product/Quota bounded
 
 ## 다음 실행 단계
 
-1. 현재 Gate 3.1 correction을 local checkpoint commit으로 고정 (push/merge/rebase/cherry-pick 금지)
-2. Sol High 승인 범위 안에서 Gate 4 Product/Quota bounded BUILD를 Muse Spark 1.2 Free High로 수행
-3. Codex가 실제 diff와 검증 결과를 검수한 뒤 Gate 5를 Sol High에 보고
+1. Gate 4 bounded foundation을 local checkpoint commit으로 고정 (push/merge/rebase/cherry-pick 금지)
+2. Sol High 승인 범위 안에서 Gate 4.1 quota usage service를 Codex direct bounded implementation으로 수행
+3. Gate 4.1 검증 결과를 Sol High에 보고하고 Gate 5 명시적 GO를 대기
 
 ## Sol High decision / 승인 상태
 
@@ -97,7 +109,10 @@ Session 13 Gate 3.1 credit semantics correction and Gate 4 Product/Quota bounded
 - Gate 3: `GO`
 - Gate 3.1: `PASS` — Muse blocked, Codex bounded correction authorized
 - Gate 4 policy: `GO`
-- Gate 4 build: `AUTHORIZED`
+- Gate 4 build: `PASS`
+- Gate 4 checkpoint: `AUTHORIZED`
+- Gate 4.1: `AUTHORIZED` — quota usage service only; Lead/credit fallback/payment/UI/DB apply 금지
+- Gate 5: `NOT AUTHORIZED`
 
 ## Gate 4 locked policy
 

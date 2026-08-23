@@ -138,6 +138,22 @@ enum ProductStatus {
   INACTIVE
 }
 
+enum CreditPackageStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum RecruitmentTier {
+  GENERAL
+  PREMIUM
+  MAIN
+}
+
+enum QuotaAllowanceType {
+  MATCH
+  CONTACT_UNLOCK
+}
+
 enum CandidateLeadStatus {
   DRAFT
   ACTIVE
@@ -233,6 +249,9 @@ model Company {
   creditAccount      CreditAccount?
   creditGrants       CreditGrant[]
   creditTransactions CreditTransaction[]
+  recruitmentEntitlements CompanyRecruitmentEntitlement[]
+  quotaUsages           CompanyQuotaUsage[]
+  quotaConsumptions     CompanyQuotaConsumption[]
 
   @@index([name])
   @@map("companies")
@@ -670,9 +689,100 @@ model Product {
 
   orderItems  OrderItem[]
   adCampaigns AdCampaign[]
+  recruitmentEntitlement ProductRecruitmentEntitlement?
 
   @@index([status, type])
   @@map("products")
+}
+
+// Gate 4 catalog only. No purchase/payment/credit grant relation is created here.
+model CreditPackage {
+  id           String             @id @default(cuid())
+  code         String             @unique
+  displayName  String
+  priceKrw     Int
+  creditAmount Int
+  status       CreditPackageStatus @default(ACTIVE)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([status])
+  @@map("credit_packages")
+}
+
+// Explicit advertisement Product -> recruitment entitlement definition.
+model ProductRecruitmentEntitlement {
+  id              String          @id @default(cuid())
+  productId       String          @unique
+  recruitmentTier RecruitmentTier
+  weeklyMatchQuota Int
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  product              Product                         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  companyEntitlements  CompanyRecruitmentEntitlement[]
+
+  @@map("product_recruitment_entitlements")
+}
+
+// Company-owned entitlement instance, separate from catalog definition.
+model CompanyRecruitmentEntitlement {
+  id                    String                         @id @default(cuid())
+  companyId             String
+  productEntitlementId  String?
+  recruitmentTier       RecruitmentTier
+  validFrom             DateTime
+  expiresAt             DateTime?
+  source                String
+  sourceReference       String?
+  createdAt             DateTime                       @default(now())
+  updatedAt             DateTime                       @updatedAt
+
+  company              Company                        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  productEntitlement   ProductRecruitmentEntitlement? @relation(fields: [productEntitlementId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, validFrom, expiresAt])
+  @@index([companyId, recruitmentTier])
+  @@map("company_recruitment_entitlements")
+}
+
+// DB-backed weekly quota aggregate. Counts are distinct from CreditGrant amounts.
+model CompanyQuotaUsage {
+  id             String             @id @default(cuid())
+  companyId      String
+  allowanceType  QuotaAllowanceType
+  windowStart    DateTime
+  windowEnd      DateTime
+  consumedCount  Int                @default(0)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  company       Company                    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  consumptions  CompanyQuotaConsumption[]
+
+  @@unique([companyId, allowanceType, windowStart])
+  @@index([companyId, windowStart, windowEnd])
+  @@map("company_quota_usages")
+}
+
+// Append-only quota operation audit/idempotency record.
+model CompanyQuotaConsumption {
+  id               String             @id @default(cuid())
+  companyId        String
+  quotaUsageId     String
+  allowanceType    QuotaAllowanceType
+  idempotencyKey   String
+  operationReference String?
+  consumedCount    Int                @default(1)
+  createdAt        DateTime           @default(now())
+
+  company          Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  quotaUsage       CompanyQuotaUsage  @relation(fields: [quotaUsageId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, idempotencyKey])
+  @@index([quotaUsageId, createdAt(sort: Desc)])
+  @@index([companyId, allowanceType])
+  @@map("company_quota_consumptions")
 }
 
 model Order {
