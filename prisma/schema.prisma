@@ -138,6 +138,41 @@ enum ProductStatus {
   INACTIVE
 }
 
+enum CreditPackageStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum RecruitmentTier {
+  GENERAL
+  PREMIUM
+  MAIN
+}
+
+enum QuotaAllowanceType {
+  MATCH
+  CONTACT_UNLOCK
+}
+
+enum CandidateLeadStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  CLOSED
+  EXPIRED
+}
+
+enum LeadCloseReason {
+  HIRED
+  USER_CLOSED
+  ADMIN_CLOSED
+}
+
+enum LeadMatchStatus {
+  ACTIVE
+  CANCELLED
+}
+
 enum OrderStatus {
   PENDING
   PAID
@@ -164,18 +199,24 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  companyMemberships CompanyMember[]
-  jobPosts           JobPost[]       @relation("JobPostAuthor")
-  leasePosts         LeasePost[]     @relation("LeasePostAuthor")
-  posts              Post[]
-  comments           Comment[]
-  likes              Like[]
-  reports            Report[]        @relation("ReportReporter")
-  handledReports     Report[]        @relation("ReportHandler")
-  orders             Order[]
-  adminLogs          AdminLog[]      @relation("AdminLogAdmin")
+  companyMemberships    CompanyMember[]
+  jobPosts              JobPost[]       @relation("JobPostAuthor")
+  leasePosts            LeasePost[]     @relation("LeasePostAuthor")
+  posts                 Post[]
+  comments              Comment[]
+  likes                 Like[]
+  reports               Report[]        @relation("ReportReporter")
+  handledReports        Report[]        @relation("ReportHandler")
+  orders                Order[]
+  adminLogs             AdminLog[]      @relation("AdminLogAdmin")
   cbtQuestionActivities CbtQuestionActivity[]
-  cbtExamRecords     CbtExamRecord[]
+  cbtExamRecords        CbtExamRecord[]
+  candidateLeads        CandidateLead[]
+  leadMatchesActed      LeadMatch[]         @relation("LeadMatchActor")
+  leadUnlocksActed      LeadContactUnlock[] @relation("LeadUnlockActor")
+
+  // Credit foundation (Session 13) - Company-owned ledger, actor provenance distinct
+  creditTransactionsActed CreditTransaction[] @relation("CreditTransactionActor")
 
   @@map("users")
 }
@@ -196,11 +237,21 @@ model Company {
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
-  region      Region?         @relation(fields: [regionId], references: [id], onDelete: SetNull)
-  members     CompanyMember[]
-  jobPosts    JobPost[]
-  leasePosts  LeasePost[]
-  adCampaigns AdCampaign[]
+  region             Region?              @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  members            CompanyMember[]
+  jobPosts           JobPost[]
+  leasePosts         LeasePost[]
+  adCampaigns        AdCampaign[]
+  leadMatches        LeadMatch[]
+  leadContactUnlocks LeadContactUnlock[]
+
+  // Credit foundation (Session 13)
+  creditAccount      CreditAccount?
+  creditGrants       CreditGrant[]
+  creditTransactions CreditTransaction[]
+  recruitmentEntitlements CompanyRecruitmentEntitlement[]
+  quotaUsages           CompanyQuotaUsage[]
+  quotaConsumptions     CompanyQuotaConsumption[]
 
   @@index([name])
   @@map("companies")
@@ -342,13 +393,14 @@ model Region {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  parent       Region?      @relation("RegionTree", fields: [parentId], references: [id], onDelete: SetNull)
-  children     Region[]     @relation("RegionTree")
-  companies    Company[]
-  jobPostsFrom JobPost[]    @relation("JobPostOrigin")
-  jobPostsTo   JobPost[]    @relation("JobPostDest")
-  leasePosts   LeasePost[]
-  adCampaigns  AdCampaign[]
+  parent         Region?         @relation("RegionTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children       Region[]        @relation("RegionTree")
+  companies      Company[]
+  jobPostsFrom   JobPost[]       @relation("JobPostOrigin")
+  jobPostsTo     JobPost[]       @relation("JobPostDest")
+  leasePosts     LeasePost[]
+  adCampaigns    AdCampaign[]
+  candidateLeads CandidateLead[]
 
   @@index([parentId])
   @@index([depth])
@@ -364,8 +416,9 @@ model VehicleType {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  jobPosts   JobPost[]
-  leasePosts LeasePost[]
+  jobPosts       JobPost[]
+  leasePosts     LeasePost[]
+  candidateLeads CandidateLead[]
 
   @@map("vehicle_types")
 }
@@ -380,8 +433,9 @@ model Tonnage {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  jobPosts   JobPost[]
-  leasePosts LeasePost[]
+  jobPosts       JobPost[]
+  leasePosts     LeasePost[]
+  candidateLeads CandidateLead[]
 
   @@map("tonnages")
 }
@@ -635,9 +689,100 @@ model Product {
 
   orderItems  OrderItem[]
   adCampaigns AdCampaign[]
+  recruitmentEntitlement ProductRecruitmentEntitlement?
 
   @@index([status, type])
   @@map("products")
+}
+
+// Gate 4 catalog only. No purchase/payment/credit grant relation is created here.
+model CreditPackage {
+  id           String             @id @default(cuid())
+  code         String             @unique
+  displayName  String
+  priceKrw     Int
+  creditAmount Int
+  status       CreditPackageStatus @default(ACTIVE)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([status])
+  @@map("credit_packages")
+}
+
+// Explicit advertisement Product -> recruitment entitlement definition.
+model ProductRecruitmentEntitlement {
+  id              String          @id @default(cuid())
+  productId       String          @unique
+  recruitmentTier RecruitmentTier
+  weeklyMatchQuota Int
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  product              Product                         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  companyEntitlements  CompanyRecruitmentEntitlement[]
+
+  @@map("product_recruitment_entitlements")
+}
+
+// Company-owned entitlement instance, separate from catalog definition.
+model CompanyRecruitmentEntitlement {
+  id                    String                         @id @default(cuid())
+  companyId             String
+  productEntitlementId  String?
+  recruitmentTier       RecruitmentTier
+  validFrom             DateTime
+  expiresAt             DateTime?
+  source                String
+  sourceReference       String?
+  createdAt             DateTime                       @default(now())
+  updatedAt             DateTime                       @updatedAt
+
+  company              Company                        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  productEntitlement   ProductRecruitmentEntitlement? @relation(fields: [productEntitlementId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, validFrom, expiresAt])
+  @@index([companyId, recruitmentTier])
+  @@map("company_recruitment_entitlements")
+}
+
+// DB-backed weekly quota aggregate. Counts are distinct from CreditGrant amounts.
+model CompanyQuotaUsage {
+  id             String             @id @default(cuid())
+  companyId      String
+  allowanceType  QuotaAllowanceType
+  windowStart    DateTime
+  windowEnd      DateTime
+  consumedCount  Int                @default(0)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  company       Company                    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  consumptions  CompanyQuotaConsumption[]
+
+  @@unique([companyId, allowanceType, windowStart])
+  @@index([companyId, windowStart, windowEnd])
+  @@map("company_quota_usages")
+}
+
+// Append-only quota operation audit/idempotency record.
+model CompanyQuotaConsumption {
+  id               String             @id @default(cuid())
+  companyId        String
+  quotaUsageId     String
+  allowanceType    QuotaAllowanceType
+  idempotencyKey   String
+  operationReference String?
+  consumedCount    Int                @default(1)
+  createdAt        DateTime           @default(now())
+
+  company          Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  quotaUsage       CompanyQuotaUsage  @relation(fields: [quotaUsageId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, idempotencyKey])
+  @@index([quotaUsageId, createdAt(sort: Desc)])
+  @@index([companyId, allowanceType])
+  @@map("company_quota_consumptions")
 }
 
 model Order {
@@ -696,6 +841,93 @@ model AdminLog {
   @@index([adminId])
   @@index([createdAt])
   @@map("admin_logs")
+}
+
+// ---------------------------------------------------------------------------
+// CandidateLead 도메인 (Gate 2 — Lead Foundation)
+// 독립 Lead: LeasePost SEEK과 분리, User 소유. PII는 User에 재사용.
+// ---------------------------------------------------------------------------
+
+model CandidateLead {
+  id                String               @id @default(cuid())
+  userId            String
+  status            CandidateLeadStatus  @default(DRAFT)
+  preferredRegionId String?
+  vehicleTypeId     String?
+  tonnageId         String?
+  experienceYears   Int?
+  leaseExperience   Boolean?
+  vehicleOwned      Boolean?
+  licenseInfo       String?
+  desiredWorkType   WorkType?
+  desiredIncomeMin  Int?
+  desiredIncomeMax  Int?
+  availableFrom     DateTime?
+  careerSummary     String?
+  consentVersion    String?
+  consentedAt       DateTime?
+  expiresAt         DateTime?
+  pausedAt          DateTime?
+  closedAt          DateTime?
+  closeReason       LeadCloseReason?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preferredRegion Region?      @relation(fields: [preferredRegionId], references: [id], onDelete: SetNull)
+  vehicleType     VehicleType? @relation(fields: [vehicleTypeId], references: [id], onDelete: SetNull)
+  tonnage         Tonnage?     @relation(fields: [tonnageId], references: [id], onDelete: SetNull)
+  matches         LeadMatch[]
+  unlocks         LeadContactUnlock[]
+
+  @@index([userId, status])
+  @@index([status, expiresAt])
+  @@index([preferredRegionId])
+  @@index([vehicleTypeId])
+  @@index([tonnageId])
+  @@map("candidate_leads")
+}
+
+model LeadMatch {
+  id          String         @id @default(cuid())
+  companyId   String
+  leadId      String
+  actorUserId String
+  status      LeadMatchStatus @default(ACTIVE)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  company Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  lead    CandidateLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  actor   User          @relation("LeadMatchActor", fields: [actorUserId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, leadId])
+  @@index([companyId, status])
+  @@index([leadId])
+  @@index([actorUserId])
+  @@map("lead_matches")
+}
+
+model LeadContactUnlock {
+  id                String   @id @default(cuid())
+  companyId         String
+  leadId            String
+  actorUserId       String
+  unlockedAt        DateTime @default(now())
+  entitlementSource String
+  policyVersion     String
+  consentVersion    String
+  createdAt         DateTime @default(now())
+
+  company Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  lead    CandidateLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  actor   User          @relation("LeadUnlockActor", fields: [actorUserId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, leadId])
+  @@index([companyId])
+  @@index([leadId])
+  @@index([actorUserId])
+  @@map("lead_contact_unlocks")
 }
 
 // ---------------------------------------------------------------------------
@@ -891,4 +1123,93 @@ model CandidateDuplicateMember {
   @@id([groupId, candidateQuestionId])
   @@index([candidateQuestionId])
   @@map("candidate_duplicate_members")
+}
+
+// ---------------------------------------------------------------------------
+// Monetization Credit/Ledger Foundation (Gate 3 - STATIC/ISOLATED)
+// Economic owner is Company; actorUserId is distinct provenance.
+// Ledger is source of truth; no arbitrary balance mutation.
+// Append-only CreditTransaction; idempotency prevents duplicate grant/consume.
+// Grant/Batch expiry is nullable with no fixed policy.
+// Match allowance and ContactUnlock allowance are distinct.
+// Money KRW integer and credit integer are conceptually separate (foundation fields/types only).
+// No product/price numbers, quota numeric constants, checkout/payment UI.
+// ---------------------------------------------------------------------------
+
+enum CreditTransactionType {
+  GRANT
+  CONSUME
+  ADJUSTMENT
+  EXPIRE
+}
+
+enum CreditAllowanceType {
+  MATCH
+  CONTACT_UNLOCK
+}
+
+model CreditAccount {
+  id        String   @id @default(cuid())
+  companyId String   @unique
+  // Projection of ledger sum; source of truth remains CreditTransaction. No unsafe direct mutation exposed in service API.
+  balance   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company      Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  transactions CreditTransaction[]
+  grants       CreditGrant[]
+
+  @@index([companyId])
+  @@map("credit_accounts")
+}
+
+model CreditGrant {
+  id              String              @id @default(cuid())
+  companyId       String
+  creditAccountId String
+  // Null means generic paid Company credit; non-null is an operation-specific free/promotion grant.
+  allowanceType   CreditAllowanceType?
+  source          String
+  referenceId     String?
+  amount          Int
+  remainingAmount Int
+  expiresAt       DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  creditAccount CreditAccount @relation(fields: [creditAccountId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, allowanceType])
+  @@index([creditAccountId])
+  @@index([expiresAt])
+  @@index([companyId, expiresAt])
+  @@map("credit_grants")
+}
+
+model CreditTransaction {
+  id              String                @id @default(cuid())
+  creditAccountId String
+  companyId       String
+  actorUserId     String?
+  type            CreditTransactionType
+  allowanceType   CreditAllowanceType?
+  amountDelta     Int
+  balanceAfter    Int
+  source          String?
+  referenceType   String?
+  referenceId     String?
+  idempotencyKey  String
+  createdAt       DateTime              @default(now())
+
+  creditAccount CreditAccount @relation(fields: [creditAccountId], references: [id], onDelete: Cascade)
+  company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  actor         User?         @relation("CreditTransactionActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@unique([companyId, idempotencyKey])
+  @@index([creditAccountId, createdAt(sort: Desc)])
+  @@index([companyId, type])
+  @@index([actorUserId])
+  @@map("credit_transactions")
 }

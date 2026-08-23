@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import type {
   CompanyMemberRole,
   CompanyMemberStatus,
+  CompanyStatus,
   UserRole,
   UserStatus,
 } from "@/generated/prisma/enums";
@@ -23,6 +24,7 @@ export type CurrentUser = {
 export type CompanyMembership = {
   companyId: string;
   companyName: string;
+  companyStatus: CompanyStatus;
   role: CompanyMemberRole;
   status: CompanyMemberStatus;
 };
@@ -85,7 +87,7 @@ export const getCompanyMemberships = cache(
         companyId: true,
         role: true,
         status: true,
-        company: { select: { id: true, name: true } },
+        company: { select: { id: true, name: true, status: true } },
       },
       orderBy: { createdAt: "asc" },
     });
@@ -93,6 +95,7 @@ export const getCompanyMemberships = cache(
     return memberships.map((membership) => ({
       companyId: membership.companyId,
       companyName: membership.company.name,
+      companyStatus: membership.company.status,
       role: membership.role,
       status: membership.status,
     }));

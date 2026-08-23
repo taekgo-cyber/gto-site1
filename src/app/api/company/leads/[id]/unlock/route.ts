@@ -1,0 +1,41 @@
+import { requireApiUser } from "@/lib/api/auth";
+import { badRequest, forbidden, notFound } from "@/lib/api/errors";
+import { errorResponse, json, toApiError } from "@/lib/api/response";
+import { resolveLeadPolicy } from "@/lib/leads/constants";
+import { readUnlockedLeadContact, unlockLeadContact } from "@/lib/leads/service";
+
+function mapError(error: unknown) {
+  if (error instanceof Error && /not unlocked/i.test(error.message)) return notFound("연락처가 아직 unlock되지 않았습니다.");
+  if (error instanceof Error && /Forbidden|not active|Not a company member|Company not active|User not active|LeadMatch required/.test(error.message)) return forbidden();
+  if (error instanceof Error && /not found/i.test(error.message)) return notFound("연락처를 찾을 수 없습니다.");
+  return toApiError(error);
+}
+
+async function ids(request: Request, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
+  const companyId = new URL(request.url).searchParams.get("companyId");
+  if (!companyId) throw badRequest("companyId가 필요합니다.");
+  return { companyId, leadId: id };
+}
+
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+  try {
+    const user = await requireApiUser();
+    const { companyId, leadId } = await ids(request, context);
+    const result = await unlockLeadContact({ companyId, leadId, actorUserId: user.id, policy: resolveLeadPolicy() });
+    return json({ contact: result.contact, alreadyUnlocked: result.alreadyUnlocked });
+  } catch (error) {
+    return errorResponse(mapError(error));
+  }
+}
+
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
+  try {
+    const user = await requireApiUser();
+    const { companyId, leadId } = await ids(request, context);
+    const result = await readUnlockedLeadContact({ companyId, leadId, actorUserId: user.id });
+    return json({ contact: result.contact });
+  } catch (error) {
+    return errorResponse(mapError(error));
+  }
+}
