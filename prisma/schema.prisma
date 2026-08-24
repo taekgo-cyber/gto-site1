@@ -94,6 +94,31 @@ enum PostStatus {
   BLOCKED
 }
 
+enum BlogArticleStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum BlogContentOrigin {
+  MANUAL
+  AI
+}
+
+enum BlogContentJobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+enum BlogContentAttemptStatus {
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
 enum CommentStatus {
   PUBLISHED
   HIDDEN
@@ -211,6 +236,9 @@ model User {
   posts                 Post[]
   comments              Comment[]
   likes                 Like[]
+  blogArticles          BlogArticle[]
+  blogContentJobs       BlogContentJob[]       @relation("BlogContentJobRequester")
+  blogAutomationControls BlogAutomationControl[] @relation("BlogAutomationControlUpdater")
   reports               Report[]        @relation("ReportReporter")
   handledReports        Report[]        @relation("ReportHandler")
   orders                Order[]
@@ -544,6 +572,116 @@ model Report {
   @@index([targetType, targetId])
   @@index([status])
   @@map("reports")
+}
+
+model BlogCategory {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  articles BlogArticle[]
+
+  @@index([isActive, sortOrder])
+  @@map("blog_categories")
+}
+
+model BlogArticle {
+  id              String            @id @default(cuid())
+  categoryId      String?
+  authorId        String?
+  slug            String            @unique
+  title           String
+  excerpt         String?
+  contentMarkdown   String
+  tags              Json              @default("[]")
+  featuredImageUrl  String?
+  featuredImageAlt  String?
+  contentOrigin     BlogContentOrigin  @default(MANUAL)
+  aiGenerationMeta  Json?
+  automationJobId   String?           @unique
+  status            BlogArticleStatus @default(DRAFT)
+  seoTitle        String?
+  seoDescription  String?
+  publishedAt     DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  category BlogCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  author   User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  automationJob BlogContentJob? @relation(fields: [automationJobId], references: [id], onDelete: SetNull)
+
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([categoryId, status, publishedAt(sort: Desc)])
+  @@index([authorId])
+  @@map("blog_articles")
+}
+
+model BlogContentJob {
+  id               String               @id @default(cuid())
+  requestedById    String?
+  topic            String
+  targetKeyword    String
+  sourceType       String
+  sourceIds        Json                 @default("[]")
+  instruction      String?
+  topicKey         String               @unique
+  idempotencyKey   String               @unique
+  status           BlogContentJobStatus @default(QUEUED)
+  scheduledFor     DateTime
+  attemptCount     Int                  @default(0)
+  maxAttempts      Int                  @default(3)
+  lockedAt         DateTime?
+  lockedBy         String?
+  cancelRequestedAt DateTime?
+  lastErrorCode    String?
+  lastErrorAt      DateTime?
+  completedAt      DateTime?
+  cancelledAt      DateTime?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  requestedBy User?                   @relation("BlogContentJobRequester", fields: [requestedById], references: [id], onDelete: SetNull)
+  article     BlogArticle?
+  attempts    BlogContentJobAttempt[]
+
+  @@index([status, scheduledFor])
+  @@index([requestedById, createdAt(sort: Desc)])
+  @@map("blog_content_jobs")
+}
+
+model BlogContentJobAttempt {
+  id            String                   @id @default(cuid())
+  jobId         String
+  attemptNumber Int
+  status        BlogContentAttemptStatus @default(RUNNING)
+  runnerId      String
+  errorCode     String?
+  startedAt     DateTime                 @default(now())
+  finishedAt    DateTime?
+
+  job BlogContentJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, attemptNumber])
+  @@index([status, startedAt])
+  @@map("blog_content_job_attempts")
+}
+
+model BlogAutomationControl {
+  id          String   @id @default("default")
+  isPaused    Boolean  @default(false)
+  dailyLimit  Int      @default(10)
+  updatedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  updatedBy User? @relation("BlogAutomationControlUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@map("blog_automation_controls")
 }
 
 // ---------------------------------------------------------------------------
