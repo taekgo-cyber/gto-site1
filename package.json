@@ -37,7 +37,8 @@
     "cbt:gate2-closeout": "tsx tools/cbt/cli-gate2-closeout.ts",
     "cbt:gate3-human-review-export": "tsx tools/cbt/cli-gate3-human-review-export.ts",
     "cbt:residual-13": "tsx tools/cbt/cli-residual-13.ts",
-    "cbt:residual-13-uncertain": "tsx tools/cbt/cli-residual-13-uncertain.ts"
+    "cbt:residual-13-uncertain": "tsx tools/cbt/cli-residual-13-uncertain.ts",
+    "production:preflight": "node tools/production/preflight.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
