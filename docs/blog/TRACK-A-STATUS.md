@@ -143,7 +143,14 @@ S18 verification on 2026-08-24:
 
 No live paid provider call was made. Deployment must configure the `BLOG_AI_*` environment variables, then an administrator can run the operational provider smoke test from `/admin/blog/ai`.
 
+## S19 SEO and internal linking closeout
+
+S19 adds a schema-free public discovery layer to the canonical Blog article page. Related articles are ranked from bounded, public-only candidates using category and tag overlap. CBT, Jobs, and Lease CTAs appear only when their authoritative public predicates have a real destination; CBT category slugs come from active DB rows with published questions. Article Open Graph/Twitter metadata and Article JSON-LD use the public article contract. No AI-generated URL is stored or trusted, no private source is read, and shared Track B navigation/layout/styles remain untouched.
+
+Verification on 2026-08-24: focused discovery 4/4 PASS; Blog/S17/S18 regression 10 files / 45 tests PASS; typecheck PASS; ESLint 0 errors (21 pre-existing warnings); Next.js 16.3.0 production build PASS; no Prisma/schema/migration impact; `git diff --check` PASS. Full details: `docs/blog/session-19-status.md`.
+
 ## Current gate
 
 BLOG CANONICAL = COMPLETE after Gate 4 checkpoint commit.
-S18 GATES 5-13 = COMPLETE in the current worktree; ready for review and checkpoint commit.
+S18 GATES 5-13 = COMPLETE.
+S19 = COMPLETE; ready for checkpoint commit and S20 automation audit.

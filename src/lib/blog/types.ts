@@ -7,6 +7,7 @@ export type PublicBlogArticleListItem = {
   featuredImageUrl: string | null;
   featuredImageAlt: string | null;
   publishedAt: Date;
+  updatedAt: Date;
   category: { slug: string; name: string } | null;
 };
 
