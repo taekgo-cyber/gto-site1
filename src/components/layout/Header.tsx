@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { label: "구인공고", href: "/jobs" },
   { label: "지입", href: "/lease" },
   { label: "CBT 시험", href: "/cbt" },
+  { label: "블로그", href: "/blog" },
   { label: "구직정보", href: "/" },
   { label: "업체정보", href: "/" },
   { label: "커뮤니티", href: "/" },

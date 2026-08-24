@@ -911,9 +911,9 @@ model CompanyRecruitmentEntitlement {
   company              Company                        @relation(fields: [companyId], references: [id], onDelete: Cascade)
   productEntitlement   ProductRecruitmentEntitlement? @relation(fields: [productEntitlementId], references: [id], onDelete: SetNull)
 
-  @@index([companyId, validFrom, expiresAt])
+  @@index([companyId, validFrom, expiresAt], map: "company_recruitment_entitlements_companyId_validFrom_expiresAt_")
   @@index([companyId, recruitmentTier])
-  @@index([companyId, cancelledAt, validFrom, expiresAt])
+  @@index([companyId, cancelledAt, validFrom, expiresAt], map: "company_recruitment_entitlements_companyId_cancelledAt_validFro")
   @@map("company_recruitment_entitlements")
 }
 
