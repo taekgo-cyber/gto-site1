@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element -- owner-only attachment and local blob previews must bypass the unauthenticated Next image optimizer. */
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
@@ -298,7 +300,7 @@ export function LeasePostForm({
               onChange={(event) => setField("content", event.target.value)}
               rows={8}
               className={cn(
-                "w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
+                "w-full rounded-md border bg-background px-3 py-2 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 sm:text-sm",
                 fieldErrors.content ? "border-red-400" : "border-border",
               )}
               placeholder="운송 조건, 계약 조건 등 상세 내용을 작성해 주세요."
@@ -448,7 +450,7 @@ export function LeasePostForm({
             onChange={(event) => setField("conditions", event.target.value)}
             rows={3}
             className={cn(
-              "w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
+              "w-full rounded-md border bg-background px-3 py-2 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 sm:text-sm",
               "border-border",
             )}
             placeholder="예) 야간 운행 가능자 우대, 경력 우대, 차량 지원 등"
@@ -470,7 +472,7 @@ export function LeasePostForm({
           multiple
           accept={ALLOWED_ATTACHMENT_EXTENSIONS.join(",")}
           onChange={handleFilesChange}
-          className="mb-4 block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-surface file:px-3 file:py-2 file:text-sm file:font-medium file:text-foreground hover:file:bg-border"
+          className="mb-4 block min-h-11 w-full text-sm text-muted-foreground file:mr-3 file:min-h-11 file:rounded-md file:border-0 file:bg-surface file:px-3 file:py-2 file:text-sm file:font-medium file:text-foreground hover:file:bg-border"
         />
 
         {existingAttachments.length > 0 ? (
@@ -487,6 +489,8 @@ export function LeasePostForm({
                       <img
                         src={buildAttachmentUrl(targetPostId ?? "", attachment.id)}
                         alt={attachment.originalName}
+                        loading="lazy"
+                        decoding="async"
                         className="h-full w-full object-cover"
                       />
                       {attachment.isRepresentative ? (
@@ -507,7 +511,7 @@ export function LeasePostForm({
                     <button
                       type="button"
                       onClick={() => removeExistingAttachment(attachment)}
-                      className="shrink-0 rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50"
+                      className="inline-flex min-h-11 shrink-0 touch-manipulation items-center rounded px-3 text-xs text-red-600 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     >
                       삭제
                     </button>
@@ -529,6 +533,8 @@ export function LeasePostForm({
                       <img
                         src={URL.createObjectURL(file)}
                         alt={file.name}
+                        loading="lazy"
+                        decoding="async"
                         className="h-full w-full object-cover"
                       />
                     </div>
@@ -542,7 +548,7 @@ export function LeasePostForm({
                     <button
                       type="button"
                       onClick={() => removeNewFile(index)}
-                      className="shrink-0 rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50"
+                      className="inline-flex min-h-11 shrink-0 touch-manipulation items-center rounded px-3 text-xs text-red-600 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     >
                       삭제
                     </button>

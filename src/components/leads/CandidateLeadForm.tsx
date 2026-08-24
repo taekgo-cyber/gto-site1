@@ -131,12 +131,12 @@ export function CandidateLeadForm({
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="leaseExperience" value="on" defaultChecked={lead?.leaseExperience === true} disabled={disabled} />
+          <label className="flex min-h-11 items-center gap-3 text-sm">
+            <input className="h-5 w-5 shrink-0 accent-primary" type="checkbox" name="leaseExperience" value="on" defaultChecked={lead?.leaseExperience === true} disabled={disabled} />
             지입 경험 있음
           </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="vehicleOwned" value="on" defaultChecked={lead?.vehicleOwned === true} disabled={disabled} />
+          <label className="flex min-h-11 items-center gap-3 text-sm">
+            <input className="h-5 w-5 shrink-0 accent-primary" type="checkbox" name="vehicleOwned" value="on" defaultChecked={lead?.vehicleOwned === true} disabled={disabled} />
             차량 보유
           </label>
         </div>
@@ -150,7 +150,7 @@ export function CandidateLeadForm({
             rows={6}
             defaultValue={lead?.careerSummary ?? ""}
             disabled={disabled}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
             placeholder="운송 경력과 희망 업무를 적어 주세요. 이름, 전화번호, 이메일 등 연락처는 적지 말아 주세요."
           />
           <p className="mt-1 text-xs text-muted-foreground">최대 5,000자. 연락처는 회원 프로필에서 안전하게 관리됩니다.</p>
@@ -169,8 +169,8 @@ export function CandidateLeadForm({
           <input type="hidden" name="leadId" value={id} />
           <p className="text-sm font-medium">기업에 구직정보 공개</p>
           <p className="text-sm text-muted-foreground">공개하면 조건에 맞는 기업이 매칭 후보로 확인할 수 있습니다. 실제 연락처는 별도 unlock 전까지 공개되지 않습니다.</p>
-          <label className="flex items-start gap-2 text-sm">
-            <input type="checkbox" name="consent" value="on" required />
+          <label className="flex min-h-11 items-start gap-3 text-sm">
+            <input className="mt-0.5 h-5 w-5 shrink-0 accent-primary" type="checkbox" name="consent" value="on" required />
             <span>기업의 구직 매칭 및 향후 연락을 위한 개인정보 이용·제공에 동의합니다. (정책 v1)</span>
           </label>
           <ActionMessage state={activateState} />

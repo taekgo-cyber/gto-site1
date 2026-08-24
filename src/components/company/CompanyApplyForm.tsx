@@ -81,7 +81,7 @@ function CompanyFields({ draft }: { draft: CompanyDraft | null }) {
           maxLength={2000}
           rows={4}
           defaultValue={draft?.introduction ?? ""}
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 sm:text-sm"
           placeholder="업체 소개를 입력해 주세요. (최대 2000자)"
         />
       </div>

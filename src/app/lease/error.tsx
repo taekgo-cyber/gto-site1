@@ -12,7 +12,10 @@ export default function LeaseError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error(error);
+    console.error("lease_render_error", {
+      digest: error.digest ?? null,
+      name: error.name,
+    });
   }, [error]);
 
   return (

@@ -143,7 +143,10 @@ export default async function CandidateLeadPage({ searchParams }: { searchParams
                       <span>매칭 시각: {item.matchCreatedAt.toISOString().slice(0, 19).replace("T", " ")}</span>
                       <span>열람: {item.hasUnlock ? `있음 (${item.unlockedAt?.toISOString().slice(0, 19).replace("T", " ") ?? "-"})` : "없음"}</span>
                     </div>
-                    <Link href="/mypage/lead" className="text-xs text-primary underline">
+                    <Link
+                      href="/mypage/lead"
+                      className="inline-flex min-h-11 items-center rounded-md text-xs text-primary underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
                       내 구직정보 보기
                     </Link>
                   </li>

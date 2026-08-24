@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Badge } from "@/components/ui/Badge";
 import { buildAttachmentUrl } from "@/lib/attachments/url";
 import type { PostListItem } from "@/lib/posts/dal";
@@ -52,10 +53,11 @@ export function LeaseCard({ post }: { post: PostListItem }) {
 
         <div className="relative h-32 w-full shrink-0 overflow-hidden rounded-md border border-border bg-surface sm:h-20 sm:w-28">
           {post.representativeImage ? (
-            <img
+            <Image
               src={buildAttachmentUrl(post.id, post.representativeImage.id)}
               alt=""
-              loading="lazy"
+              fill
+              sizes="(min-width: 640px) 7rem, 100vw"
               className="h-full w-full object-cover"
             />
           ) : (

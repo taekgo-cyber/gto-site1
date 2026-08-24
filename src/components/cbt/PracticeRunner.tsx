@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element -- CBT image URLs can come from external sources that are not safe to proxy through the Next image optimizer. */
+
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
@@ -251,7 +253,7 @@ export function PracticeRunner({
             aria-pressed={isBookmarked}
             aria-label={isBookmarked ? "북마크 해제" : "북마크"}
             className={cn(
-              "shrink-0 rounded-md border border-border px-2.5 py-1 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+              "inline-flex min-h-11 shrink-0 touch-manipulation items-center rounded-md border border-border px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
               isBookmarked
                 ? "border-primary bg-primary/10 text-primary"
                 : "bg-background text-muted-foreground hover:bg-surface",
@@ -267,6 +269,8 @@ export function PracticeRunner({
           <img
             src={question.imageUrl}
             alt="문제 이미지"
+            loading="lazy"
+            decoding="async"
             className="mt-4 w-full rounded-md border border-border"
           />
         ) : null}
@@ -288,7 +292,7 @@ export function PracticeRunner({
                   onClick={() => handleSelectOption(option)}
                   disabled={currentAnswer.status !== "idle"}
                   className={cn(
-                    "flex min-h-[3.5rem] w-full items-center gap-3 rounded-lg border border-border bg-background px-4 text-left text-base transition-colors disabled:cursor-not-allowed",
+                    "flex min-h-[3.5rem] w-full touch-manipulation items-center gap-3 rounded-lg border border-border bg-background px-4 text-left text-base transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed",
                     currentAnswer.status === "idle" &&
                       "hover:border-primary hover:bg-surface",
                     isSelected &&
@@ -374,7 +378,7 @@ export function PracticeRunner({
             type="button"
             onClick={handlePrev}
             disabled={currentIndex === 0 || grading}
-            className="rounded-md border border-border bg-background px-4 py-2 text-sm text-foreground transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex min-h-11 touch-manipulation items-center rounded-md border border-border bg-background px-4 text-sm text-foreground transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
             ← 이전 문제
           </button>

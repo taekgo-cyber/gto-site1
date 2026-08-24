@@ -182,14 +182,14 @@ export default async function AdminLeadsPage({
             name="from"
             type="datetime-local"
             defaultValue={params.from ?? ""}
-            className="rounded-md border border-border px-2 py-1 text-sm"
+            className="h-11 rounded-md border border-border px-3 text-base sm:text-sm"
           />
         </div>
         <div className="flex flex-col gap-1">
           <label htmlFor="to" className="text-xs text-muted-foreground">
             to (미포함)
           </label>
-          <input id="to" name="to" type="datetime-local" defaultValue={params.to ?? ""} className="rounded-md border border-border px-2 py-1 text-sm" />
+          <input id="to" name="to" type="datetime-local" defaultValue={params.to ?? ""} className="h-11 rounded-md border border-border px-3 text-base sm:text-sm" />
         </div>
         <Button type="submit" variant="outline" size="sm">
           조회

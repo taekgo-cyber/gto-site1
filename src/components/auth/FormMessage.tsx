@@ -2,7 +2,11 @@ import { cn } from "@/lib/utils";
 
 export function FieldError({ message }: { message?: string }) {
   if (!message) return null;
-  return <p className="mt-1 text-sm text-red-600">{message}</p>;
+  return (
+    <p role="alert" className="mt-1 text-sm text-red-600">
+      {message}
+    </p>
+  );
 }
 
 export function FormError({ message }: { message?: string }) {

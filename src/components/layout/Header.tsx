@@ -18,16 +18,22 @@ export async function Header() {
 
   return (
     <header className="border-b border-border bg-background">
-      <Container className="flex h-14 items-center justify-between gap-4 sm:h-16">
-        <Link href="/" className="shrink-0 text-lg font-bold sm:text-xl">
+      <Container className="flex min-h-14 flex-wrap items-center justify-between gap-x-3 gap-y-1 py-1 sm:min-h-16 sm:flex-nowrap sm:gap-4 sm:py-0">
+        <Link
+          href="/"
+          className="inline-flex min-h-11 shrink-0 items-center rounded-md text-lg font-bold sm:text-xl"
+        >
           트럭포털
         </Link>
-        <nav className="flex items-center gap-1 overflow-x-auto sm:gap-2">
+        <nav
+          aria-label="주요 메뉴"
+          className="order-3 -mx-4 flex w-[calc(100%+2rem)] items-center gap-1 overflow-x-auto px-4 pb-1 sm:order-none sm:mx-0 sm:w-auto sm:flex-1 sm:justify-center sm:gap-2 sm:px-0 sm:pb-0"
+        >
           {NAV_ITEMS.map((item) => (
             <Link
               key={item.label}
               href={item.href}
-              className="whitespace-nowrap rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-surface hover:text-foreground"
+              className="inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-md px-3 text-sm text-muted-foreground hover:bg-surface hover:text-foreground"
             >
               {item.label}
             </Link>
@@ -38,7 +44,7 @@ export async function Header() {
             <>
               <Link
                 href="/mypage"
-                className="whitespace-nowrap rounded-md px-2 py-1 text-sm font-medium hover:bg-surface"
+                className="inline-flex min-h-11 items-center whitespace-nowrap rounded-md px-2 text-sm font-medium hover:bg-surface"
               >
                 {user.nickname ?? user.name}
               </Link>
@@ -52,7 +58,7 @@ export async function Header() {
             <>
               <Link
                 href="/login"
-                className="whitespace-nowrap rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-surface hover:text-foreground"
+                className="inline-flex min-h-11 items-center whitespace-nowrap rounded-md px-2 text-sm text-muted-foreground hover:bg-surface hover:text-foreground"
               >
                 로그인
               </Link>

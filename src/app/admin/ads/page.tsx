@@ -26,7 +26,7 @@ function formatDate(date: Date | null): string {
   return date.toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
 }
 
-const inputClass = "h-10 rounded-md border border-border bg-background px-3 text-sm";
+const inputClass = "h-11 rounded-md border border-border bg-background px-3 text-base sm:text-sm";
 
 export default async function AdminAdsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const params = await searchParams;
@@ -83,10 +83,10 @@ export default async function AdminAdsPage({ searchParams }: { searchParams: Pro
         <CardHeader><CardTitle>광고 위치</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <form action={upsertAdvertisementPlacementAction} className="grid gap-3 md:grid-cols-4">
-            <input name="code" required placeholder="HOME_TOP" className={inputClass} />
-            <input name="name" required placeholder="홈 상단" className={inputClass} />
-            <input name="description" placeholder="설명(선택)" className={inputClass} />
-            <select name="isActive" defaultValue="true" className={inputClass}><option value="true">활성</option><option value="false">비활성</option></select>
+            <input name="code" aria-label="광고 위치 코드" required placeholder="HOME_TOP" className={inputClass} />
+            <input name="name" aria-label="광고 위치 이름" required placeholder="홈 상단" className={inputClass} />
+            <input name="description" aria-label="광고 위치 설명" placeholder="설명(선택)" className={inputClass} />
+            <select name="isActive" aria-label="광고 위치 상태" defaultValue="true" className={inputClass}><option value="true">활성</option><option value="false">비활성</option></select>
             <div className="md:col-span-4"><Button type="submit" variant="outline">위치 저장</Button></div>
           </form>
           <ul className="grid gap-2 md:grid-cols-2">
@@ -103,16 +103,16 @@ export default async function AdminAdsPage({ searchParams }: { searchParams: Pro
         <CardHeader><CardTitle>광고주 상품 계약 부여</CardTitle></CardHeader>
         <CardContent>
           <form action={grantAdvertisementEntitlementAction} className="grid gap-3 md:grid-cols-2">
-            <select name="companyId" required defaultValue="" className={inputClass}>
+            <select name="companyId" aria-label="광고주 업체" required defaultValue="" className={inputClass}>
               <option value="" disabled>업체 선택</option>
               {data.companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
             </select>
-            <select name="productCode" required defaultValue="" className={inputClass}>
+            <select name="productCode" aria-label="광고상품" required defaultValue="" className={inputClass}>
               <option value="" disabled>상품 선택</option>
               {data.products.filter((p) => p.code && p.status === "ACTIVE").map((product) => <option key={product.id} value={product.code!}>{product.name}</option>)}
             </select>
-            <input name="sourceReference" required placeholder="예: manual:company:20260824" className={inputClass} />
-            <input name="idempotencyKey" required placeholder="고유 처리키" className={inputClass} />
+            <input name="sourceReference" aria-label="권한 부여 근거" required placeholder="예: manual:company:20260824" className={inputClass} />
+            <input name="idempotencyKey" aria-label="고유 처리키" required placeholder="고유 처리키" className={inputClass} />
             <div className="md:col-span-2"><Button type="submit">7일 권한 부여</Button></div>
           </form>
         </CardContent>
@@ -131,7 +131,7 @@ export default async function AdminAdsPage({ searchParams }: { searchParams: Pro
               ) : (
                 <form action={cancelAdvertisementEntitlementAction} className="flex flex-wrap gap-2">
                   <input type="hidden" name="entitlementId" value={entitlement.id} />
-                  <input name="reason" maxLength={300} placeholder="취소 사유(선택)" className={`${inputClass} min-w-64`} />
+                  <input name="reason" aria-label="취소 사유" maxLength={300} placeholder="취소 사유(선택)" className={`${inputClass} min-w-64`} />
                   <Button type="submit" variant="outline" size="sm">계약 취소</Button>
                 </form>
               )}
@@ -151,9 +151,9 @@ export default async function AdminAdsPage({ searchParams }: { searchParams: Pro
               <div className="mt-1 text-xs text-muted-foreground">{formatDate(campaign.startDate)} ~ {formatDate(campaign.endDate)}</div>
               <form action={setAdvertisementCampaignStatusAction} className="mt-3 flex flex-wrap gap-2">
                 <input type="hidden" name="campaignId" value={campaign.id} />
-                {(campaign.status === "PENDING" || campaign.status === "PAUSED") ? <button name="status" value="ACTIVE" className="rounded-md bg-foreground px-3 py-2 text-xs text-background">승인/재개</button> : null}
-                {campaign.status === "ACTIVE" ? <button name="status" value="PAUSED" className="rounded-md border border-border px-3 py-2 text-xs">일시중지</button> : null}
-                {campaign.status !== "CANCELLED" && campaign.status !== "EXPIRED" ? <button name="status" value="CANCELLED" className="rounded-md border border-border px-3 py-2 text-xs">취소</button> : null}
+                {(campaign.status === "PENDING" || campaign.status === "PAUSED") ? <Button name="status" value="ACTIVE" size="sm">승인/재개</Button> : null}
+                {campaign.status === "ACTIVE" ? <Button name="status" value="PAUSED" variant="outline" size="sm">일시중지</Button> : null}
+                {campaign.status !== "CANCELLED" && campaign.status !== "EXPIRED" ? <Button name="status" value="CANCELLED" variant="outline" size="sm">취소</Button> : null}
               </form>
             </div>
           ))}

@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element -- CBT image URLs can come from external sources that are not safe to proxy through the Next image optimizer. */
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
@@ -293,7 +295,7 @@ export function ExamRunner({
           <button
             type="button"
             onClick={() => setShowNavGrid((value) => !value)}
-            className="rounded-md border border-border px-2.5 py-1 text-xs text-foreground hover:bg-surface"
+            className="inline-flex min-h-11 touch-manipulation items-center rounded-md border border-border px-3 text-xs text-foreground hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             {showNavGrid ? "문제 목록 닫기" : "문제 목록"}
           </button>
@@ -311,7 +313,7 @@ export function ExamRunner({
                 type="button"
                 onClick={() => setCurrentIndex(index)}
                 className={cn(
-                  "flex min-h-10 items-center justify-center rounded-md border text-sm font-semibold transition-colors",
+                  "flex min-h-11 touch-manipulation items-center justify-center rounded-md border text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                   answered ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground",
                   current && "ring-2 ring-ring",
                 )}
@@ -334,6 +336,8 @@ export function ExamRunner({
           <img
             src={question.imageUrl}
             alt="문제 이미지"
+            loading="lazy"
+            decoding="async"
             className="mt-4 w-full rounded-md border border-border"
           />
         ) : null}
@@ -347,7 +351,7 @@ export function ExamRunner({
                   type="button"
                   onClick={() => selectOption(option.id)}
                   className={cn(
-                    "flex min-h-[3.5rem] w-full items-center gap-3 rounded-lg border px-4 text-left text-base transition-colors",
+                    "flex min-h-[3.5rem] w-full touch-manipulation items-center gap-3 rounded-lg border px-4 text-left text-base transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                     isSelected
                       ? "border-primary bg-primary/10"
                       : "border-border bg-background hover:border-primary hover:bg-surface",

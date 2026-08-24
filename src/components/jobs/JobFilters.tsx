@@ -52,6 +52,7 @@ export function JobFilters({
         <Input
           name="q"
           type="search"
+          aria-label="제목 또는 내용 검색"
           defaultValue={keyword ?? ""}
           placeholder="제목 또는 내용 검색"
         />

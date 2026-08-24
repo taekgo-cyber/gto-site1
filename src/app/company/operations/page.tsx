@@ -88,8 +88,9 @@ export default async function CompanyOperationsPage({
             <form method="get" className="flex gap-2">
               <select
                 name="companyId"
+                aria-label="기업"
                 defaultValue=""
-                className="h-10 flex-1 rounded-md border border-border bg-background px-3 text-sm"
+                className="h-11 flex-1 rounded-md border border-border bg-background px-3 text-base sm:text-sm"
               >
                 <option value="">기업 선택</option>
                 {memberships
@@ -193,8 +194,9 @@ export default async function CompanyOperationsPage({
               현재 기업
               <select
                 name="companyId"
+                aria-label="현재 기업"
                 defaultValue={selectedCompanyId}
-                className="mt-1 h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+                className="mt-1 h-11 w-full rounded-md border border-border bg-background px-3 text-base sm:text-sm"
               >
                 {memberships
                   .filter((m) => m.companyStatus === "ACTIVE" && m.status === "ACTIVE")
