@@ -111,7 +111,39 @@ Pipeline invariant:
 
 No CandidateLead PII, person name, phone number, personal email, lead/unlock/credit/ad analytics private data may be supplied to the AI content source layer.
 
+## S18 Gates 5-13 closeout
+
+S18 AI Blog content workflow is implemented on top of the canonical `BlogArticle` service:
+
+- provenance schema: `contentOrigin = MANUAL | AI` plus nullable `aiGenerationMeta`
+- allowlisted public source projection for Lease, Region, Tonnage, Vehicle Type, public Company fields, CBT Category, and published Blog
+- no CandidateLead, LeadMatch, Unlock, Credit, advertisement analytics, private company fields, or user contact fields in the AI source contract
+- defense-in-depth redaction for email, phone, and explicitly labelled person names, including free-text source labels
+- OpenAI-compatible provider boundary with timeout, HTTP/JSON/schema fail-closed handling, and untrusted-source prompt-injection instruction
+- runtime request and provider-output validation independent of TypeScript types
+- static quality guard for PII, raw HTML, unsafe Markdown URL, short body, unsupported numeric claims, duplicate slug, and duplicate title
+- DB-backed `ACTIVE ADMIN` authorization before source reads/provider cost, rechecked by canonical Blog persistence
+- generated content persists only through canonical `createBlogArticle` as `AI` + `DRAFT` + `publishedAt = null`
+- admin route `/admin/blog/ai`, source selector, generation action, edit-page AI provenance/quality notice, and explicit human review flow
+- provider configuration documented in `.env.example` (`BLOG_AI_BASE_URL`, `BLOG_AI_API_KEY`, `BLOG_AI_MODEL`)
+
+S18 verification on 2026-08-24:
+
+- AI-focused tests: 5 files / 20 tests PASS
+- canonical Blog + S18 regression: 9 files / 41 tests PASS
+- Prisma validate: PASS
+- Prisma generate: PASS
+- Typecheck: PASS
+- ESLint: 0 errors (21 pre-existing repository warnings)
+- Next/Turbopack production build: PASS; `/admin/blog/ai` included
+- `git diff --check`: PASS
+- disposable PostgreSQL migration from zero: 17 migrations applied; `BlogContentOrigin`, `contentOrigin`, and `aiGenerationMeta` confirmed
+- real PostgreSQL fake-provider E2E: `DRAFT`, `contentOrigin = AI`, `publishedAt = null`, provenance stored, public DAL hidden — PASS
+- full repository test run: 104 files / 1,150 tests PASS, 4 skipped; 37 existing CBT evidence tests FAIL because historical `data/cbt` evidence/runlog artifacts are absent from this isolated worktree. The failures do not touch Blog/S18 code.
+
+No live paid provider call was made. Deployment must configure the `BLOG_AI_*` environment variables, then an administrator can run the operational provider smoke test from `/admin/blog/ai`.
+
 ## Current gate
 
 BLOG CANONICAL = COMPLETE after Gate 4 checkpoint commit.
-S18 Gates 5-13 remain next in this Track.
+S18 GATES 5-13 = COMPLETE in the current worktree; ready for review and checkpoint commit.

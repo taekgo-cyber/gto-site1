@@ -33,9 +33,9 @@ export default async function AdminBlogPage({ searchParams }: { searchParams: Pr
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">블로그 CMS</h1>
-          <p className="mt-1 text-sm text-muted-foreground">카테고리와 수동 작성 글을 관리합니다. AI 콘텐츠 작업은 별도 세션에서 처리합니다.</p>
+          <p className="mt-1 text-sm text-muted-foreground">카테고리, 수동 작성 글, 관리자 검수 전 AI 초안을 관리합니다.</p>
         </div>
-        <div className="flex gap-3 text-sm"><Link href="/admin/blog/new" className="font-medium underline underline-offset-4">새 글 작성</Link><Link href="/blog" className="font-medium underline underline-offset-4">공개 블로그 보기</Link></div>
+        <div className="flex gap-3 text-sm"><Link href="/admin/blog/new" className="font-medium underline underline-offset-4">새 글 작성</Link><Link href="/admin/blog/ai" className="font-medium underline underline-offset-4">AI 초안 생성</Link><Link href="/blog" className="font-medium underline underline-offset-4">공개 블로그 보기</Link></div>
       </div>
 
       {params.message ? <p className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">{params.message}</p> : null}

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { requireRole } from "@/lib/auth/dal";
 import { getAdminBlogArticle } from "@/lib/blog/service";
 import { normalizeBlogTags } from "@/lib/blog/validation";
+import { readStoredAiQualityIssues } from "@/lib/blog/ai/quality";
 import { setBlogArticleStatusAction, updateBlogArticleAction } from "../../actions";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +32,7 @@ export default async function AdminBlogEditPage({
   const user = await requireRole("ADMIN");
   const { article, categories } = await getAdminBlogArticle(user.id, id);
   const articleTags = normalizeBlogTags(article.tags);
+  const aiQualityIssues = article.contentOrigin === "AI" ? readStoredAiQualityIssues(article.aiGenerationMeta) : [];
 
   return (
     <Container className="mx-auto max-w-5xl space-y-6 py-8">
@@ -46,6 +48,17 @@ export default async function AdminBlogEditPage({
         </div>
       </div>
 
+      {article.contentOrigin === "AI" ? (
+        <div className="rounded-md border border-border bg-muted/40 px-4 py-3 text-sm">
+          <strong>AI 생성 DRAFT</strong>
+          <p className="mt-1 text-muted-foreground">자동 발행되지 않습니다. 내용을 직접 검수한 뒤 기존 발행 기능을 사용하세요.</p>
+          {aiQualityIssues.length > 0 ? (
+            <ul className="mt-2 list-disc pl-5 text-xs text-muted-foreground">
+              {aiQualityIssues.map((issue, index) => <li key={`${issue.code}-${index}`}>{issue.severity}: {issue.message}</li>)}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
       {query.message ? <p className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">{query.message}</p> : null}
       {query.error ? <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{query.error}</p> : null}
 

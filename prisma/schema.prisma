@@ -100,6 +100,11 @@ enum BlogArticleStatus {
   ARCHIVED
 }
 
+enum BlogContentOrigin {
+  MANUAL
+  AI
+}
+
 enum CommentStatus {
   PUBLISHED
   HIDDEN
@@ -580,6 +585,8 @@ model BlogArticle {
   tags              Json              @default("[]")
   featuredImageUrl  String?
   featuredImageAlt  String?
+  contentOrigin     BlogContentOrigin  @default(MANUAL)
+  aiGenerationMeta  Json?
   status            BlogArticleStatus @default(DRAFT)
   seoTitle        String?
   seoDescription  String?

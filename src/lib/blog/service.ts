@@ -1,12 +1,13 @@
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { validateBlogArticleInput, validateBlogCategoryInput } from "./validation";
 
-async function assertActiveAdmin(actorUserId: string): Promise<void> {
+export async function assertActiveBlogAdmin(actorUserId: string): Promise<void> {
   const actor = await prisma.user.findUnique({
     where: { id: actorUserId },
-    select: { id: true, role: true, status: true },
+    select: { id: true, role: true, status: true, deletedAt: true },
   });
-  if (!actor || actor.role !== "ADMIN" || actor.status !== "ACTIVE") throw new Error("ADMIN_REQUIRED");
+  if (!actor || actor.role !== "ADMIN" || actor.status !== "ACTIVE" || actor.deletedAt) throw new Error("ADMIN_REQUIRED");
 }
 
 function mapWriteError(error: unknown): never {
@@ -29,7 +30,7 @@ export async function createBlogCategory(input: {
   sortOrder?: unknown;
   isActive?: unknown;
 }) {
-  await assertActiveAdmin(input.actorUserId);
+  await assertActiveBlogAdmin(input.actorUserId);
   const data = validateBlogCategoryInput(input);
   try {
     return await prisma.blogCategory.create({ data, select: { id: true, slug: true, name: true, isActive: true } });
@@ -47,7 +48,7 @@ export async function updateBlogCategory(input: {
   sortOrder?: unknown;
   isActive?: unknown;
 }) {
-  await assertActiveAdmin(input.actorUserId);
+  await assertActiveBlogAdmin(input.actorUserId);
   const data = validateBlogCategoryInput(input);
   try {
     return await prisma.blogCategory.update({
@@ -73,13 +74,15 @@ export async function createBlogArticle(input: {
   tags?: unknown;
   featuredImageUrl?: unknown;
   featuredImageAlt?: unknown;
+  contentOrigin?: "MANUAL" | "AI";
+  aiGenerationMeta?: Prisma.InputJsonValue;
 }) {
-  await assertActiveAdmin(input.actorUserId);
+  await assertActiveBlogAdmin(input.actorUserId);
   const data = validateBlogArticleInput(input);
   await assertCategoryExists(data.categoryId);
   try {
     return await prisma.blogArticle.create({
-      data: { ...data, authorId: input.actorUserId, status: "DRAFT", publishedAt: null },
+      data: { ...data, authorId: input.actorUserId, status: "DRAFT", publishedAt: null, contentOrigin: input.contentOrigin ?? "MANUAL", aiGenerationMeta: input.aiGenerationMeta },
       select: { id: true, slug: true, status: true },
     });
   } catch (error) {
@@ -101,7 +104,7 @@ export async function updateBlogArticle(input: {
   featuredImageUrl?: unknown;
   featuredImageAlt?: unknown;
 }) {
-  await assertActiveAdmin(input.actorUserId);
+  await assertActiveBlogAdmin(input.actorUserId);
   const data = validateBlogArticleInput(input);
   await assertCategoryExists(data.categoryId);
   const current = await prisma.blogArticle.findUnique({ where: { id: input.articleId }, select: { status: true } });
@@ -125,7 +128,7 @@ export async function setBlogArticleStatus(input: {
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   now?: Date;
 }) {
-  await assertActiveAdmin(input.actorUserId);
+  await assertActiveBlogAdmin(input.actorUserId);
   const current = await prisma.blogArticle.findUnique({
     where: { id: input.articleId },
     select: { id: true, slug: true, title: true, excerpt: true, contentMarkdown: true, seoTitle: true, seoDescription: true, tags: true, featuredImageUrl: true, featuredImageAlt: true, status: true, publishedAt: true, categoryId: true },
@@ -150,7 +153,7 @@ export async function setBlogArticleStatus(input: {
 }
 
 export async function getAdminBlogOverview(actorUserId: string) {
-  await assertActiveAdmin(actorUserId);
+  await assertActiveBlogAdmin(actorUserId);
   const [categories, articles] = await Promise.all([
     prisma.blogCategory.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),
     prisma.blogArticle.findMany({
@@ -171,7 +174,7 @@ export async function getAdminBlogOverview(actorUserId: string) {
 }
 
 export async function getAdminBlogArticle(actorUserId: string, articleId: string) {
-  await assertActiveAdmin(actorUserId);
+  await assertActiveBlogAdmin(actorUserId);
   const article = await prisma.blogArticle.findUnique({
     where: { id: articleId },
     include: { category: true, author: { select: { id: true, name: true } } },
