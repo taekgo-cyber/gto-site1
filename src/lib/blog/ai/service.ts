@@ -40,6 +40,7 @@ export async function generateAiBlogDraft(input: {
   request: AiContentGenerationRequest;
   provider?: AiBlogProvider;
   now?: Date;
+  automationJobId?: string;
 }) {
   // Authorization precedes source reads and the billable provider call. The
   // canonical create service checks again immediately before persistence.
@@ -84,6 +85,7 @@ export async function generateAiBlogDraft(input: {
     sourceIds: request.sourceIds,
     quality,
     generatedAt: now.toISOString(),
+    ...(input.automationJobId ? { automationJobId: input.automationJobId } : {}),
   } satisfies Prisma.InputJsonValue;
 
   const article = await createBlogArticle({
@@ -98,6 +100,7 @@ export async function generateAiBlogDraft(input: {
     tags: normalized.tags,
     contentOrigin: "AI",
     aiGenerationMeta: meta,
+    automationJobId: input.automationJobId,
   });
 
   return { article, generated: normalized, sources, quality };

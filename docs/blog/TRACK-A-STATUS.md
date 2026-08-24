@@ -149,8 +149,15 @@ S19 adds a schema-free public discovery layer to the canonical Blog article page
 
 Verification on 2026-08-24: focused discovery 4/4 PASS; Blog/S17/S18 regression 10 files / 45 tests PASS; typecheck PASS; ESLint 0 errors (21 pre-existing warnings); Next.js 16.3.0 production build PASS; no Prisma/schema/migration impact; `git diff --check` PASS. Full details: `docs/blog/session-19-status.md`.
 
+## S20 content automation closeout
+
+S20 adds an external-infrastructure-free PostgreSQL queue around the S18 DRAFT generator: unique topic/idempotency keys, atomic claims, attempt audit, stale recovery, bounded retry, KST daily budget, DB pause/cancel, admin operations UI, and a fail-closed Bearer-protected cron route. A unique queue-to-article relation makes crash replay reuse an existing generated DRAFT without a second provider call. Administrators can explicitly schedule a reviewed DRAFT for a future publication time; automation never publishes.
+
+Verification on 2026-08-24: focused automation 3 files / 11 tests PASS; Blog/S17-S19 regression 13 files / 56 tests PASS; full repository 1,165 PASS / 4 skipped with the same 37 missing CBT evidence failures; Prisma validate/generate PASS; 18 migrations from zero PASS; fake-provider queue/DRAFT/replay E2E PASS; typecheck/lint/build PASS. Full details: `docs/blog/session-20-status.md`.
+
 ## Current gate
 
 BLOG CANONICAL = COMPLETE after Gate 4 checkpoint commit.
 S18 GATES 5-13 = COMPLETE.
-S19 = COMPLETE; ready for checkpoint commit and S20 automation audit.
+S19 = COMPLETE at `cca5212`.
+S20 = LOCAL COMPLETE; ready for checkpoint commit. Push/integration/deployment require separate approval.

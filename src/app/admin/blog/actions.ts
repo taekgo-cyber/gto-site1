@@ -7,6 +7,7 @@ import {
   createBlogArticle,
   createBlogCategory,
   setBlogArticleStatus,
+  scheduleBlogArticlePublication,
   updateBlogArticle,
   updateBlogCategory,
 } from "@/lib/blog/service";
@@ -47,8 +48,27 @@ function safeBlogError(error: unknown): string {
     BLOG_ARTICLE_NOT_FOUND: "글을 찾을 수 없습니다.",
     BLOG_ARTICLE_ARCHIVED: "보관된 글은 다시 수정하거나 발행할 수 없습니다.",
     BLOG_PUBLISH_TIME_INVALID: "발행 시각이 올바르지 않습니다.",
+    BLOG_PUBLISH_SCHEDULE_INVALID: "예약 발행 시각은 현재보다 이후여야 합니다.",
+    BLOG_PUBLISH_SCHEDULE_DRAFT_REQUIRED: "초안 상태의 글만 예약 발행할 수 있습니다.",
   };
   return messages[code] ?? "처리 중 오류가 발생했습니다.";
+}
+
+export async function scheduleBlogArticlePublicationAction(formData: FormData): Promise<void> {
+  const user = await requireRole("ADMIN");
+  const articleId = text(formData, "articleId").trim();
+  const rawPublishAt = text(formData, "publishAt").trim();
+  if (!articleId) redirect(adminBlogUrl({ error: "글 식별자가 없습니다." }));
+  const publishAt = new Date(`${rawPublishAt}:00+09:00`);
+  try {
+    await scheduleBlogArticlePublication({ actorUserId: user.id, articleId, publishAt });
+  } catch (error) {
+    redirect(adminEditUrl(articleId, { error: safeBlogError(error) }));
+  }
+  revalidatePath("/admin/blog");
+  revalidatePath(`/admin/blog/${articleId}/edit`);
+  revalidatePath("/blog");
+  redirect(adminEditUrl(articleId, { message: "관리자 검수 완료 글의 예약 발행 시각을 저장했습니다." }));
 }
 
 function adminBlogUrl(params: Record<string, string>): string {

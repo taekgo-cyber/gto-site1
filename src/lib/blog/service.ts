@@ -76,13 +76,14 @@ export async function createBlogArticle(input: {
   featuredImageAlt?: unknown;
   contentOrigin?: "MANUAL" | "AI";
   aiGenerationMeta?: Prisma.InputJsonValue;
+  automationJobId?: string;
 }) {
   await assertActiveBlogAdmin(input.actorUserId);
   const data = validateBlogArticleInput(input);
   await assertCategoryExists(data.categoryId);
   try {
     return await prisma.blogArticle.create({
-      data: { ...data, authorId: input.actorUserId, status: "DRAFT", publishedAt: null, contentOrigin: input.contentOrigin ?? "MANUAL", aiGenerationMeta: input.aiGenerationMeta },
+      data: { ...data, authorId: input.actorUserId, status: "DRAFT", publishedAt: null, contentOrigin: input.contentOrigin ?? "MANUAL", aiGenerationMeta: input.aiGenerationMeta, automationJobId: input.automationJobId },
       select: { id: true, slug: true, status: true },
     });
   } catch (error) {
@@ -182,4 +183,28 @@ export async function getAdminBlogArticle(actorUserId: string, articleId: string
   if (!article) throw new Error("BLOG_ARTICLE_NOT_FOUND");
   const categories = await prisma.blogCategory.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] });
   return { article, categories };
+}
+
+export async function scheduleBlogArticlePublication(input: {
+  actorUserId: string;
+  articleId: string;
+  publishAt: Date;
+  now?: Date;
+}) {
+  await assertActiveBlogAdmin(input.actorUserId);
+  const now = input.now ?? new Date();
+  if (Number.isNaN(input.publishAt.getTime()) || input.publishAt <= now) throw new Error("BLOG_PUBLISH_SCHEDULE_INVALID");
+  const current = await prisma.blogArticle.findUnique({
+    where: { id: input.articleId },
+    select: { id: true, status: true, slug: true, title: true, excerpt: true, contentMarkdown: true, seoTitle: true, seoDescription: true, tags: true, featuredImageUrl: true, featuredImageAlt: true, categoryId: true },
+  });
+  if (!current) throw new Error("BLOG_ARTICLE_NOT_FOUND");
+  if (current.status !== "DRAFT") throw new Error("BLOG_PUBLISH_SCHEDULE_DRAFT_REQUIRED");
+  validateBlogArticleInput({ slug: current.slug, title: current.title, excerpt: current.excerpt, contentMarkdown: current.contentMarkdown, seoTitle: current.seoTitle, seoDescription: current.seoDescription, categoryId: current.categoryId, tags: current.tags, featuredImageUrl: current.featuredImageUrl, featuredImageAlt: current.featuredImageAlt });
+  await assertCategoryExists(current.categoryId);
+  return prisma.blogArticle.update({
+    where: { id: current.id },
+    data: { status: "PUBLISHED", publishedAt: input.publishAt },
+    select: { id: true, slug: true, status: true, publishedAt: true },
+  });
 }

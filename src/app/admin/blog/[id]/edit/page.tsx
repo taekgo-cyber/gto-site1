@@ -7,7 +7,7 @@ import { requireRole } from "@/lib/auth/dal";
 import { getAdminBlogArticle } from "@/lib/blog/service";
 import { normalizeBlogTags } from "@/lib/blog/validation";
 import { readStoredAiQualityIssues } from "@/lib/blog/ai/quality";
-import { setBlogArticleStatusAction, updateBlogArticleAction } from "../../actions";
+import { scheduleBlogArticlePublicationAction, setBlogArticleStatusAction, updateBlogArticleAction } from "../../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -90,6 +90,13 @@ export default async function AdminBlogEditPage({
               <input type="hidden" name="articleId" value={article.id} />
               <input type="hidden" name="status" value="PUBLISHED" />
               <Button type="submit">발행</Button>
+            </form>
+          ) : null}
+          {article.status === "DRAFT" ? (
+            <form action={scheduleBlogArticlePublicationAction} className="flex flex-wrap items-end gap-2">
+              <input type="hidden" name="articleId" value={article.id} />
+              <label className="space-y-1 text-sm"><span>예약 발행 (KST)</span><input name="publishAt" type="datetime-local" required className={inputClass} /></label>
+              <Button type="submit" variant="outline">예약 발행</Button>
             </form>
           ) : null}
           {article.status === "PUBLISHED" ? (
