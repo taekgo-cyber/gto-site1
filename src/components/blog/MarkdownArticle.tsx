@@ -2,8 +2,18 @@ import type { ReactNode } from "react";
 
 export function safeMarkdownHref(raw: string): string | null {
   const href = raw.trim();
-  if (!href || href.startsWith("//")) return null;
-  if (href.startsWith("/") || href.startsWith("#")) return href;
+  if (!href || /[\u0000-\u001f\u007f]/.test(href)) return null;
+  if (href.startsWith("#")) return href;
+  if (href.startsWith("/")) {
+    if (href.startsWith("//") || href.includes("\\")) return null;
+    try {
+      const origin = "https://local.invalid";
+      const url = new URL(href, origin);
+      return url.origin === origin ? `${url.pathname}${url.search}${url.hash}` : null;
+    } catch {
+      return null;
+    }
+  }
   try {
     const url = new URL(href);
     return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null;

@@ -6,6 +6,7 @@ import { MarkdownArticle } from "@/components/blog/MarkdownArticle";
 import { BlogDiscovery } from "@/components/blog/BlogDiscovery";
 import { getPublishedBlogArticleBySlug } from "@/lib/blog/dal";
 import { getBlogArticleDiscovery } from "@/lib/blog/discovery";
+import { getSiteUrl } from "@/lib/seo/site-url";
 
 export const dynamic = "force-dynamic";
 
@@ -55,7 +56,7 @@ export default async function BlogArticlePage({ params }: { params: Promise<Para
   if (!article) notFound();
   const discovery = await getBlogArticleDiscovery(article);
   const modifiedAt = article.updatedAt ?? article.publishedAt;
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/+$/, "");
+  const siteUrl = getSiteUrl();
   const jsonLd = JSON.stringify({
     "@context": "https://schema.org",
     "@type": "Article",

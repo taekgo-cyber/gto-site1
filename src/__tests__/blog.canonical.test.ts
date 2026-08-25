@@ -64,6 +64,7 @@ describe("canonical Blog CMS integration", () => {
     expect(safeMarkdownHref("https://example.com/guide")).toBe("https://example.com/guide");
     expect(safeMarkdownHref("javascript:alert(1)")).toBeNull();
     expect(safeMarkdownHref("//evil.example/path")).toBeNull();
+    expect(safeMarkdownHref("/\\\\evil.example/path")).toBeNull();
     expect(safeMarkdownHref("data:text/html,x")).toBeNull();
   });
 

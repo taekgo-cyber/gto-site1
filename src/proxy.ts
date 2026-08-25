@@ -28,9 +28,12 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/maintenance", request.url), 307);
   }
 
-  if (pathname.startsWith("/mypage") && !request.cookies.has(SESSION_COOKIE_NAME)) {
+  if (
+    (pathname.startsWith("/mypage") || pathname.startsWith("/company/")) &&
+    !request.cookies.has(SESSION_COOKIE_NAME)
+  ) {
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("next", pathname);
+    loginUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
     return NextResponse.redirect(loginUrl);
   }
 

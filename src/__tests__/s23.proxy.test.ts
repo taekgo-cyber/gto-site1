@@ -30,13 +30,22 @@ describe("S23 site availability proxy", () => {
 
   it("preserves the existing mypage session boundary in PUBLIC mode", () => {
     process.env.SITE_AVAILABILITY = "PUBLIC";
-    const anonymous = proxy(new NextRequest("https://example.com/mypage/lead"));
+    const anonymous = proxy(new NextRequest("https://example.com/mypage/lead?page=2"));
     expect(anonymous.status).toBe(307);
-    expect(anonymous.headers.get("location")).toContain("/login?next=%2Fmypage%2Flead");
+    expect(anonymous.headers.get("location")).toContain("/login?next=%2Fmypage%2Flead%3Fpage%3D2");
 
     const authenticated = proxy(new NextRequest("https://example.com/mypage", {
       headers: { cookie: `${SESSION_COOKIE_NAME}=opaque-session` },
     }));
     expect(authenticated.headers.get("x-middleware-next")).toBe("1");
+  });
+
+  it("preserves protected company journeys through login", () => {
+    process.env.SITE_AVAILABILITY = "PUBLIC";
+    const anonymous = proxy(new NextRequest("https://example.com/company/leads?companyId=company-1"));
+    expect(anonymous.status).toBe(307);
+    expect(anonymous.headers.get("location")).toContain(
+      "/login?next=%2Fcompany%2Fleads%3FcompanyId%3Dcompany-1",
+    );
   });
 });

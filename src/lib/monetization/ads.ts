@@ -34,8 +34,20 @@ export function normalizeAdvertisementUrl(
   if (!normalized) return null;
   if (normalized.length > 2_000) throw new Error("ADVERTISEMENT_URL_TOO_LONG");
 
-  if (normalized.startsWith("/") && !normalized.startsWith("//")) {
-    return normalized;
+  if (normalized.startsWith("/")) {
+    try {
+      const localOrigin = "https://local.invalid";
+      const parsed = new URL(normalized, localOrigin);
+      if (
+        normalized.includes("\\") ||
+        parsed.origin !== localOrigin
+      ) {
+        throw new Error("INVALID_INTERNAL_URL");
+      }
+      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    } catch {
+      throw new Error(kind === "image" ? "ADVERTISEMENT_IMAGE_URL_INVALID" : "ADVERTISEMENT_LINK_URL_INVALID");
+    }
   }
 
   let parsed: URL;

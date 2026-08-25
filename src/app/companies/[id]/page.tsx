@@ -5,6 +5,7 @@ import { Container } from "@/components/common/Container";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { getPublicCompany } from "@/lib/company/public";
+import { buildCompanyInquiryHref } from "@/lib/support/links";
 
 export const dynamic = "force-dynamic";
 type Params = { id: string };
@@ -38,7 +39,7 @@ export default async function PublicCompanyPage({ params }: { params: Promise<Pa
         <p className="mt-2 text-sm text-muted-foreground">{company.region?.name ?? "전국"} · 등록 {company.createdAt.toLocaleDateString("ko-KR")}</p>
         <p className="mt-5 whitespace-pre-wrap leading-7">{company.introduction ?? "등록된 업체 소개가 없습니다."}</p>
         <div className="mt-5 flex flex-wrap gap-2">
-          <Link href="/support?category=COMPANY_REGISTRATION"><Button variant="outline">업체 관련 문의</Button></Link>
+          <Link href={buildCompanyInquiryHref({ companyId: company.id, companyName: company.name })}><Button variant="outline">업체 관련 문의</Button></Link>
           <Link href="/companies"><Button variant="ghost">업체 목록</Button></Link>
         </div>
       </div>

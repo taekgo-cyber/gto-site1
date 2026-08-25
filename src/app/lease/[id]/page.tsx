@@ -133,7 +133,11 @@ export default async function LeasePostDetailPage(props: PageProps<"/lease/[id]"
 
           {authorPhone ? (
             <div className="border-t border-border pt-4">
-              <PhoneInquiry phone={authorPhone} isLoggedIn={user !== null} />
+              <PhoneInquiry
+                phone={authorPhone}
+                isLoggedIn={user !== null}
+                returnTo={`/lease/${post.id}`}
+              />
             </div>
           ) : null}
 

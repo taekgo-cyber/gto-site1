@@ -11,7 +11,7 @@ const inputClass = "min-h-11 w-full rounded-md border border-border bg-backgroun
 export function SupportForm({
   defaults,
 }: {
-  defaults: { name?: string; email?: string; phone?: string; category?: string };
+  defaults: { name?: string; email?: string; phone?: string; category?: string; subject?: string; message?: string };
 }) {
   const [state, action, pending] = useActionState<SupportFormState, FormData>(createSupportTicketAction, undefined);
   if (state?.success && state.statusUrl && state.statusUrl !== "/support") {
@@ -34,8 +34,8 @@ export function SupportForm({
         <label className="space-y-1 text-sm font-medium">전화번호<input name="requesterPhone" type="tel" maxLength={30} defaultValue={defaults.phone} className={inputClass} autoComplete="tel" /></label>
       </div>
       <p className="text-xs text-muted-foreground">이메일 또는 전화번호 중 하나는 필수입니다. 연락처는 문의 처리에만 사용하며 Telegram 알림에는 포함하지 않습니다.</p>
-      <label className="block space-y-1 text-sm font-medium">제목<span aria-hidden="true"> *</span><input name="subject" required minLength={3} maxLength={120} className={inputClass} /></label>
-      <label className="block space-y-1 text-sm font-medium">문의 내용<span aria-hidden="true"> *</span><textarea name="message" required minLength={10} maxLength={4000} rows={8} className={`${inputClass} py-3`} /></label>
+      <label className="block space-y-1 text-sm font-medium">제목<span aria-hidden="true"> *</span><input name="subject" required minLength={3} maxLength={120} defaultValue={defaults.subject} className={inputClass} /></label>
+      <label className="block space-y-1 text-sm font-medium">문의 내용<span aria-hidden="true"> *</span><textarea name="message" required minLength={10} maxLength={4000} rows={8} defaultValue={defaults.message} className={`${inputClass} py-3`} /></label>
       <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" name="priority" value="URGENT" /> 운행·계정 차단 등 긴급 확인이 필요합니다.</label>
       <Button type="submit" disabled={pending} className="w-full sm:w-auto">{pending ? "접수 중..." : "문의 접수"}</Button>
     </form>

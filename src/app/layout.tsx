@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
+import { getSiteUrl } from "@/lib/seo/site-url";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getSiteUrl()),
   title: {
     default: "트럭포털",
     template: "%s | 트럭포털",

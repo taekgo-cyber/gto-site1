@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { createInAppNotification } from "@/lib/notifications/service";
 import { requireUser } from "./dal";
+import { normalizeAuthRedirect } from "./redirect";
 import { hashPassword, verifyPassword } from "./password";
 import {
   createSessionToken,
@@ -31,6 +32,7 @@ export async function signup(
   _prevState: FormState,
   formData: FormData,
 ): Promise<FormState> {
+  const next = normalizeAuthRedirect(formData.get("next"));
   const { errors, data } = validateSignup(formData);
   if (!data) return { fieldErrors: errors };
 
@@ -78,13 +80,14 @@ export async function signup(
   });
 
   await setSessionCookie(createSessionToken(user));
-  redirect("/mypage");
+  redirect(next);
 }
 
 export async function login(
   _prevState: FormState,
   formData: FormData,
 ): Promise<FormState> {
+  const next = normalizeAuthRedirect(formData.get("next"));
   const { errors, data } = validateLogin(formData);
   if (!data) return { fieldErrors: errors };
 
@@ -114,7 +117,7 @@ export async function login(
   });
 
   await setSessionCookie(createSessionToken(user));
-  redirect("/mypage");
+  redirect(next);
 }
 
 export async function logout(): Promise<void> {

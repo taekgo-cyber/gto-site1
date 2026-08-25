@@ -8,11 +8,12 @@ import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { FieldError, FormError } from "./FormMessage";
 
-export function LoginForm() {
+export function LoginForm({ next }: { next: string }) {
   const [state, action, pending] = useActionState(login, undefined);
 
   return (
     <form action={action} className="space-y-4">
+      <input type="hidden" name="next" value={next} />
       <div>
         <Label htmlFor="email">이메일</Label>
         <Input
@@ -46,7 +47,7 @@ export function LoginForm() {
 
       <p className="text-center text-sm text-muted-foreground">
         아직 계정이 없으신가요?{" "}
-        <Link href="/signup" className="font-medium text-primary hover:underline">
+        <Link href={`/signup?next=${encodeURIComponent(next)}`} className="font-medium text-primary hover:underline">
           회원가입
         </Link>
       </p>

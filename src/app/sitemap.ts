@@ -3,16 +3,18 @@ import { prisma } from "@/lib/prisma";
 import { getSeoLandingMasterData } from "@/lib/seo/landing";
 import { getCbtCategories } from "@/lib/cbt/dal";
 import { listPublishedBlogSitemapRows } from "@/lib/blog/dal";
+import { getSiteUrl } from "@/lib/seo/site-url";
 
 export const dynamic = "force-dynamic";
 
-function getBaseUrl(): string {
-const url = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-  return url.replace(/\/+$/, "");
-}
+// Keep one sitemap safely below the 50,000 URL protocol limit. When any source
+// approaches its cap, production should move to generateSitemaps-based shards.
+const SITEMAP_LEASE_LIMIT = 10_000;
+const SITEMAP_JOB_LIMIT = 15_000;
+const SITEMAP_COMPANY_LIMIT = 5_000;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getSiteUrl();
   const { regions, tonnages } = await getSeoLandingMasterData();
 
   const regionIdToSlug = new Map<string, string>();
@@ -25,10 +27,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     prisma.leasePost.findMany({
       where: { status: "PUBLISHED", deletedAt: null, publishedAt: { not: null } },
       select: { id: true, publishedAt: true, regionId: true, tonnageId: true },
+      orderBy: [{ publishedAt: "desc" }, { id: "asc" }],
+      take: SITEMAP_LEASE_LIMIT,
     }),
     prisma.jobPost.findMany({
       where: { status: "OPEN", deletedAt: null, publishedAt: { not: null } },
       select: { id: true, publishedAt: true },
+      orderBy: [{ publishedAt: "desc" }, { id: "asc" }],
+      take: SITEMAP_JOB_LIMIT,
     }),
     getCbtCategories(),
     listPublishedBlogSitemapRows(),
@@ -38,6 +44,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     (prisma as typeof prisma & { company?: typeof prisma.company }).company?.findMany({
       where: { status: "ACTIVE", deletedAt: null },
       select: { id: true, updatedAt: true },
+      orderBy: [{ updatedAt: "desc" }, { id: "asc" }],
+      take: SITEMAP_COMPANY_LIMIT,
     }) ?? Promise.resolve([]),
   ]);
 

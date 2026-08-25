@@ -124,6 +124,8 @@ export async function listPublishedBlogSitemapRows(now = new Date()) {
     prisma.blogArticle.findMany({
       where: { status: "PUBLISHED", publishedAt: { lte: now, not: null } },
       select: { slug: true, updatedAt: true },
+      orderBy: [{ updatedAt: "desc" }, { slug: "asc" }],
+      take: 5_000,
     }),
     prisma.blogCategory.findMany({
       where: {
@@ -131,6 +133,8 @@ export async function listPublishedBlogSitemapRows(now = new Date()) {
         articles: { some: { status: "PUBLISHED", publishedAt: { lte: now, not: null } } },
       },
       select: { slug: true, updatedAt: true },
+      orderBy: [{ updatedAt: "desc" }, { slug: "asc" }],
+      take: 1_000,
     }),
   ]);
   return { articles, categories };

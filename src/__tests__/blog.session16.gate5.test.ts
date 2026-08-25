@@ -114,5 +114,7 @@ describe("Session 16 Gate 5 blog SEO/publication contract", () => {
     expect(urls).toContain("http://localhost:3000/blog/safe-driving-guide");
     expect(urls).toContain("http://localhost:3000/blog/category/driver-news");
     expect(urls.some((url) => url.includes("draft"))).toBe(false);
+    expect(mocks.leaseFindMany).toHaveBeenCalledWith(expect.objectContaining({ take: 10_000 }));
+    expect(mocks.jobFindMany).toHaveBeenCalledWith(expect.objectContaining({ take: 15_000 }));
   });
 });

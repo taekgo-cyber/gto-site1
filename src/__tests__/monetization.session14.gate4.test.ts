@@ -97,6 +97,7 @@ describe("Session 14 Gate 4 advertisement operations", () => {
     expect(() => normalizeAdvertisementUrl("http://example.com/x", "link")).toThrow("ADVERTISEMENT_LINK_URL_INVALID");
     expect(() => normalizeAdvertisementUrl("javascript:alert(1)", "link")).toThrow("ADVERTISEMENT_LINK_URL_INVALID");
     expect(() => normalizeAdvertisementUrl("//evil.example/x", "image")).toThrow("ADVERTISEMENT_IMAGE_URL_INVALID");
+    expect(() => normalizeAdvertisementUrl("/\\\\evil.example/x", "link")).toThrow("ADVERTISEMENT_LINK_URL_INVALID");
   });
 
   it("creates a company campaign as PENDING only after write, placement and entitlement checks", async () => {

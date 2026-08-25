@@ -11,7 +11,7 @@ const NAV_ITEMS = [
   { label: "지입", href: "/lease" },
   { label: "CBT 시험", href: "/cbt" },
   { label: "블로그", href: "/blog" },
-  { label: "구직정보", href: "/" },
+  { label: "구직정보", href: "/mypage/lead" },
   { label: "업체정보", href: "/companies" },
   { label: "고객지원", href: "/support" },
 ] as const;

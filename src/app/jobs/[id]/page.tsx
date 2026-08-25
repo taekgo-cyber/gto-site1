@@ -116,7 +116,11 @@ export default async function JobPostPage(props: PageProps<"/jobs/[id]">) {
 
           {post.companyPhone ? (
             <div className="mt-4 border-t border-border pt-4">
-              <PhoneInquiry phone={post.companyPhone} isLoggedIn={user !== null} />
+              <PhoneInquiry
+                phone={post.companyPhone}
+                isLoggedIn={user !== null}
+                returnTo={`/jobs/${post.id}`}
+              />
             </div>
           ) : null}
         </CardContent>

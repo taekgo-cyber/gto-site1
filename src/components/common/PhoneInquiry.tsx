@@ -3,6 +3,7 @@ import Link from "next/link";
 type PhoneInquiryProps = {
   phone: string | null;
   isLoggedIn: boolean;
+  returnTo: string;
 };
 
 function telHref(phone: string): string {
@@ -17,7 +18,7 @@ function telHref(phone: string): string {
  *
  * 주의: 전화 클릭 이벤트는 DB에 저장하지 않는다. (Session 8 이후 별도 설계)
  */
-export function PhoneInquiry({ phone, isLoggedIn }: PhoneInquiryProps) {
+export function PhoneInquiry({ phone, isLoggedIn, returnTo }: PhoneInquiryProps) {
   if (!phone) return null;
 
   const buttonStyles =
@@ -25,7 +26,7 @@ export function PhoneInquiry({ phone, isLoggedIn }: PhoneInquiryProps) {
 
   if (!isLoggedIn) {
     return (
-      <Link href="/login" className="block sm:inline-block">
+      <Link href={`/login?next=${encodeURIComponent(returnTo)}`} className="block sm:inline-block">
         <span className={buttonStyles}>📞 전화 문의 · 로그인 후 확인</span>
       </Link>
     );
