@@ -17,6 +17,12 @@ Track B production 환경변수 운영 계약이다. 실제 secret 값은 이 �
 | `DATABASE_URL` | 필수 secret | PostgreSQL production 연결 문자열. Build/Prisma migration/runtime이 올바른 production DB를 가리키는지 배포 전 검증한다. |
 | `AUTH_SECRET` | 필수 secret | 32자 이상의 강한 랜덤 값. 세션 HMAC 서명용이며 외부 노출 금지. 교체 시 기존 세션이 무효화될 수 있음을 운영 절차에 반영한다. |
 | `NEXT_PUBLIC_SITE_URL` | 필수 public config | production canonical origin(HTTPS). sitemap/robots 기준 URL로 사용된다. build 시점 값을 확인한다. |
+| `SITE_AVAILABILITY` | 필수 launch config | `PUBLIC` 또는 `MAINTENANCE`. Production에서 누락/오류이면 Proxy가 공개 경로를 maintenance로 fail-closed 처리한다. health/readiness와 관리자 운영 경로는 유지한다. |
+| `LAUNCH_FREE_AT` | 필수 launch config | `2026-10-01T00:00:00+09:00` 형식의 FREE LAUNCH 경계. Production은 명시값이 필요하다. |
+| `LAUNCH_PAID_PRENOTICE_AT` | 필수 launch config | `+09:00` 명시 KST 경계. FREE 경계보다 뒤여야 한다. |
+| `LAUNCH_DISCOUNTED_PAID_AT` | 필수 launch config | `+09:00` 명시 KST 경계. 할인 숫자를 정의하지 않고 activation 상태만 결정한다. |
+| `LAUNCH_STANDARD_PAID_AT` | 필수 launch config | `+09:00` 명시 KST 경계. 앞선 모든 경계보다 뒤여야 한다. |
+| `MONETIZATION_ACTIVATION_MODE` | 필수 safety config | 현재 허용값은 `FREE_ONLY`. 실제 PG/승인된 할인 정책 없이 live charge를 활성화하지 않는다. |
 | `LEAD_MAX_CONTACT_UNLOCKS_PER_LEAD` | 필수 policy config | 0 이상의 정수. 미설정/비정상 값이면 Lead 정책 해석이 fail-closed 된다. 운영 정책 승인값을 사용한다. |
 | `STORAGE_PROVIDER` | 현재 제한 | 현재 구현은 `local`만 지원한다. production에서 로컬 ephemeral disk를 영구 저장소로 간주하면 안 된다. durable storage 전환 전까지 출시 blocker로 관리한다. |
 | `UPLOAD_DIR` | local 사용 시 필수 운영 config | `STORAGE_PROVIDER=local`일 때 쓰기 가능한 persistent volume 경로를 명시한다. 기본 `./uploads`에 의존하지 않는다. |

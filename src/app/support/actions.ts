@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { buildSupportAbuseKey, validateCreateSupportTicket } from "@/lib/support/contract";
 import { createSupportTicket } from "@/lib/support/service";
+import { logOperationalError } from "@/lib/observability/logger";
 
 export type SupportFormState = { success?: boolean; statusUrl?: string; error?: string } | undefined;
 
@@ -52,6 +53,13 @@ export async function createSupportTicketAction(
     const ticket = await createSupportTicket({ requesterUserId: user?.id, data, abuse });
     return { success: true, statusUrl: `/support/tickets/${ticket.accessToken}` };
   } catch (error) {
+    logOperationalError({
+      operation: "support_ticket_create",
+      actorType: "ANONYMOUS",
+      category: error instanceof Error && error.message.startsWith("SUPPORT_") ? "VALIDATION" : "UNEXPECTED",
+      error,
+      identifiers: { route: "/support" },
+    });
     return { error: errorMessage(error) };
   }
 }

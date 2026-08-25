@@ -44,7 +44,7 @@ export function normalizeAdvertisementUrl(
   } catch {
     throw new Error(kind === "image" ? "ADVERTISEMENT_IMAGE_URL_INVALID" : "ADVERTISEMENT_LINK_URL_INVALID");
   }
-  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+  if (parsed.protocol !== "https:") {
     throw new Error(kind === "image" ? "ADVERTISEMENT_IMAGE_URL_INVALID" : "ADVERTISEMENT_LINK_URL_INVALID");
   }
   return parsed.toString();

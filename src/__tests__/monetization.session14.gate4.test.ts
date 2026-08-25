@@ -91,9 +91,10 @@ describe("Session 14 Gate 4 advertisement operations", () => {
     mocks.campaignCreate.mockResolvedValue({ id: "campaign-1", status: "PENDING", startDate, endDate });
   });
 
-  it("accepts only internal or http(s) ad URLs", () => {
+  it("accepts only internal or HTTPS ad URLs", () => {
     expect(normalizeAdvertisementUrl("/jobs/123", "link")).toBe("/jobs/123");
     expect(normalizeAdvertisementUrl("https://example.com/x", "link")).toBe("https://example.com/x");
+    expect(() => normalizeAdvertisementUrl("http://example.com/x", "link")).toThrow("ADVERTISEMENT_LINK_URL_INVALID");
     expect(() => normalizeAdvertisementUrl("javascript:alert(1)", "link")).toThrow("ADVERTISEMENT_LINK_URL_INVALID");
     expect(() => normalizeAdvertisementUrl("//evil.example/x", "image")).toThrow("ADVERTISEMENT_IMAGE_URL_INVALID");
   });

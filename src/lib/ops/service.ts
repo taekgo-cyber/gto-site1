@@ -1,5 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { createTelegramBotProvider, type TelegramMessage, type TelegramProvider } from "@/lib/telegram/provider";
+import { logOperationalError } from "@/lib/observability/logger";
+import {
+  getKstDayWindow,
+  resolveRuntimeLaunchPolicy,
+  resolveRuntimeSiteAvailability,
+} from "@/lib/launch/policy";
 
 const MAX_DELIVERY_ATTEMPTS = 5;
 const STALE_LOCK_MS = 10 * 60 * 1_000;
@@ -168,6 +174,13 @@ export async function dispatchPendingOpsEvents(input: {
       });
       sent += 1;
     } catch (error) {
+      logOperationalError({
+        operation: "ops_event_delivery",
+        actorType: "SYSTEM",
+        category: "PROVIDER",
+        error,
+        identifiers: { eventId: event.id },
+      });
       const delayMinutes = Math.min(60, 2 ** Math.max(0, event.attemptCount - 1));
       await prisma.opsEvent.update({
         where: { id: event.id },
@@ -191,15 +204,81 @@ async function assertActiveAdmin(adminUserId: string) {
 
 export async function getAdminOpsOverview(adminUserId: string, now: Date = new Date()) {
   await assertActiveAdmin(adminUserId);
-  const [counts, events] = await Promise.all([
+  const [counts, launch, events] = await Promise.all([
     getDailyOpsCounts(now),
+    getLaunchOpsSnapshot(now),
     prisma.opsEvent.findMany({
       select: { id: true, type: true, targetType: true, targetId: true, status: true, attemptCount: true, lastErrorCode: true, nextAttemptAt: true, sentAt: true, createdAt: true },
       orderBy: { createdAt: "desc" },
       take: 50,
     }),
   ]);
-  return { counts, events };
+  return { counts, launch, events };
+}
+
+export async function getLaunchOpsSnapshot(now: Date = new Date()) {
+  const { start, end } = getKstDayWindow(now);
+  const [
+    newLeads,
+    unlocks,
+    suspendedCompanies,
+    activeCampaigns,
+    adEvents,
+    notificationsCreated,
+    unreadNotifications,
+    contentPublished,
+    failedContentJobs,
+  ] = await Promise.all([
+    prisma.candidateLead.count({ where: { createdAt: { gte: start, lt: end } } }),
+    prisma.leadContactUnlock.count({ where: { unlockedAt: { gte: start, lt: end } } }),
+    prisma.company.count({ where: { status: "SUSPENDED", deletedAt: null } }),
+    prisma.adCampaign.count({
+      where: { status: "ACTIVE", deletedAt: null, startDate: { lte: now }, endDate: { gt: now } },
+    }),
+    prisma.adAnalyticsEvent.groupBy({
+      by: ["eventType"],
+      where: { occurredAt: { gte: start, lt: end } },
+      _count: { _all: true },
+    }),
+    prisma.inAppNotification.count({ where: { createdAt: { gte: start, lt: end } } }),
+    prisma.inAppNotification.count({ where: { readAt: null, OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] } }),
+    prisma.blogArticle.count({ where: { status: "PUBLISHED", publishedAt: { gte: start, lt: end } } }),
+    prisma.blogContentJob.count({ where: { status: "FAILED" } }),
+  ]);
+  const adCount = Object.fromEntries(adEvents.map((row) => [row.eventType, row._count._all]));
+
+  let launchPolicy: ReturnType<typeof resolveRuntimeLaunchPolicy> | null = null;
+  let launchPolicyError: "INVALID_CONFIG" | null = null;
+  try {
+    launchPolicy = resolveRuntimeLaunchPolicy(now);
+  } catch (error) {
+    launchPolicyError = "INVALID_CONFIG";
+    logOperationalError({
+      operation: "launch_policy_resolve",
+      actorType: "SYSTEM",
+      category: "POLICY",
+      error,
+      identifiers: { route: "/admin/ops" },
+    });
+  }
+
+  return {
+    window: { start, end },
+    availability: resolveRuntimeSiteAvailability(),
+    launchPolicy,
+    launchPolicyError,
+    newLeads,
+    unlocks,
+    suspendedCompanies,
+    activeCampaigns,
+    adImpressions: adCount.IMPRESSION ?? 0,
+    adClicks: adCount.CLICK ?? 0,
+    adConversions: adCount.CONVERSION ?? 0,
+    notificationsCreated,
+    unreadNotifications,
+    contentPublished,
+    failedContentJobs,
+  };
 }
 
 export async function retryOpsEvent(input: { adminUserId: string; eventId: string; now?: Date }) {

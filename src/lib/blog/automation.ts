@@ -5,6 +5,7 @@ import { generateAiBlogDraft } from "@/lib/blog/ai/service";
 import { validateAiContentGenerationRequest } from "@/lib/blog/ai/source";
 import { assertActiveBlogAdmin } from "@/lib/blog/service";
 import { prisma } from "@/lib/prisma";
+import { logOperationalError } from "@/lib/observability/logger";
 
 const CONTROL_ID = "default";
 const MAX_BATCH_SIZE = 5;
@@ -220,6 +221,13 @@ export async function processDueBlogContentJobs(input: {
       budgetRemaining -= 1;
     } catch (error) {
       const failure = classifyBlogAutomationFailure(error);
+      logOperationalError({
+        operation: "blog_content_job",
+        actorType: "SYSTEM",
+        category: failure.code === "PROVIDER_FAILURE" || failure.code === "PROVIDER_NOT_CONFIGURED" ? "PROVIDER" : "UNEXPECTED",
+        error,
+        identifiers: { jobId: job.id },
+      });
       const cancellation = await prisma.blogContentJob.findUnique({ where: { id: job.id }, select: { cancelRequestedAt: true } });
       const shouldRetry = failure.retryable && job.attemptCount < job.maxAttempts && !cancellation?.cancelRequestedAt;
       const retryAt = new Date(now.getTime() + Math.min(60, 5 * 2 ** Math.max(0, job.attemptCount - 1)) * 60_000);

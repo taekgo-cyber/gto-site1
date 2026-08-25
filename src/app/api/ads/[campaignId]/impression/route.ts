@@ -1,4 +1,5 @@
 import { recordAdvertisementImpression } from "@/lib/analytics/ads";
+import { logOperationalError } from "@/lib/observability/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,13 @@ export async function POST(
     if (code === "ADVERTISEMENT_CAMPAIGN_NOT_TRACKABLE") {
       return Response.json({ error: "NOT_FOUND" }, { status: 404 });
     }
+    logOperationalError({
+      operation: "ad_impression_record",
+      actorType: "ANONYMOUS",
+      category: "UNEXPECTED",
+      error,
+      identifiers: { campaignId, route: "/api/ads/impression" },
+    });
     return Response.json({ error: "INTERNAL_ERROR" }, { status: 500 });
   }
 }

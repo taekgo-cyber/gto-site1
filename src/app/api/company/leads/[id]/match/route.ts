@@ -2,6 +2,7 @@ import { requireApiUser } from "@/lib/api/auth";
 import { badRequest, forbidden, notFound } from "@/lib/api/errors";
 import { errorResponse, json, parseJsonBody, toApiError } from "@/lib/api/response";
 import { cancelLeadMatch, createLeadMatch } from "@/lib/leads/service";
+import { assertLaunchOperationsAvailable, resolveRuntimeLaunchPolicy } from "@/lib/launch/policy";
 
 function mapError(error: unknown) {
   if (error instanceof Error && /Forbidden|not active|Not a company member|Company not active|User not active|STAFF/.test(error.message)) return forbidden();
@@ -21,6 +22,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   try {
     const user = await requireApiUser();
     const { companyId, leadId } = await ids(request, context);
+    assertLaunchOperationsAvailable(resolveRuntimeLaunchPolicy());
     return json(await createLeadMatch({ companyId, leadId, actorUserId: user.id }), { status: 201 });
   } catch (error) {
     return errorResponse(mapError(error));

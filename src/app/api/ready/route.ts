@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { logOperationalError } from "@/lib/observability/logger";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -20,8 +21,12 @@ export async function GET() {
       },
     );
   } catch (error) {
-    console.error("readiness_check_failed", {
-      name: error instanceof Error ? error.name : "UnknownError",
+    logOperationalError({
+      operation: "readiness_check",
+      actorType: "SYSTEM",
+      category: "DATABASE",
+      error,
+      identifiers: { route: "/api/ready" },
     });
 
     return Response.json(
