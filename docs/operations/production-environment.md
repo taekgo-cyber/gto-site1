@@ -20,6 +20,10 @@ Track B production 환경변수 운영 계약이다. 실제 secret 값은 이 �
 | `LEAD_MAX_CONTACT_UNLOCKS_PER_LEAD` | 필수 policy config | 0 이상의 정수. 미설정/비정상 값이면 Lead 정책 해석이 fail-closed 된다. 운영 정책 승인값을 사용한다. |
 | `STORAGE_PROVIDER` | 현재 제한 | 현재 구현은 `local`만 지원한다. production에서 로컬 ephemeral disk를 영구 저장소로 간주하면 안 된다. durable storage 전환 전까지 출시 blocker로 관리한다. |
 | `UPLOAD_DIR` | local 사용 시 필수 운영 config | `STORAGE_PROVIDER=local`일 때 쓰기 가능한 persistent volume 경로를 명시한다. 기본 `./uploads`에 의존하지 않는다. |
+| `BLOG_AI_BASE_URL` | AI provider config | 승인된 OpenAI-compatible HTTPS endpoint. credential을 URL에 포함하지 않는다. |
+| `BLOG_AI_API_KEY` | AI 기능 사용 시 필수 secret | 관리자 AI 초안 생성과 automation runner가 사용하는 provider key. 로그·브라우저·Git에 노출하지 않는다. |
+| `BLOG_AI_MODEL` | AI provider config | 운영 승인된 model identifier. provider smoke evidence에 값 자체가 아닌 승인된 구성 여부를 기록한다. |
+| `BLOG_AUTOMATION_CRON_SECRET` | scheduler 연결 시 필수 secret | 32자 이상의 강한 Bearer secret. scheduler secret store에서 주입하고 health/log/evidence에 값을 남기지 않는다. |
 | `NODE_ENV` | 플랫폼 관리 | production runtime에서 `production`; secure cookie 등 framework/runtime 동작에 사용된다. 수동 임의 변경 금지. |
 
 ## Offline CBT tool variables
@@ -44,6 +48,7 @@ Track B production 환경변수 운영 계약이다. 실제 secret 값은 이 �
 5. migration은 application startup의 임의 schema mutation이 아니라 별도 release step에서 `prisma migrate deploy`로 수행한다.
 6. `/api/health`가 secret/DB 상세를 노출하지 않고 liveness 200을 반환하는지 확인한다.
 7. deploy 완료 후 secret 값을 로그/스크린샷/evidence에 남기지 않는다.
+8. Blog automation을 활성화할 때만 승인된 scheduler가 `/api/cron/blog-content`를 Bearer secret으로 호출하도록 연결하고, 무자격 요청이 401로 fail-closed 되는지 확인한다.
 
 ## Rotation / incident rule
 

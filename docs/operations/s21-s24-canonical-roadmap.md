@@ -2,9 +2,15 @@
 
 Date: 2026-08-25
 
-Baseline: POST-S20 master integration on `integration/post-s20-master`
+Baseline: POST-S20 master integration on `integration/post-s20-master`, code checkpoint `ae7b82f15049555c51f8282e9271efc38f7c17f7`
 
 This roadmap is a scope contract, not authorization to begin the next BUILD.
+
+Repository truth at the 2026-08-25 canonical re-audit: a separate
+`codex/s21-unified-search` branch already contains S21 commits on top of the
+code checkpoint. That branch and its history are outside the Track A/B
+integration scope and were not modified. Any S21 continuation must preserve the
+canonical contracts below.
 
 ## Current capability audit
 

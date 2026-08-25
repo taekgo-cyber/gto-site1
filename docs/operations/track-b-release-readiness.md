@@ -6,6 +6,9 @@ Baseline: `631a78c`
 Scope: Mobile / UX / Performance / Production Readiness
 Protected parallel scope: Blog/AI Track A
 
+Canonical definition: Track B is this cross-cutting readiness track, not a
+single S23 session.
+
 Final verdict: **TRACK B — FINAL PASS / COMPLETE**
 
 Local implementation and release-readiness validation are complete. The remaining items in this document are production-operation follow-ups and are not Track B local implementation blockers.

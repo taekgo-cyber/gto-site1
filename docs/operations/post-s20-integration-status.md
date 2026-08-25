@@ -4,6 +4,26 @@ Date: 2026-08-25 (Asia/Seoul)
 
 Final decision: **MASTER INTEGRATION PASS**
 
+## 2026-08-25 canonical gate re-audit
+
+The repository was re-audited from the live Git graph before S21 continuation.
+The canonical code baseline remains `ae7b82f15049555c51f8282e9271efc38f7c17f7`.
+
+- Repository: `C:\Users\taekg\gto-site1`
+- Integration branch: `integration/post-s20-master`
+- Source Track A: `track-a/blog-ai-content` at `321d6ed8bcfc9dea863dd005cfb6fe32796f0306`
+- Source Track B: `track-b/mobile-prod-readiness` at `9fd26178cfa085d0bd432642922b47294e6d9727`
+- Exact common ancestor: `631a78c9f58b0637b3e19b8d429302bc6cafb426`
+- Local `main`: `ae7b82f15049555c51f8282e9271efc38f7c17f7`
+- Remote `origin/main`: `c7bae16068bd4ab0b7b465bdc37ee8fe0039f285`
+- Remote Track A/Track B heads match their local source branches exactly.
+- A separate `codex/s21-unified-search` worktree already exists above `ae7b82f`; it and its pre-existing untracked artifacts were excluded from this integration gate.
+
+Track B is the cross-cutting **Mobile / UX / Performance / Production Readiness** track. It is not a single S23 session.
+
+Current re-verification evidence and external environment limits are recorded in
+`docs/operations/track-ab-canonical-integration-gate.md`.
+
 ## Git sources
 
 - Integration branch: `integration/post-s20-master`
@@ -15,7 +35,8 @@ Final decision: **MASTER INTEGRATION PASS**
 - Track B remote state at audit: `ahead 0 / behind 0`
 - Integration branch upstream: none
 - Remote push: not performed
-- `main` merge: not performed
+- Local `main` currently points at the canonical baseline; this gate did not move it.
+- Remote `main` update: not performed
 
 The source branches share `631a78c` as their exact merge base. Track B changed 33 files and Track A changed 52 files from that base; their changed-file intersection was empty. The integration therefore used Track B as the first parent and merged Track A with a two-parent, non-fast-forward merge.
 
@@ -159,4 +180,6 @@ The following remain intentionally outside this Integration Gate:
 
 ## Canonical handoff
 
-This integration branch is the only POST-S20 canonical candidate. It must not be pushed or merged to `main` without explicit user approval. S21 implementation must start only after the accompanying `s21-s24-canonical-roadmap.md` is accepted.
+This integration branch remains the audited POST-S20 canonical line. No push,
+remote-main update, production migration or deployment was performed. The
+separate existing S21 branch was not rewritten or merged by this gate.
