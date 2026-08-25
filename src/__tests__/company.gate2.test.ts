@@ -21,8 +21,14 @@ const prismaMock = vi.hoisted(() => ({
     create: vi.fn(),
   },
 }));
+const createInAppNotificationMock = vi.hoisted(() =>
+  vi.fn().mockResolvedValue({ delivered: true, item: null }),
+);
 
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
+vi.mock("@/lib/notifications/service", () => ({
+  createInAppNotification: createInAppNotificationMock,
+}));
 
 import {
   normalizeBusinessNumber,
@@ -256,6 +262,14 @@ describe("minimal admin operations", () => {
     expect(res.status).toBe("ACTIVE");
     expect(txUserUpdate).toHaveBeenCalledWith({ where: { id: "owner1" }, data: { role: "COMPANY" } });
     expect(txAdminCreate).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ action: "COMPANY_APPROVE", targetType: "Company", targetId: "c1" }) }));
+    expect(createInAppNotificationMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "owner1",
+        type: "ACTIVITY",
+        dedupeKey: "company:c1:approved",
+      }),
+      expect.anything(),
+    );
 
     // idempotent when already ACTIVE
     prismaMock.user.findUnique.mockResolvedValue({ id: "admin1", status: "ACTIVE", role: "ADMIN" } as never);
@@ -290,7 +304,7 @@ describe("minimal admin operations", () => {
     const txAdminCreate = vi.fn().mockResolvedValue({});
     prismaMock.$transaction.mockImplementation(async (cb: (tx: unknown) => unknown) => {
       const tx = {
-        company: { findUnique: vi.fn().mockResolvedValue({ id: "c1", status: "PENDING" }), updateMany: txCompanyUpdateMany },
+        company: { findUnique: vi.fn().mockResolvedValue({ id: "c1", status: "PENDING", members: [{ userId: "owner1" }] }), updateMany: txCompanyUpdateMany },
         adminLog: { create: txAdminCreate },
       };
       return cb(tx as never);
@@ -298,6 +312,14 @@ describe("minimal admin operations", () => {
     const res = await rejectCompany({ adminUserId: "admin1", companyId: "c1" });
     expect(res.status).toBe("REJECTED");
     expect(txAdminCreate).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ action: "COMPANY_REJECT" }) }));
+    expect(createInAppNotificationMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "owner1",
+        type: "ACTIVITY",
+        dedupeKey: "company:c1:rejected",
+      }),
+      expect.anything(),
+    );
     // ensure no user update
     prismaMock.$transaction.mockImplementation(async (cb: (tx: unknown) => unknown) => {
       const tx = {

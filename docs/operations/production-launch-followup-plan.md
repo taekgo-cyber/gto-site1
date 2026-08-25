@@ -110,4 +110,3 @@ production 구성은 `UPLOAD_DIR`을 배포 생명주기와 분리된 durable pe
 - 승인된 Blog AI provider/model 및 secret 주입 완료 여부
 - scheduler 플랫폼과 실행 주기
 - alert 목적지와 담당자
-

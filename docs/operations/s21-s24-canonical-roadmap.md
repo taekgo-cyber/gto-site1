@@ -6,11 +6,10 @@ Baseline: POST-S20 master integration on `integration/post-s20-master`, code che
 
 This roadmap is a scope contract, not authorization to begin the next BUILD.
 
-Repository truth at the 2026-08-25 canonical re-audit: a separate
-`codex/s21-unified-search` branch already contains S21 commits on top of the
-code checkpoint. That branch and its history are outside the Track A/B
-integration scope and were not modified. Any S21 continuation must preserve the
-canonical contracts below.
+Repository truth after the S21 gate: `codex/s21-unified-search` preserved its
+two pre-existing commits, normally merged canonical checkpoint `ff88dbd1` and
+completed the locked S21 scope. No rebase, reset or source-history rewrite was
+used.
 
 ## Current capability audit
 
@@ -24,11 +23,11 @@ Already complete and not to be rebuilt:
 - Credit/quota ledgers and provider-neutral payment type boundary
 - Blog CMS, AI draft, SEO discovery/internal links and PostgreSQL automation queue
 - mobile/accessibility/error/404/health/readiness/security/operations baseline
+- bounded Jobs/Lease/Blog unified search, deterministic public recommendations
+  and authenticated in-app notifications with consent preferences
 
 Material gaps confirmed in the current code:
 
-- no unified cross-domain search API or result page
-- no user preference/subscription model, personalized recommendation service or notification inbox/delivery system
 - no public Company directory/profile route
 - no company member invitation/role/ownership management workflow
 - no real payment provider, checkout, webhook endpoint, refund orchestration or settlement/reconciliation
@@ -37,6 +36,10 @@ Material gaps confirmed in the current code:
 ## S21 - Search, recommendations, notifications and cohesive UX
 
 Goal: make existing content discoverable without duplicating domain logic.
+
+Status: **COMPLETE / PASS** on `codex/s21-unified-search`. Evidence and exact
+scope are recorded in `session-21-canonical-gate.md` and
+`session-21-search-contract.md`.
 
 Gate order:
 
@@ -118,6 +121,8 @@ Production deploy, production migration and real payment/provider operations rem
 
 ## Recommended immediate next session
 
-`S21 Gate 0-1 - Unified Search Audit and Contract Lock`
+`S22 Gate 0-1 - Public Company Directory Audit and Contract Lock`
 
-The session should be read-heavy and schema-free by default: inventory current Jobs/Lease/Blog public DAL predicates, define the result DTO/ranking/pagination/privacy contract, write focused contract tests and stop for review before changing Header or adding notification/recommendation persistence.
+Begin read-heavy and schema-free: inventory the exact public Company allowlist,
+status/deletion predicates, ownership boundary and SEO/noindex policy before
+adding a directory route or widening any Company projection.

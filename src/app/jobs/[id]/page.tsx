@@ -4,10 +4,12 @@ import { notFound } from "next/navigation";
 import { Container } from "@/components/common/Container";
 import { PhoneInquiry } from "@/components/common/PhoneInquiry";
 import { ViewCount } from "@/components/jobs/ViewCount";
+import { RelatedRecommendations } from "@/components/recommendations/RelatedRecommendations";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { getApiUser } from "@/lib/api/auth";
 import { getJobPostById } from "@/lib/jobs/dal";
+import { getPublicRecommendations } from "@/lib/recommendations/dal";
 import {
   formatDate,
   formatPayAmount,
@@ -37,9 +39,10 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
 
 export default async function JobPostPage(props: PageProps<"/jobs/[id]">) {
   const { id } = await props.params;
-  const [post, user] = await Promise.all([
+  const [post, user, recommendations] = await Promise.all([
     getJobPostById(id),
     getApiUser(),
+    getPublicRecommendations({ domain: "JOBS", id }),
   ]);
 
   if (!post || post.status !== "OPEN") notFound();
@@ -118,6 +121,7 @@ export default async function JobPostPage(props: PageProps<"/jobs/[id]">) {
           ) : null}
         </CardContent>
       </Card>
+      <RelatedRecommendations items={recommendations} />
     </Container>
   );
 }

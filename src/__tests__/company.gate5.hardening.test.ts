@@ -7,8 +7,14 @@ const prismaMock = vi.hoisted(() => ({
   user: { findUnique: vi.fn(), update: vi.fn() },
   adminLog: { create: vi.fn() },
 }));
+const createInAppNotificationMock = vi.hoisted(() =>
+  vi.fn().mockResolvedValue({ delivered: true, item: null }),
+);
 
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
+vi.mock("@/lib/notifications/service", () => ({
+  createInAppNotification: createInAppNotificationMock,
+}));
 
 import {
   applyForCompany,

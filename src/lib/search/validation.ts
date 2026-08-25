@@ -64,4 +64,3 @@ export function parseUnifiedSearchRequest(params: SearchParams): UnifiedSearchRe
     pageSize: SEARCH_PAGE_SIZE,
   };
 }
-

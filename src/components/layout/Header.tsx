@@ -3,8 +3,10 @@ import { Container } from "@/components/common/Container";
 import { Button } from "@/components/ui/Button";
 import { logout } from "@/lib/auth/actions";
 import { getCurrentUser } from "@/lib/auth/dal";
+import { countUnreadInAppNotifications } from "@/lib/notifications/service";
 
 const NAV_ITEMS = [
+  { label: "통합검색", href: "/search" },
   { label: "구인공고", href: "/jobs" },
   { label: "지입", href: "/lease" },
   { label: "CBT 시험", href: "/cbt" },
@@ -16,6 +18,9 @@ const NAV_ITEMS = [
 
 export async function Header() {
   const user = await getCurrentUser();
+  const unreadNotifications = user
+    ? await countUnreadInAppNotifications(user.id)
+    : 0;
 
   return (
     <header className="border-b border-border bg-background">
@@ -43,6 +48,18 @@ export async function Header() {
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           {user ? (
             <>
+              <Link
+                href="/notifications"
+                className="relative inline-flex min-h-11 items-center whitespace-nowrap rounded-md px-2 text-sm font-medium hover:bg-surface"
+                aria-label={unreadNotifications > 0 ? `알림 ${unreadNotifications}개 읽지 않음` : "알림"}
+              >
+                알림
+                {unreadNotifications > 0 ? (
+                  <span className="ml-1 rounded-full bg-primary px-1.5 py-0.5 text-[0.65rem] leading-none text-primary-foreground">
+                    {unreadNotifications > 99 ? "99+" : unreadNotifications}
+                  </span>
+                ) : null}
+              </Link>
               <Link
                 href="/mypage"
                 className="inline-flex min-h-11 items-center whitespace-nowrap rounded-md px-2 text-sm font-medium hover:bg-surface"

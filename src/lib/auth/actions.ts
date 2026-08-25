@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { createInAppNotification } from "@/lib/notifications/service";
 import { requireUser } from "./dal";
 import { hashPassword, verifyPassword } from "./password";
 import {
@@ -53,16 +54,27 @@ export async function signup(
 
   const passwordHash = hashPassword(data.password);
 
-  const user = await prisma.user.create({
-    data: {
-      email: data.email,
-      name: data.name,
-      nickname: data.nickname,
-      passwordHash,
-      role: "USER",
-      status: "ACTIVE",
-    },
-    select: { id: true, role: true },
+  const user = await prisma.$transaction(async (tx) => {
+    const created = await tx.user.create({
+      data: {
+        email: data.email,
+        name: data.name,
+        nickname: data.nickname,
+        passwordHash,
+        role: "USER",
+        status: "ACTIVE",
+      },
+      select: { id: true, role: true },
+    });
+    await createInAppNotification({
+      userId: created.id,
+      type: "SYSTEM",
+      title: "트럭포털 가입을 환영합니다",
+      body: "마이페이지에서 내 정보와 서비스 이용 현황을 확인할 수 있습니다.",
+      href: "/mypage",
+      dedupeKey: `signup:${created.id}:welcome`,
+    }, tx);
+    return created;
   });
 
   await setSessionCookie(createSessionToken(user));

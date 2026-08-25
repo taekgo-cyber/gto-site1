@@ -8,12 +8,14 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { LeaseGallery } from "@/components/lease/LeaseGallery";
 import { LeaseDeleteButton } from "@/components/lease/LeaseDeleteButton";
+import { RelatedRecommendations } from "@/components/recommendations/RelatedRecommendations";
 import { getApiUser } from "@/lib/api/auth";
 import { getPostDetail, type PostPublic } from "@/lib/posts/service";
 import { getPostAuthorPhone } from "@/lib/posts/dal";
 import { leasePostStatusLabel, leasePostTypeLabel } from "@/lib/posts/labels";
 import { formatDate, formatPayAmount, workTypeLabel } from "@/lib/jobs/labels";
 import { buildAttachmentUrl } from "@/lib/attachments/url";
+import { getPublicRecommendations } from "@/lib/recommendations/dal";
 
 export async function generateMetadata(
   props: PageProps<"/lease/[id]">,
@@ -59,7 +61,10 @@ export default async function LeasePostDetailPage(props: PageProps<"/lease/[id]"
   }
 
   const isOwner = user !== null && user.id === post.author.id;
-  const authorPhone = await getPostAuthorPhone(id);
+  const [authorPhone, recommendations] = await Promise.all([
+    getPostAuthorPhone(id),
+    getPublicRecommendations({ domain: "LEASE", id }),
+  ]);
   const images = post.attachments.filter((attachment) => attachment.mediaType === "IMAGE");
   const documents = post.attachments.filter(
     (attachment) => attachment.mediaType === "DOCUMENT",
@@ -182,6 +187,7 @@ export default async function LeasePostDetailPage(props: PageProps<"/lease/[id]"
           ) : null}
         </CardContent>
       </Card>
+      <RelatedRecommendations items={recommendations} />
     </Container>
   );
 }

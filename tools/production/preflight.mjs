@@ -112,4 +112,3 @@ const failed = checks.filter((check) => check.status === "FAIL").length;
 const manual = checks.filter((check) => check.status === "MANUAL").length;
 console.log(`summary: ${failed} failed, ${manual} manual gates`);
 if (failed > 0) process.exitCode = 1;
-

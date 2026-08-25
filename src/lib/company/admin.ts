@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { createInAppNotification } from "@/lib/notifications/service";
 
 async function assertActiveAdmin(adminUserId: string) {
   const admin = await prisma.user.findUnique({
@@ -90,6 +91,14 @@ export async function approveCompany(input: { adminUserId: string; companyId: st
           data: { role: "COMPANY" },
         });
       }
+      await createInAppNotification({
+        userId: ownerMember.userId,
+        type: "ACTIVITY",
+        title: "업체 등록이 승인되었습니다",
+        body: "업체 운영 기능을 사용할 수 있습니다.",
+        href: "/company/operations",
+        dedupeKey: `company:${input.companyId}:approved`,
+      }, tx);
     }
 
     await tx.adminLog.create({
@@ -112,11 +121,19 @@ export async function rejectCompany(input: { adminUserId: string; companyId: str
   return prisma.$transaction(async (tx) => {
     const company = await tx.company.findUnique({
       where: { id: input.companyId },
-      select: { id: true, status: true },
+      select: {
+        id: true,
+        status: true,
+        members: {
+          where: { role: "OWNER", status: "ACTIVE" },
+          select: { userId: true },
+          take: 1,
+        },
+      },
     });
     if (!company) throw new Error("COMPANY_NOT_FOUND");
     if (company.status === "REJECTED") {
-      return company;
+      return { id: company.id, status: company.status };
     }
 
     const { count } = await tx.company.updateMany({
@@ -128,6 +145,18 @@ export async function rejectCompany(input: { adminUserId: string; companyId: str
     const updatedCompany = { id: input.companyId, status: "REJECTED" as const };
 
     // Do not downgrade User.role
+
+    const ownerMember = company.members?.[0];
+    if (ownerMember) {
+      await createInAppNotification({
+        userId: ownerMember.userId,
+        type: "ACTIVITY",
+        title: "업체 등록 결과를 확인해 주세요",
+        body: "업체 신청이 승인되지 않았습니다. 신청 화면에서 상태를 확인해 주세요.",
+        href: "/company/apply",
+        dedupeKey: `company:${input.companyId}:rejected`,
+      }, tx);
+    }
 
     await tx.adminLog.create({
       data: {

@@ -6,6 +6,7 @@ export const SEARCH_QUERY_MIN_LENGTH = 2;
 export const SEARCH_QUERY_MAX_LENGTH = 100;
 export const SEARCH_PAGE_SIZE = 20;
 export const SEARCH_MAX_PAGE = 5;
+export const SEARCH_SOURCE_CANDIDATE_LIMIT = 80;
 
 export type UnifiedSearchRequest = {
   query: string;
@@ -56,4 +57,3 @@ export type SearchCandidate = {
   context: string | null;
   publishedAt: Date;
 };
-

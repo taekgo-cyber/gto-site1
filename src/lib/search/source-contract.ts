@@ -45,7 +45,6 @@ export function buildJobSearchWhere(query: string, now: Date): Prisma.JobPostWhe
     ],
   };
 }
-
 export function buildLeaseSearchWhere(query: string, now: Date): Prisma.LeasePostWhereInput {
   return {
     status: "PUBLISHED",
@@ -69,4 +68,3 @@ export function buildBlogSearchWhere(query: string, now: Date): Prisma.BlogArtic
     ],
   };
 }
-

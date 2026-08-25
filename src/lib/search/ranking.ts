@@ -78,4 +78,3 @@ export function rankSearchCandidates(queryInput: string, candidates: SearchCandi
     })
     .map(({ item }) => item);
 }
-

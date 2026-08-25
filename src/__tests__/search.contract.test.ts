@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   SEARCH_PAGE_SIZE,
+  SEARCH_SOURCE_CANDIDATE_LIMIT,
   type SearchCandidate,
 } from "@/lib/search/contract";
 import { rankSearchCandidates } from "@/lib/search/ranking";
+import { createUnifiedSearchPage } from "@/lib/search/service";
 import {
   BLOG_SEARCH_SELECT,
   JOB_SEARCH_SELECT,
@@ -103,5 +105,35 @@ describe("S21 unified search ranking contract", () => {
       "title",
     ]);
   });
-});
 
+  it("bounds source candidates, reports the limit, and paginates after global ranking", () => {
+    const candidates = Array.from(
+      { length: SEARCH_SOURCE_CANDIDATE_LIMIT + 1 },
+      (_, index): SearchCandidate => ({
+        id: String(index).padStart(3, "0"),
+        domain: "JOBS",
+        title: `지입 공고 ${index}`,
+        body: null,
+        href: `/jobs/${index}`,
+        context: null,
+        publishedAt: new Date(now.getTime() - index * 1_000),
+      }),
+    );
+
+    const page = createUnifiedSearchPage(
+      {
+        query: "지입",
+        domains: ["JOBS"],
+        page: 2,
+        pageSize: SEARCH_PAGE_SIZE,
+      },
+      [{ domain: "JOBS", candidates }],
+    );
+
+    expect(page.candidateLimited).toBe(true);
+    expect(page.totalMatches).toBe(SEARCH_SOURCE_CANDIDATE_LIMIT);
+    expect(page.totalPages).toBe(4);
+    expect(page.items).toHaveLength(SEARCH_PAGE_SIZE);
+    expect(page.items[0].id).toBe("020");
+  });
+});

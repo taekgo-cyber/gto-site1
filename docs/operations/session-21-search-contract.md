@@ -1,60 +1,135 @@
-# Session 21 Gate 0–1 — 통합 검색 감사 및 계약 고정
+# Session 21 Canonical Contract Lock
 
-## 상태
+Date: 2026-08-25 (Asia/Seoul)
 
-- 기준 브랜치: `codex/s21-unified-search`
-- 범위: 읽기 중심, 스키마 변경 없음
-- UI/라우트/Header 변경: 없음(Gate 2 이후 검토)
+Status: **LOCKED — BUILD AUTHORIZED**
 
-## Gate 0 감사 결과
+Branch: `codex/s21-unified-search`
 
-| 소스 | 기존 공개 조건 | Gate 1 검색 조건 | 주의점 |
-| --- | --- | --- | --- |
-| Jobs | `OPEN`, 미삭제, `publishedAt != null` | `OPEN`, 미삭제, `publishedAt <= now` | 미래 예약 공고를 fail-closed로 제외 |
-| Lease | `PUBLISHED`, 미삭제, `publishedAt != null` | `PUBLISHED`, 미삭제, `publishedAt <= now` | 미래 예약 게시글을 fail-closed로 제외 |
-| Blog | `PUBLISHED`, `publishedAt <= now` | 동일 | 비활성 카테고리는 결과 문맥에서 숨김 처리 예정 |
+Canonical checkpoint: `ff88dbd1d0b7cd20144fca1c493bbf2e00f12305`
 
-검색 대상으로 허용하지 않는 데이터는 CandidateLead, 비공개 Company 필드, 연락처,
-CBT 정답/해설, 분석 이벤트, 크레딧/과금 원장, 관리자 데이터다.
+Alignment merge: `bc812fd` (`merge: align S21 with canonical checkpoint`)
 
-## Gate 1 고정 계약
+## Gate 0–2 audit
 
-### 입력
+- The canonical checkpoint and the pre-existing S21 branch share code baseline
+  `ae7b82f15049555c51f8282e9271efc38f7c17f7`.
+- Canonical contains one documentation-only commit; S21 already contained two
+  commits for the search contract and production preflight.
+- Changed-file intersection from the common baseline: **0 files**.
+- Canonical was aligned with a normal merge. No rebase, reset, force operation,
+  source-branch rewrite or untracked-file mutation was performed.
+- The same 11 pre-existing top-level untracked entries remain outside S21.
+- Existing search contract regression: 1 file / 9 tests PASS before alignment.
+- Existing S21 implementation at audit: validation, public source projections,
+  deterministic ranking and tests only. There was no executing search DAL,
+  `/search` route, Header entry, recommendation service or notification model.
 
-- `q`: NFKC 및 공백 정규화 후 2–100자
-- `domains`: `JOBS`, `LEASE`, `BLOG`; 생략 시 전부, 응답 순서는 canonical 순서
-- `page`: 1–5
-- `pageSize`: 서버 고정 20
-- 반복 파라미터, 알 수 없는 도메인, 범위 밖 페이지는 오류로 종료한다.
+## Product goal and launch priority
 
-### 출력 및 개인정보 경계
+S21 makes already-public content easier to discover for the 10/1 free launch.
+It does not create a new content source, paid feature, marketing profile or
+vendor dependency. Existing domain authorization and public-visibility rules
+remain authoritative.
 
-공개 DTO는 `id`, `domain`, `title`, `excerpt`, `href`, `context`, `publishedAt`,
-`matchedOn`만 허용한다. 검색 소스의 본문은 매칭과 180자 요약 생성에만 사용하며
-DTO에 원문 전체를 포함하지 않는다.
+## Gate 3–5 — Unified search contract
 
-### 랭킹
+### Sources and privacy boundary
 
-1. 제목 완전 일치
-2. 제목 접두 일치
-3. 제목 포함
-4. 본문 포함
-5. 동점은 게시일 내림차순 → 도메인(Jobs, Lease, Blog) → ID 오름차순
+| Source | Required public predicate | Public context only |
+| --- | --- | --- |
+| Jobs | `OPEN`, undeleted, `publishedAt <= now` | company name, public regions |
+| Lease | `PUBLISHED`, undeleted, `publishedAt <= now` | public taxonomy names |
+| Blog | `PUBLISHED`, `publishedAt <= now` | active category name only |
 
-랭킹은 AI나 사용자 추적 신호를 사용하지 않는 결정적 함수다.
+CandidateLead, Company contact/private fields, CBT answers/explanations,
+analytics, credit/payment data, admin data and unpublished content are excluded.
 
-### 페이지네이션 및 후보 제한
+### Request and response
 
-Gate 2 DAL은 소스별 후보 수를 제한하고, 응답에 `candidateLimited`를 명시해야 한다.
-최대 5페이지 제한은 무제한 `contains` 검색과 깊은 페이지 탐색을 방지하기 위한
-초기 운영 안전장치다. 정확한 후보 제한값과 `totalMatches` 계산 방식은 실제 쿼리
-계획을 측정한 뒤 Gate 2에서 고정한다.
+- `q`: NFKC and whitespace normalization, 2–100 characters.
+- `domains`: `JOBS`, `LEASE`, `BLOG`; omitted means all. Repeated or unknown
+  values fail validation.
+- `page`: 1–5; `pageSize`: server-fixed 20.
+- Each source returns at most 80 candidates plus one sentinel row. This bounds
+  database and memory work to 243 fetched rows.
+- `candidateLimited=true` means one or more sources had more candidates than
+  collected. `totalMatches` then describes the ranked bounded result set, not
+  an exact global count; the UI must say so.
+- Public items are allow-listed to `id`, `domain`, `title`, `excerpt`, `href`,
+  `context`, `publishedAt` and `matchedOn`.
 
-## Gate 2 진입 전 중지점
+Ranking is deterministic: title exact, title prefix, title contains, body
+contains; ties use publication time descending, canonical domain order and ID.
+No AI, user identity, click history or tracking signal participates.
 
-- 이 계약의 제품/운영 검토
-- `/search` 동적 페이지의 canonical/noindex 정책 승인
-- 소스별 후보 제한과 PostgreSQL 실행 계획 측정
-- Header 검색 진입점은 라우트 및 모바일 E2E 완료 후 별도 적용
-- 알림/추천 영속 모델은 통합 검색과 분리해 후속 게이트에서 검토
+The responsive `/search` page is request-time rendered, always `noindex,follow`,
+and canonicalizes to `/search`. Invalid input renders a bounded validation state
+without querying the database. Header gets a single search entry after focused
+tests pass.
 
+## Gate 6 — Recommendation contract
+
+- Recommendations use only shared public region, vehicle-type, tonnage and Blog
+  category signals already present in authoritative records.
+- Jobs and Lease detail pages may show up to four public related items. Ranking
+  uses matched-signal count, publication time, domain order and ID.
+- Every item carries a short explanation such as “같은 지역” or “같은 톤수”.
+- Blog keeps its existing effective-published category related-content flow.
+- Candidate pools are bounded to 12 per queried domain and exclude the source
+  item. Empty or non-public seeds return no recommendation.
+- No personalization profile, behavioral tracking, vector database, LLM call or
+  external search/recommendation service is allowed.
+
+## Gate 7 — Notification decision and implementation contract
+
+S21 implements an authenticated **in-app inbox only**.
+
+| Type | Default | Consent rule |
+| --- | --- | --- |
+| `SYSTEM` | enabled | security/service operation notice; cannot be disabled |
+| `ACTIVITY` | enabled | user may disable future activity notices |
+| `CONTENT` | disabled | explicit opt-in required before creation |
+
+- A notification is user-owned and contains only title, bounded body, optional
+  internal path, delivery/read timestamps and expiry.
+- Every producer supplies a non-secret idempotency key; `(userId, dedupeKey)` is
+  unique. Retries return the existing row instead of duplicating delivery.
+- Actions derive `userId` from the server session and update with both item ID
+  and owner ID. Client-supplied ownership is never trusted.
+- Inbox reads exclude expired rows and rows older than 90 days. Physical cleanup
+  is an operations follow-up, not a request-time delete.
+- S21 producers are deliberately small: signup welcome (`SYSTEM`) and company
+  approval/rejection (`ACTIVITY`). No bulk fan-out or marketing campaign tool.
+- Email, SMS, web push, mobile push and vendor delivery are deferred.
+
+## Gate 8 — Cohesive UX contract
+
+- Reuse existing Container/Card/Button/Input tokens and Track B focus/touch
+  rules; no broad redesign.
+- Search has labelled controls, keyboard submit, mobile wrapping, explicit idle,
+  validation, empty, bounded-count and pagination states.
+- Authenticated Header shows an inbox entry and bounded unread badge.
+- Inbox provides mark-one, mark-all and preference controls with server-side
+  authorization.
+- New private routes are `noindex`; no PII enters search, recommendations,
+  analytics or notification bodies.
+
+## Verification gates
+
+1. Prisma format/validate/generate and migration static audit.
+2. Search, recommendation and notification focused tests.
+3. TypeScript and tracked-project ESLint.
+4. Full Vitest regression.
+5. Next.js production build and route-manifest audit.
+6. Available localhost smoke, mobile overflow/accessibility and security/privacy
+   checks. DB-dependent flows are reported as environment-blocked if no local
+   disposable PostgreSQL is available; they are never relabelled PASS.
+7. Final diff/untracked preservation audit and one S21 checkpoint commit.
+
+## Explicitly deferred
+
+External search engines, vector databases, AI matching/personalization,
+marketing tracking, email/SMS/push vendors, broad design rewrite, public Company
+directory, payment work, production migration/deploy and production provider
+calls are outside S21.

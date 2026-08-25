@@ -26,6 +26,12 @@ enum UserStatus {
   WITHDRAWN
 }
 
+enum NotificationType {
+  SYSTEM
+  ACTIVITY
+  CONTENT
+}
+
 enum CompanyStatus {
   PENDING // 승인 대기
   ACTIVE
@@ -248,11 +254,46 @@ model User {
   candidateLeads        CandidateLead[]
   leadMatchesActed      LeadMatch[]         @relation("LeadMatchActor")
   leadUnlocksActed      LeadContactUnlock[] @relation("LeadUnlockActor")
+  notificationPreference NotificationPreference?
+  inAppNotifications      InAppNotification[]
 
   // Credit foundation (Session 13) - Company-owned ledger, actor provenance distinct
   creditTransactionsActed CreditTransaction[] @relation("CreditTransactionActor")
 
   @@map("users")
+}
+
+model NotificationPreference {
+  userId          String   @id
+  activityEnabled Boolean  @default(true)
+  contentEnabled  Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+model InAppNotification {
+  id          String           @id @default(cuid())
+  userId      String
+  type        NotificationType
+  title       String
+  body        String?
+  href        String?
+  dedupeKey   String
+  deliveredAt DateTime         @default(now())
+  readAt      DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, readAt, createdAt(sort: Desc)])
+  @@index([expiresAt])
+  @@map("in_app_notifications")
 }
 
 model Company {
