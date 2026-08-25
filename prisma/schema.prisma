@@ -218,6 +218,56 @@ enum OrderStatus {
   REFUNDED
 }
 
+enum SupportTicketCategory {
+  COMPANY_REGISTRATION
+  ACCOUNT
+  POST
+  PAYMENT_REFUND
+  ADVERTISEMENT
+  REPORT
+  OTHER
+}
+
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_CUSTOMER
+  RESOLVED
+  CLOSED
+}
+
+enum SupportTicketPriority {
+  NORMAL
+  URGENT
+}
+
+enum SupportReplyAuthorType {
+  ADMIN
+  CUSTOMER
+  SYSTEM
+}
+
+enum SupportReplyDeliveryStatus {
+  WEB_ONLY
+  PENDING
+  SENT
+  FAILED
+}
+
+enum OpsEventType {
+  COMPANY_APPLICATION
+  SUPPORT_TICKET
+  OPS_EXCEPTION
+  DAILY_DIGEST
+}
+
+enum OpsEventStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+}
+
 // ---------------------------------------------------------------------------
 // 회원 / 업체
 // ---------------------------------------------------------------------------
@@ -259,6 +309,9 @@ model User {
 
   // Credit foundation (Session 13) - Company-owned ledger, actor provenance distinct
   creditTransactionsActed CreditTransaction[] @relation("CreditTransactionActor")
+  supportTicketsRequested SupportTicket[]      @relation("SupportTicketRequester")
+  supportTicketsAssigned  SupportTicket[]      @relation("SupportTicketAssignee")
+  supportRepliesAuthored   SupportTicketReply[] @relation("SupportReplyAdmin")
 
   @@map("users")
 }
@@ -1053,6 +1106,100 @@ model AdminLog {
   @@index([adminId])
   @@index([createdAt])
   @@map("admin_logs")
+}
+
+// ---------------------------------------------------------------------------
+// S22 — 고객 문의 / 관리자 운영 / Telegram outbox
+// ---------------------------------------------------------------------------
+
+model SupportTicket {
+  id                String                @id @default(cuid())
+  accessToken       String                @unique @default(cuid())
+  requesterUserId   String?
+  requesterName     String
+  requesterEmail    String?
+  requesterPhone    String?
+  category          SupportTicketCategory
+  subject           String
+  message           String
+  status            SupportTicketStatus   @default(OPEN)
+  priority          SupportTicketPriority @default(NORMAL)
+  assignedAdminId   String?
+  lastResponseAt    DateTime?
+  resolvedAt        DateTime?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  requester    User?                @relation("SupportTicketRequester", fields: [requesterUserId], references: [id], onDelete: SetNull)
+  assignedAdmin User?               @relation("SupportTicketAssignee", fields: [assignedAdminId], references: [id], onDelete: SetNull)
+  replies       SupportTicketReply[]
+
+  @@index([status, priority, createdAt(sort: Desc)])
+  @@index([category, status, createdAt(sort: Desc)])
+  @@index([requesterUserId, createdAt(sort: Desc)])
+  @@index([assignedAdminId, status])
+  @@map("support_tickets")
+}
+
+model SupportTicketReply {
+  id             String                     @id @default(cuid())
+  ticketId       String
+  authorType     SupportReplyAuthorType
+  adminUserId    String?
+  message        String
+  deliveryStatus SupportReplyDeliveryStatus @default(WEB_ONLY)
+  deliveredAt    DateTime?
+  createdAt      DateTime                   @default(now())
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  admin  User?         @relation("SupportReplyAdmin", fields: [adminUserId], references: [id], onDelete: SetNull)
+
+  @@index([ticketId, createdAt])
+  @@index([adminUserId, createdAt(sort: Desc)])
+  @@map("support_ticket_replies")
+}
+
+model SupportRateLimitBucket {
+  key         String   @id
+  windowStart DateTime
+  count       Int      @default(0)
+  updatedAt   DateTime @updatedAt
+
+  @@index([windowStart])
+  @@map("support_rate_limit_buckets")
+}
+
+model OpsEvent {
+  id                String         @id @default(cuid())
+  type              OpsEventType
+  dedupeKey         String         @unique
+  targetType        String
+  targetId          String
+  payload           Json
+  status            OpsEventStatus @default(PENDING)
+  attemptCount      Int            @default(0)
+  nextAttemptAt     DateTime        @default(now())
+  lockedAt          DateTime?
+  sentAt            DateTime?
+  telegramMessageId String?
+  lastErrorCode     String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@index([status, nextAttemptAt, createdAt])
+  @@index([type, createdAt(sort: Desc)])
+  @@map("ops_events")
+}
+
+model TelegramWebhookReceipt {
+  updateId            String   @id
+  actorTelegramUserId String?
+  command             String?
+  receivedAt          DateTime @default(now())
+  processedAt         DateTime?
+
+  @@index([receivedAt])
+  @@map("telegram_webhook_receipts")
 }
 
 // ---------------------------------------------------------------------------

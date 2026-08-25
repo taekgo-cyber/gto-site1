@@ -21,7 +21,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const tonnageIdToSlug = new Map<string, string>();
   for (const [slug, tonnage] of tonnages) tonnageIdToSlug.set(tonnage.id, slug);
 
-  const [leasePosts, jobPosts, cbtCategories, blogRows] = await Promise.all([
+  const [leasePosts, jobPosts, cbtCategories, blogRows, companies] = await Promise.all([
     prisma.leasePost.findMany({
       where: { status: "PUBLISHED", deletedAt: null, publishedAt: { not: null } },
       select: { id: true, publishedAt: true, regionId: true, tonnageId: true },
@@ -32,6 +32,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }),
     getCbtCategories(),
     listPublishedBlogSitemapRows(),
+    // Some isolated legacy sitemap tests provide only the post delegates.
+    // The production Prisma client always has Company; retain a safe empty
+    // fallback for those narrow dependency mocks.
+    (prisma as typeof prisma & { company?: typeof prisma.company }).company?.findMany({
+      where: { status: "ACTIVE", deletedAt: null },
+      select: { id: true, updatedAt: true },
+    }) ?? Promise.resolve([]),
   ]);
 
   const regionLanding = new Map<string, string | undefined>();
@@ -43,6 +50,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/lease`, changeFrequency: "daily", priority: 0.9 },
     { url: `${baseUrl}/cbt`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${baseUrl}/blog`, changeFrequency: "daily", priority: 0.8 },
+    { url: `${baseUrl}/companies`, changeFrequency: "daily", priority: 0.8 },
+    { url: `${baseUrl}/support`, changeFrequency: "monthly", priority: 0.4 },
   ];
 
   for (const category of cbtCategories) {
@@ -119,6 +128,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: article.updatedAt,
       changeFrequency: "weekly",
       priority: 0.7,
+    });
+  }
+
+  for (const company of companies) {
+    entries.push({
+      url: `${baseUrl}/companies/${company.id}`,
+      lastModified: company.updatedAt,
+      changeFrequency: "weekly",
+      priority: 0.6,
     });
   }
 

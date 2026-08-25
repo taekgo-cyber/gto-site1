@@ -12,8 +12,8 @@ const NAV_ITEMS = [
   { label: "CBT 시험", href: "/cbt" },
   { label: "블로그", href: "/blog" },
   { label: "구직정보", href: "/" },
-  { label: "업체정보", href: "/" },
-  { label: "커뮤니티", href: "/" },
+  { label: "업체정보", href: "/companies" },
+  { label: "고객지원", href: "/support" },
 ] as const;
 
 export async function Header() {

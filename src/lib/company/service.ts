@@ -98,6 +98,27 @@ export async function applyForCompany(input: {
           select: { id: true, role: true, status: true },
         });
 
+        // Transactional ops outbox. Telegram delivery is deliberately decoupled
+        // so provider failure can never roll back a valid company application.
+        const opsEvent = (tx as unknown as {
+          opsEvent?: { create(args: { data: Record<string, unknown> }): Promise<unknown> };
+        }).opsEvent;
+        if (opsEvent) {
+          await opsEvent.create({
+            data: {
+              type: "COMPANY_APPLICATION",
+              dedupeKey: `company:${company.id}:application`,
+              targetType: "Company",
+              targetId: company.id,
+              payload: {
+                companyName: validated.name.slice(0, 100),
+                createdAt: new Date().toISOString(),
+                adminPath: `/admin/companies/${company.id}`,
+              },
+            },
+          });
+        }
+
         // Do not change User.role here; keep as is
         return { company, member } as ApplyResult;
       },

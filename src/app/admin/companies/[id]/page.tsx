@@ -1,178 +1,31 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { Container } from "@/components/common/Container";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { getCurrentUser } from "@/lib/auth/dal";
-import { getPendingCompanyDetail } from "@/lib/company/admin";
-import { ApproveForm, RejectForm } from "../AdminForms";
+import { requireRole } from "@/lib/auth/dal";
+import { getAdminCompanyDetail } from "@/lib/company/admin";
+import { ApproveForm, CompanyStatusForm, RejectForm } from "../AdminForms";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "업체 운영 상세 - 관리자", robots: { index: false, follow: false } };
+function date(value: Date | null | undefined) { return value ? value.toLocaleString("ko-KR") : "-"; }
 
-type Params = { id: string };
-
-export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
-  const { id } = await params;
-  return { title: `업체 승인 상세 ${id} - 관리자` };
-}
-
-export default async function AdminCompanyDetailPage({ params }: { params: Promise<Params> }) {
-  const { id: companyId } = await params;
-  const user = await getCurrentUser();
-
-  if (!user) {
-    return (
-      <Container className="mx-auto max-w-3xl space-y-6 py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>관리자 권한 필요</CardTitle>
-            <p className="text-sm text-muted-foreground">로그인이 필요합니다.</p>
-          </CardHeader>
-          <CardContent>
-            <Link href="/login">
-              <Button variant="outline" size="sm">
-                로그인으로 이동
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </Container>
-    );
-  }
-
-  let company: Awaited<ReturnType<typeof getPendingCompanyDetail>> | null = null;
-  let error: string | null = null;
-  let isAdminRequired = false;
-
-  try {
-    company = await getPendingCompanyDetail({ adminUserId: user.id, companyId });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "조회 중 오류가 발생했습니다.";
-    if (msg === "ADMIN_REQUIRED") {
-      isAdminRequired = true;
-      error = "관리자 권한이 필요합니다. (ACTIVE ADMIN만 접근 가능)";
-    } else if (msg === "COMPANY_NOT_FOUND") {
-      error = "업체를 찾을 수 없습니다.";
-    } else if (msg === "COMPANY_NOT_PENDING") {
-      error = "승인 대기 상태의 업체만 조회할 수 있습니다.";
-    } else {
-      error = msg;
-    }
-  }
-
-  if (isAdminRequired) {
-    return (
-      <Container className="mx-auto max-w-3xl space-y-6 py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>접근 불가</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              {error}
-            </p>
-          </CardContent>
-        </Card>
-      </Container>
-    );
-  }
-
-  if (error || !company) {
-    return (
-      <Container className="mx-auto max-w-3xl space-y-6 py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>업체 상세 조회 불가</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              {error ?? "업체 정보를 불러오지 못했습니다."}
-            </p>
-            <Link href="/admin/companies">
-              <Button variant="outline" size="sm">
-                목록으로 돌아가기
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </Container>
-    );
-  }
-
+export default async function AdminCompanyDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const [user, { id }] = await Promise.all([requireRole("ADMIN"), params]);
+  let data;
+  try { data = await getAdminCompanyDetail({ adminUserId: user.id, companyId: id }); } catch (error) { if ((error as Error).message === "COMPANY_NOT_FOUND") notFound(); throw error; }
+  const { company, audit } = data;
   return (
-    <Container className="mx-auto max-w-3xl space-y-6 py-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground">관리자 · 승인 대기 상세</p>
-          <h1 className="text-2xl font-bold">{company.name}</h1>
-          <p className="text-sm text-muted-foreground">PENDING 상태만 승인/반려할 수 있습니다. actor는 서버 세션에서 도출됩니다.</p>
-        </div>
-        <Link href="/admin/companies">
-          <Button variant="ghost" size="sm">
-            목록
-          </Button>
-        </Link>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>업체 기본 정보</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <dl className="grid gap-3 text-sm sm:grid-cols-2">
-            <div>
-              <dt className="text-muted-foreground">업체명</dt>
-              <dd className="font-medium">{company.name}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">사업자등록번호</dt>
-              <dd className="font-medium">{company.businessNumber}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">대표자명</dt>
-              <dd>{company.representativeName}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">상태</dt>
-              <dd>{company.status}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">전화번호</dt>
-              <dd>{company.phone ?? "-"}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">이메일</dt>
-              <dd>{company.email ?? "-"}</dd>
-            </div>
-            <div className="sm:col-span-2">
-              <dt className="text-muted-foreground">주소</dt>
-              <dd>
-                {company.address ?? "-"}
-                {company.addressDetail ? ` ${company.addressDetail}` : ""}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">지역 ID</dt>
-              <dd>{company.regionId ?? "-"}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">생성일</dt>
-              <dd>{new Date(company.createdAt).toLocaleString("ko-KR")}</dd>
-            </div>
-            <div className="sm:col-span-2">
-              <dt className="text-muted-foreground">소개</dt>
-              <dd className="whitespace-pre-wrap">{company.introduction ?? "-"}</dd>
-            </div>
-          </dl>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <ApproveForm companyId={company.id} />
-        <RejectForm companyId={company.id} />
-      </div>
-
-      <p className="text-xs text-muted-foreground">승인 시 OWNER User.role이 필요한 경우 COMPANY로 승격되며, 반려 시 role은 유지됩니다. 모든 처리는 transaction 및 AdminLog로 기록됩니다.</p>
+    <Container className="space-y-6 py-8">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-sm text-muted-foreground">관리자 · 업체 운영 상세</p><h1 className="text-2xl font-bold">{company.name}</h1><p className="mt-1 text-sm text-muted-foreground">{company.status} · 최근 변경 {date(company.updatedAt)}</p></div><div className="flex gap-2">{company.status === "ACTIVE" ? <Link href={`/companies/${company.id}`} target="_blank"><Button variant="outline" size="sm">공개 페이지</Button></Link> : null}<Link href="/admin/companies"><Button variant="ghost" size="sm">목록</Button></Link></div></div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">{[["구인",company._count.jobPosts],["지입",company._count.leasePosts],["Lead",company._count.leadMatches],["연락처 Unlock",company._count.leadContactUnlocks],["광고",company._count.adCampaigns]].map(([label,value]) => <Card key={String(label)}><CardHeader><CardTitle>{label}</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{value}</CardContent></Card>)}</div>
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(19rem,1fr)]"><div className="space-y-5"><Card><CardHeader><CardTitle>업체 정보</CardTitle></CardHeader><CardContent><dl className="grid gap-3 text-sm sm:grid-cols-2"><div><dt className="text-muted-foreground">사업자등록번호</dt><dd>{company.businessNumber}</dd></div><div><dt className="text-muted-foreground">대표자</dt><dd>{company.representativeName}</dd></div><div><dt className="text-muted-foreground">전화</dt><dd>{company.phone ?? "-"}</dd></div><div><dt className="text-muted-foreground">이메일</dt><dd className="break-all">{company.email ?? "-"}</dd></div><div className="sm:col-span-2"><dt className="text-muted-foreground">주소</dt><dd>{[company.address,company.addressDetail].filter(Boolean).join(" ") || "-"}</dd></div><div className="sm:col-span-2"><dt className="text-muted-foreground">소개</dt><dd className="whitespace-pre-wrap">{company.introduction ?? "-"}</dd></div></dl></CardContent></Card>
+        <Card><CardHeader><CardTitle>회원·권한</CardTitle></CardHeader><CardContent><ul className="space-y-2">{company.members.map((member) => <li key={member.id} className="rounded-md border p-3 text-sm"><strong>{member.user.name}</strong> · {member.role}/{member.status} · User {member.user.role}/{member.user.status}<p className="break-all text-xs text-muted-foreground">{member.user.email}</p></li>)}</ul></CardContent></Card>
+        <Card><CardHeader><CardTitle>상품·quota·credit</CardTitle></CardHeader><CardContent className="space-y-4 text-sm"><p>Credit 잔액: <strong>{company.creditAccount?.balance ?? 0}</strong></p><div><h3 className="font-semibold">Entitlement</h3>{company.recruitmentEntitlements.length === 0 ? <p className="text-muted-foreground">없음</p> : <ul className="mt-2 space-y-1">{company.recruitmentEntitlements.map((item) => <li key={item.id}>{item.recruitmentTier} · {date(item.validFrom)} ~ {date(item.expiresAt)} · {item.cancelledAt ? "취소" : "유효성 확인"}</li>)}</ul>}</div><div><h3 className="font-semibold">최근 quota</h3>{company.quotaUsages.length === 0 ? <p className="text-muted-foreground">없음</p> : <ul className="mt-2 space-y-1">{company.quotaUsages.map((item) => <li key={item.id}>{item.allowanceType} · {item.consumedCount}회 · {date(item.windowStart)} ~ {date(item.windowEnd)}</li>)}</ul>}</div></CardContent></Card>
+        <Card><CardHeader><CardTitle>최근 Jobs / Lease / Lead / Ads</CardTitle></CardHeader><CardContent className="grid gap-4 text-sm sm:grid-cols-2"><div><h3 className="font-semibold">Jobs</h3>{company.jobPosts.map((item) => <p key={item.id}><Link className="text-primary hover:underline" href={`/jobs/${item.id}`}>{item.title}</Link> · {item.status}</p>)}</div><div><h3 className="font-semibold">Lease</h3>{company.leasePosts.map((item) => <p key={item.id}><Link className="text-primary hover:underline" href={`/lease/${item.id}`}>{item.title}</Link> · {item.status}</p>)}</div><div><h3 className="font-semibold">Lead matches</h3>{company.leadMatches.map((item) => <p key={item.id}>{item.leadId} · {item.status}</p>)}</div><div><h3 className="font-semibold">Ads</h3>{company.adCampaigns.map((item) => <p key={item.id}>{item.title} · {item.status} · ~ {date(item.endDate)}</p>)}</div></CardContent></Card></div>
+        <aside className="space-y-5">{company.status === "PENDING" ? <><ApproveForm companyId={company.id} /><RejectForm companyId={company.id} /></> : null}{company.status === "ACTIVE" || company.status === "SUSPENDED" ? <CompanyStatusForm companyId={company.id} status={company.status} /> : null}<Card><CardHeader><CardTitle>변경 이력</CardTitle></CardHeader><CardContent>{audit.length === 0 ? <p className="text-sm text-muted-foreground">기록이 없습니다.</p> : <ol className="space-y-3">{audit.map((item) => <li key={item.id} className="border-b pb-3 text-sm last:border-0"><p className="font-medium">{item.action}</p><p className="text-xs text-muted-foreground">{item.admin.name} · {date(item.createdAt)}</p>{item.metadata ? <pre className="mt-1 overflow-x-auto whitespace-pre-wrap text-xs text-muted-foreground">{JSON.stringify(item.metadata)}</pre> : null}</li>)}</ol>}</CardContent></Card></aside></div>
     </Container>
   );
 }
