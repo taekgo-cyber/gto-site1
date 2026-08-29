@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   userFindUnique: vi.fn(),
@@ -20,9 +20,12 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 import { generateAiBlogDraft } from "@/lib/blog/ai/service";
+import { OpenCodeZenBlogProvider } from "@/lib/blog/ai/provider";
 import type { AiBlogProvider } from "@/lib/blog/ai/types";
 
 describe("S18 AI generation service", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.userFindUnique.mockResolvedValue({ id: "admin-1", role: "ADMIN", status: "ACTIVE", deletedAt: null });
@@ -38,6 +41,7 @@ describe("S18 AI generation service", () => {
     const provider: AiBlogProvider = {
       provider: "fake",
       model: "fake-v1",
+      getGenerationMetadata: () => ({ finalModel: "fake-v1", protocol: "test", fallbackOccurred: false }),
       async generate() {
         return {
           title: "5톤 화물차 준비 가이드",
@@ -69,7 +73,15 @@ describe("S18 AI generation service", () => {
       authorId: "admin-1",
       categoryId: "cat-1",
     }));
-    expect(data.aiGenerationMeta).toEqual(expect.objectContaining({ provider: "fake", model: "fake-v1", sourceType: "TONNAGE", sourceIds: ["ton-1"] }));
+    expect(data.aiGenerationMeta).toEqual(expect.objectContaining({
+      provider: "fake",
+      model: "fake-v1",
+      finalModel: "fake-v1",
+      protocol: "test",
+      fallbackOccurred: false,
+      sourceType: "TONNAGE",
+      sourceIds: ["ton-1"],
+    }));
   });
 
   it("rejects generation before persistence when quality guard has blocking PII", async () => {
@@ -95,6 +107,56 @@ describe("S18 AI generation service", () => {
       provider,
       request: { topic: "개인정보 검사", targetKeyword: "privacy-check", sourceType: "TONNAGE", sourceIds: ["ton-1"] },
     })).rejects.toThrow("BLOG_AI_QUALITY_FAILED");
+    expect(mocks.articleCreate).not.toHaveBeenCalled();
+  });
+
+  it("does not invoke Ox when Muse output reaches canonical QA and is rejected", async () => {
+    const invalidDraft = {
+      title: "개인 연락처 포함",
+      slug: "private-contact-post",
+      excerpt: "검사",
+      contentMarkdown: "담당자: 홍길동, 010-1234-5678, test@example.com",
+      seoTitle: null,
+      seoDescription: null,
+      suggestedCategorySlug: null,
+      tags: [],
+    };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ output_text: JSON.stringify(invalidDraft) }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const provider = new OpenCodeZenBlogProvider({
+      baseUrl: "https://opencode.ai/zen/v1",
+      apiKey: "test-secret",
+    });
+
+    await expect(generateAiBlogDraft({
+      actorUserId: "admin-1",
+      provider,
+      request: { topic: "개인정보 검사", targetKeyword: "privacy-check", sourceType: "TONNAGE", sourceIds: ["ton-1"] },
+    })).rejects.toThrow("BLOG_AI_QUALITY_FAILED");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe("https://opencode.ai/zen/v1/responses");
+    expect(mocks.articleCreate).not.toHaveBeenCalled();
+  });
+
+  it("stores no Draft when both OpenCode Zen attempts fail", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: false, status: 503 })
+      .mockResolvedValueOnce({ ok: false, status: 503 });
+    vi.stubGlobal("fetch", fetchMock);
+    const provider = new OpenCodeZenBlogProvider({
+      baseUrl: "https://opencode.ai/zen/v1",
+      apiKey: "test-secret",
+    });
+
+    await expect(generateAiBlogDraft({
+      actorUserId: "admin-1",
+      provider,
+      request: { topic: "provider 실패", targetKeyword: "provider-failure", sourceType: "TONNAGE", sourceIds: ["ton-1"] },
+    })).rejects.toThrow("BLOG_AI_PROVIDER_ALL_ATTEMPTS_FAILED_SERVER_ERROR_SERVER_ERROR");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(mocks.articleCreate).not.toHaveBeenCalled();
   });
 

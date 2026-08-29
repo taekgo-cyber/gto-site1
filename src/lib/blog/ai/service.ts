@@ -75,10 +75,12 @@ export async function generateAiBlogDraft(input: {
     else quality.issues.push({ code: "CATEGORY_NOT_FOUND", severity: "WARNING", message: "제안 카테고리가 없어 미분류로 저장했습니다." });
   }
 
+  const generationMetadata = provider.getGenerationMetadata?.() ?? {};
   const meta = {
     version: 1,
     provider: provider.provider,
     model: provider.model,
+    ...generationMetadata,
     topic: request.topic,
     targetKeyword: request.targetKeyword,
     sourceType: request.sourceType,

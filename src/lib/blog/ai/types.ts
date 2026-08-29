@@ -40,6 +40,7 @@ export type AiBlogProvider = {
   readonly provider: string;
   readonly model: string;
   generate(input: AiContentGenerationRequest, sources: AiContentSource[]): Promise<GeneratedBlogDraft>;
+  getGenerationMetadata?(): Record<string, string | boolean | null>;
 };
 
 export type AiQualityIssue = {
