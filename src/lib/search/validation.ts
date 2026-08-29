@@ -64,3 +64,16 @@ export function parseUnifiedSearchRequest(params: SearchParams): UnifiedSearchRe
     pageSize: SEARCH_PAGE_SIZE,
   };
 }
+
+const SEARCH_REQUEST_VALIDATION_MESSAGES = new Set([
+  "SEARCH_QUERY_REQUIRED",
+  "SEARCH_QUERY_INVALID",
+  "SEARCH_DOMAINS_INVALID",
+  "SEARCH_PAGE_INVALID",
+]);
+
+export function isSearchRequestValidationError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  if (SEARCH_REQUEST_VALIDATION_MESSAGES.has(error.message)) return true;
+  return error.message.endsWith("_REPEATED");
+}

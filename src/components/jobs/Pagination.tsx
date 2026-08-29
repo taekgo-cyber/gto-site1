@@ -42,18 +42,26 @@ export function Pagination({
 
   const pages = pageWindow(currentPage, totalPages);
 
+  const prevDisabled = currentPage <= 1;
+  const nextDisabled = currentPage >= totalPages;
+
   return (
     <nav
       aria-label="페이지 네비게이션"
       className="flex flex-wrap items-center justify-center gap-1.5"
     >
-      <Link
-        href={buildHref(basePath, query, currentPage - 1)}
-        className={linkClasses(currentPage <= 1)}
-        aria-disabled={currentPage <= 1}
-      >
-        이전
-      </Link>
+      {prevDisabled ? (
+        <span className={linkClasses(true)} aria-disabled="true">
+          이전
+        </span>
+      ) : (
+        <Link
+          href={buildHref(basePath, query, currentPage - 1)}
+          className={linkClasses(false)}
+        >
+          이전
+        </Link>
+      )}
 
       {pages.map((page) => (
         <Link
@@ -71,13 +79,18 @@ export function Pagination({
         </Link>
       ))}
 
-      <Link
-        href={buildHref(basePath, query, currentPage + 1)}
-        className={linkClasses(currentPage >= totalPages)}
-        aria-disabled={currentPage >= totalPages}
-      >
-        다음
-      </Link>
+      {nextDisabled ? (
+        <span className={linkClasses(true)} aria-disabled="true">
+          다음
+        </span>
+      ) : (
+        <Link
+          href={buildHref(basePath, query, currentPage + 1)}
+          className={linkClasses(false)}
+        >
+          다음
+        </Link>
+      )}
     </nav>
   );
 }
