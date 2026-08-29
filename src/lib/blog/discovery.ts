@@ -18,6 +18,78 @@ export type BlogServiceLink = {
   description: string;
 };
 
+type BlogServiceIntent = BlogServiceLink["kind"];
+type SourceIntentResolution =
+  | { state: "none" }
+  | { state: "match"; intent: BlogServiceIntent }
+  | { state: "ambiguous" };
+
+type IntentSignal = { value: string; mode: "contains" | "token" };
+
+const INTENT_SIGNALS: Record<BlogServiceIntent, readonly IntentSignal[]> = {
+  CBT: [
+    { value: "화물운송종사자격", mode: "contains" },
+    { value: "오답노트", mode: "contains" },
+    { value: "cbt", mode: "token" },
+  ],
+  JOBS: [
+    { value: "일자리", mode: "contains" },
+    { value: "구인", mode: "contains" },
+    { value: "구직", mode: "contains" },
+    { value: "취업", mode: "contains" },
+    { value: "채용", mode: "contains" },
+    { value: "근무 조건", mode: "contains" },
+    { value: "업무 조건", mode: "contains" },
+    { value: "화물차 업무", mode: "contains" },
+    { value: "업무 비교", mode: "contains" },
+    { value: "업무 선택", mode: "contains" },
+  ],
+  LEASE: [
+    { value: "지입", mode: "contains" },
+    { value: "리스", mode: "token" },
+  ],
+};
+
+function normalizeDiscoverySignal(value: string): string {
+  return value.normalize("NFKC").toLocaleLowerCase("ko-KR").trim().replace(/\s+/g, " ");
+}
+
+function matchesIntentSignal(text: string, signal: IntentSignal): boolean {
+  const value = normalizeDiscoverySignal(signal.value);
+  if (signal.mode === "contains") return text.includes(value);
+  return text.split(/[^\p{L}\p{N}]+/u).filter(Boolean).includes(value);
+}
+
+function resolveIntentFromTexts(values: readonly string[]): SourceIntentResolution {
+  const texts = values.map(normalizeDiscoverySignal).filter(Boolean);
+  const matchedIntents = new Set<BlogServiceIntent>();
+  for (const intent of ["CBT", "JOBS", "LEASE"] as const) {
+    if (texts.some((text) => INTENT_SIGNALS[intent].some((signal) => matchesIntentSignal(text, signal)))) {
+      matchedIntents.add(intent);
+    }
+  }
+  if (matchedIntents.size === 0) return { state: "none" };
+  if (matchedIntents.size > 1) return { state: "ambiguous" };
+  return { state: "match", intent: [...matchedIntents][0]! };
+}
+
+function resolveBlogServiceIntent(
+  article: Pick<BlogDiscoveryArticle, "title" | "tags" | "category">,
+): BlogServiceIntent | null {
+  const categorySlug = article.category?.slug;
+  if (categorySlug === "cargo-driver-cbt") return "CBT";
+  if (categorySlug === "jobs") return "JOBS";
+  if (categorySlug === "lease") return "LEASE";
+  if (categorySlug !== "cargo-practice" && categorySlug !== "beginner-guide") return null;
+
+  const tagResolution = resolveIntentFromTexts(article.tags);
+  if (tagResolution.state === "match") return tagResolution.intent;
+  if (tagResolution.state === "ambiguous") return null;
+
+  const titleResolution = resolveIntentFromTexts([article.title]);
+  return titleResolution.state === "match" ? titleResolution.intent : null;
+}
+
 function normalizedTokens(values: Array<string | null | undefined>): Set<string> {
   return new Set(
     values
@@ -94,6 +166,13 @@ export async function getBlogArticleDiscovery(
     prisma.leasePost.count({ where: { status: "PUBLISHED", deletedAt: null, publishedAt: { lte: now, not: null } } }),
   ]);
 
+  const safeArticle = {
+    ...article,
+    tags: Array.isArray(article.tags)
+      ? article.tags.filter((tag): tag is string => typeof tag === "string")
+      : [],
+  };
+
   const candidates: BlogDiscoveryArticle[] = articleRows
     .filter((row) => row.publishedAt !== null)
     .map((row) => ({
@@ -105,21 +184,19 @@ export async function getBlogArticleDiscovery(
       publishedAt: row.publishedAt!,
       category: row.category?.isActive ? { slug: row.category.slug, name: row.category.name } : null,
     }));
-  const relatedArticles = rankRelatedBlogArticles(article, candidates);
-  const cbtMatch = chooseCbtCategoryLink(article, cbtCategories);
+  const relatedArticles = rankRelatedBlogArticles(safeArticle, candidates);
+  const intent = resolveBlogServiceIntent(safeArticle);
   const serviceLinks: BlogServiceLink[] = [];
-  if (cbtCategories.length > 0) {
+  if (intent === "CBT" && cbtCategories.length > 0) {
     serviceLinks.push({
       kind: "CBT",
-      href: cbtMatch ? `/cbt/${cbtMatch.slug}` : "/cbt",
-      title: cbtMatch ? `${cbtMatch.name} CBT` : "화물운송 CBT",
+      href: "/cbt",
+      title: "화물운송 CBT",
       description: "회원가입 없이 학습 모드와 모의고사를 시작하세요.",
     });
-  }
-  if (openJobCount > 0) {
+  } else if (intent === "JOBS" && openJobCount > 0) {
     serviceLinks.push({ kind: "JOBS", href: "/jobs", title: "운송 일자리 찾기", description: "현재 공개 중인 구인·운송 공고를 확인하세요." });
-  }
-  if (publishedLeaseCount > 0) {
+  } else if (intent === "LEASE" && publishedLeaseCount > 0) {
     serviceLinks.push({ kind: "LEASE", href: "/lease", title: "지입 매물 살펴보기", description: "현재 공개 중인 지입 구인·구직 정보를 비교하세요." });
   }
   return { relatedArticles, serviceLinks };
