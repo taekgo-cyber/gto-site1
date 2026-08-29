@@ -27,13 +27,13 @@ export function LeaseCard({ post }: { post: PostListItem }) {
             <Badge variant={post.type === "HIRE" ? "primary" : "success"}>
               {leasePostTypeLabel(post.type)}
             </Badge>
-            <h2 className="truncate text-base font-semibold text-foreground">
+            <h2 className="truncate text-[17px] font-semibold text-foreground">
               {post.title}
             </h2>
           </div>
 
           {meta.length > 0 ? (
-            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[14px] text-muted-foreground">
               {meta.map((item) => (
                 <span key={item}>{item}</span>
               ))}

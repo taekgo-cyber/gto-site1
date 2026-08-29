@@ -70,7 +70,7 @@ export default async function BlogArticlePage({ params }: { params: Promise<Para
   }).replace(/</g, "\\u003c");
 
   return (
-    <Container className="mx-auto max-w-4xl space-y-8 py-8">
+    <Container className="mx-auto max-w-[800px] space-y-8 py-8">
       <script type="application/ld+json">{jsonLd}</script>
       <header className="space-y-4 border-b border-border pb-6">
         <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
@@ -79,8 +79,8 @@ export default async function BlogArticlePage({ params }: { params: Promise<Para
             <Link href={`/blog/category/${article.category.slug}`} className="font-medium underline underline-offset-4">{article.category.name}</Link>
           ) : null}
         </div>
-        <h1 className="text-3xl font-bold leading-tight sm:text-4xl">{article.title}</h1>
-        {article.excerpt ? <p className="text-lg leading-7 text-muted-foreground">{article.excerpt}</p> : null}
+        <h1 className="text-[28px] font-bold leading-[1.3] sm:text-[34px]">{article.title}</h1>
+        {article.excerpt ? <p className="text-[17px] leading-7 text-muted-foreground md:text-[18px]">{article.excerpt}</p> : null}
         {article.tags.length > 0 ? <div className="flex flex-wrap gap-2">{article.tags.map((tag) => <span key={tag} className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">#{tag}</span>)}</div> : null}
         <p className="text-sm text-muted-foreground">
           {article.authorName ? `작성 ${article.authorName} · ` : ""}발행 {article.publishedAt.toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })}

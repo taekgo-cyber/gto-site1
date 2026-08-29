@@ -39,7 +39,7 @@ export async function Header() {
             <Link
               key={item.label}
               href={item.href}
-              className="inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-md px-3 text-sm text-muted-foreground hover:bg-surface hover:text-foreground"
+              className="inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-md px-3 text-[15px] font-medium text-muted-foreground hover:bg-surface hover:text-foreground"
             >
               {item.label}
             </Link>
@@ -50,7 +50,7 @@ export async function Header() {
             <>
               <Link
                 href="/notifications"
-                className="relative inline-flex min-h-11 items-center whitespace-nowrap rounded-md px-2 text-sm font-medium hover:bg-surface"
+                className="relative inline-flex min-h-11 items-center whitespace-nowrap rounded-md px-2 text-[15px] font-medium hover:bg-surface"
                 aria-label={unreadNotifications > 0 ? `알림 ${unreadNotifications}개 읽지 않음` : "알림"}
               >
                 알림
@@ -62,7 +62,7 @@ export async function Header() {
               </Link>
               <Link
                 href="/mypage"
-                className="inline-flex min-h-11 items-center whitespace-nowrap rounded-md px-2 text-sm font-medium hover:bg-surface"
+                className="inline-flex min-h-11 items-center whitespace-nowrap rounded-md px-2 text-[15px] font-medium hover:bg-surface"
               >
                 {user.nickname ?? user.name}
               </Link>
@@ -76,7 +76,7 @@ export async function Header() {
             <>
               <Link
                 href="/login"
-                className="inline-flex min-h-11 items-center whitespace-nowrap rounded-md px-2 text-sm text-muted-foreground hover:bg-surface hover:text-foreground"
+                className="inline-flex min-h-11 items-center whitespace-nowrap rounded-md px-2 text-[15px] text-muted-foreground hover:bg-surface hover:text-foreground"
               >
                 로그인
               </Link>

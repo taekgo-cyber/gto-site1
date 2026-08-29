@@ -56,7 +56,17 @@ export default async function BlogPage({ searchParams }: { searchParams: Promise
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {result.items.map((article) => (
             <Link key={article.id} href={`/blog/${article.slug}`} className="block h-full">
-              <Card className="h-full transition-colors hover:bg-surface/60">
+              <Card className="h-full overflow-hidden transition-colors hover:bg-surface/60">
+                {article.featuredImageUrl ? (
+                  <div className="aspect-[16/9] w-full overflow-hidden bg-muted">
+                    <img
+                      src={article.featuredImageUrl}
+                      alt={article.featuredImageAlt ?? article.title}
+                      loading="lazy"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ) : null}
                 <CardHeader className="space-y-2">
                   {article.category ? <p className="text-xs font-medium text-muted-foreground">{article.category.name}</p> : null}
                   <CardTitle className="text-xl leading-snug">{article.title}</CardTitle>

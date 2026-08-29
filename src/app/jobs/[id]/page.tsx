@@ -31,8 +31,8 @@ export async function generateMetadata(
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="grid grid-cols-[6rem_1fr] gap-3 py-2 sm:grid-cols-[7rem_1fr]">
-      <dt className="text-sm text-muted-foreground">{label}</dt>
-      <dd className="text-sm text-foreground">{value}</dd>
+      <dt className="text-[15px] text-muted-foreground">{label}</dt>
+      <dd className="text-[15px] text-foreground">{value}</dd>
     </div>
   );
 }
@@ -77,7 +77,7 @@ export default async function JobPostPage(props: PageProps<"/jobs/[id]">) {
 
         <CardContent>
           {post.description ? (
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+            <p className="whitespace-pre-wrap text-[17px] leading-[1.8] text-muted-foreground">
               {post.description}
             </p>
           ) : null}

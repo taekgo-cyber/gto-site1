@@ -33,22 +33,26 @@ function inlineNodes(text: string): ReactNode[] {
     if (match.index > cursor) tokens.push(text.slice(cursor, match.index));
     const token = match[0];
     if (token.startsWith("[")) {
-      const link = /^\[([^\]]+)\]\(([^\s)]+)\)$/.exec(token);
-      const href = link ? safeMarkdownHref(link[2]) : null;
-      if (link && href) {
-        const external = /^https?:/i.test(href);
-        tokens.push(
-          <a
-            key={key++}
-            href={href}
-            className="font-medium text-foreground underline underline-offset-4"
-            {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-          >
-            {link[1]}
-          </a>,
-        );
-      } else {
+      if (match.index > 0 && text[match.index - 1] === "!") {
         tokens.push(token);
+      } else {
+        const link = /^\[([^\]]+)\]\(([^\s)]+)\)$/.exec(token);
+        const href = link ? safeMarkdownHref(link[2]) : null;
+        if (link && href) {
+          const external = /^https?:/i.test(href);
+          tokens.push(
+            <a
+              key={key++}
+              href={href}
+              className="font-medium text-foreground underline underline-offset-4"
+              {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+            >
+              {link[1]}
+            </a>,
+          );
+        } else {
+          tokens.push(token);
+        }
       }
     } else if (token.startsWith("**")) {
       tokens.push(<strong key={key++}>{token.slice(2, -2)}</strong>);
@@ -70,7 +74,7 @@ function flushList(items: string[], ordered: boolean, key: string): ReactNode | 
   if (items.length === 0) return null;
   const ListTag = ordered ? "ol" : "ul";
   return (
-    <ListTag key={key} className={ordered ? "list-decimal space-y-1 pl-6" : "list-disc space-y-1 pl-6"}>
+    <ListTag key={key} className={ordered ? "list-decimal space-y-2 pl-6 text-[17px] leading-[1.8] md:text-[18px]" : "list-disc space-y-2 pl-6 text-[17px] leading-[1.8] md:text-[18px]"}>
       {items.map((item, index) => (
         <li key={`${key}-${index}`}>{inlineNodes(item)}</li>
       ))}
@@ -91,7 +95,7 @@ export function MarkdownArticle({ markdown }: { markdown: string }) {
   const flushParagraph = () => {
     if (paragraph.length === 0) return;
     blocks.push(
-      <p key={`p-${blockKey++}`} className="leading-7 text-foreground/90">
+      <p key={`p-${blockKey++}`} className="text-[17px] leading-[1.8] text-foreground/90 md:text-[18px]">
         {inlineNodes(paragraph.join(" "))}
       </p>,
     );
@@ -139,9 +143,9 @@ export function MarkdownArticle({ markdown }: { markdown: string }) {
       flushParagraph();
       flushCurrentList();
       const level = heading[1].length;
-      if (level === 1) blocks.push(<h2 key={`h-${blockKey++}`} className="text-2xl font-bold">{inlineNodes(heading[2])}</h2>);
-      else if (level === 2) blocks.push(<h3 key={`h-${blockKey++}`} className="text-xl font-semibold">{inlineNodes(heading[2])}</h3>);
-      else blocks.push(<h4 key={`h-${blockKey++}`} className="text-lg font-semibold">{inlineNodes(heading[2])}</h4>);
+      if (level === 1) blocks.push(<h2 key={`h-${blockKey++}`} className="text-[24px] font-bold leading-[1.4] md:text-[27px]">{inlineNodes(heading[2])}</h2>);
+      else if (level === 2) blocks.push(<h3 key={`h-${blockKey++}`} className="text-[20px] font-semibold leading-[1.45] md:text-[22px]">{inlineNodes(heading[2])}</h3>);
+      else blocks.push(<h4 key={`h-${blockKey++}`} className="text-[17px] font-semibold leading-[1.5] md:text-[18px]">{inlineNodes(heading[2])}</h4>);
       continue;
     }
 
@@ -163,12 +167,38 @@ export function MarkdownArticle({ markdown }: { markdown: string }) {
       continue;
     }
 
+    const imageMatch = /^!\[([^\]]+)\]\(([^)\s]+)\)\s*$/.exec(line.trim());
+    if (imageMatch) {
+      const rawAlt = imageMatch[1];
+      const rawSrc = imageMatch[2];
+      const alt = rawAlt.trim();
+      if (alt) {
+        const safeSrc = safeMarkdownHref(rawSrc.trim());
+        const isHttp = safeSrc ? /^https?:\/\//i.test(safeSrc) : false;
+        if (safeSrc && isHttp) {
+          flushParagraph();
+          flushCurrentList();
+          blocks.push(
+            <figure key={`img-${blockKey++}`} className="overflow-hidden rounded-lg">
+              <img
+                src={safeSrc}
+                alt={alt}
+                loading="lazy"
+                className="h-auto w-full max-w-full object-cover"
+              />
+            </figure>,
+          );
+          continue;
+        }
+      }
+    }
+
     const quote = /^>\s?(.*)$/.exec(line);
     if (quote) {
       flushParagraph();
       flushCurrentList();
       blocks.push(
-        <blockquote key={`quote-${blockKey++}`} className="border-l-4 border-border pl-4 text-muted-foreground">
+        <blockquote key={`quote-${blockKey++}`} className="border-l-4 border-border pl-4 text-[17px] leading-[1.8] text-muted-foreground md:text-[18px]">
           {inlineNodes(quote[1])}
         </blockquote>,
       );
@@ -182,5 +212,5 @@ export function MarkdownArticle({ markdown }: { markdown: string }) {
   flushCurrentList();
   if (inCodeFence && codeLines.length > 0) flushCode();
 
-  return <article className="space-y-5">{blocks}</article>;
+  return <article className="space-y-6">{blocks}</article>;
 }
