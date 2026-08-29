@@ -39,6 +39,7 @@
     "cbt:residual-13": "tsx tools/cbt/cli-residual-13.ts",
     "cbt:residual-13-uncertain": "tsx tools/cbt/cli-residual-13-uncertain.ts",
     "blog:durability:export": "tsx tools/blog/export-durability-bundle.ts",
+    "blog:durability:dry-run": "tsx tools/blog/dry-run-durability-import.ts",
     "production:preflight": "node tools/production/preflight.mjs"
   },
   "dependencies": {

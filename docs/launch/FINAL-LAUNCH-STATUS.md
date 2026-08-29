@@ -2,7 +2,7 @@
 
 ## Status
 
-`GATE 2 COMPLETE / POST-C4.1 CANONICAL CLOSEOUT`
+`GATE 4 COMPLETE / CHECKPOINTED; GATE 5 BUILD COMPLETE / AUTOMATED VERIFICATION PASS / OPERATIONAL EVIDENCE BLOCKED; GATE 6 NOT STARTED`
 
 This document is the canonical checkpoint ledger for the remaining launch
 roadmap. It records the repository boundary after C4.1 without rewriting the
@@ -22,6 +22,35 @@ historical status documents that preceded it.
 
 The commit containing this document becomes the canonical Gate 2 checkpoint.
 Push, merge, deployment, and production mutation remain outside this closeout.
+
+## Post-Gate 2 Durability Progression
+
+- Gate 3 contract: `a926aef` — Blog Durability Bundle v1 contract approved.
+- Gate 4 checkpoint: `5cd20df` — read-only local exporter implemented and checkpointed.
+- Gate 4 authoritative interactive Windows runtime evidence: 10 operating Articles
+  (`DRAFT` 9, `PUBLISHED` 1), one `ARCHIVED` Article excluded, 10 featured and
+  10 body image references, `dbReadBackUnchanged=true`, and `dbWrite=false`.
+- Gate 4 canonical bundle: `FOUND / VERIFIED`.
+  - Path: `C:\Users\taekg\AppData\Local\Temp\blog-durability-gate4-interactive-user.json`
+  - File SHA-256: `40a4d7105e4aaf86232e116195c9dc91c29df8a858cdbf93f5866738254fe839`
+  - Bundle checksum: `d1efc84727aea4f29f6a5d00562b132e81c0ca712dec5e624929048ebb42e134`
+  - Articles: 10 (`DRAFT` 9, `PUBLISHED` 1); `ARCHIVED` excluded: 1;
+    featured/body image references: 10/10.
+- Gate 5 working-tree state: `BUILD COMPLETE / AUTOMATED VERIFICATION PASS`;
+  no checkpoint commit is authorized or created.
+- Gate 5 operational evidence: `BLOCKED`; operational dry-run: `NOT RUN`.
+  - Blocker: explicit target `DATABASE_URL` is not designated.
+  - Blocker: target ACTIVE ADMIN `actorUserId` is not designated.
+  - Blocker: HTTPS canonical origin is not designated.
+  - The exporter was not rerun and the verified canonical bundle was not copied,
+    changed, or staged.
+- Gate 6: `NOT STARTED / NOT AUTHORIZED`.
+
+Gate 5 adds runtime bundle validation, parameterized image transformation,
+ACTIVE ADMIN read-only authorization, deterministic Category/Article
+create/reuse/no-op/conflict reconciliation, and a JSON CLI report that always
+sets `wouldWrite=false`. It uses only Prisma reads and contains no transaction or
+mutation path.
 
 ## Completed Roadmap
 
@@ -72,10 +101,13 @@ readiness gates. They are not closed by this Git checkpoint.
 
 ## Next Official Gate
 
-`GATE 3 — BLOG DURABILITY BUNDLE V1 CONTRACT`
+`GATE 5 — BLOG DURABILITY ZERO-WRITE DRY-RUN OPERATIONAL EVIDENCE`
 
-Gates 4-23 remain pending in the Final Launch Roadmap and must continue under
-their existing approval, mutation, and external-action boundaries.
+Use only the verified Gate 4 canonical bundle recorded above. After an explicit
+target `DATABASE_URL`, target ACTIVE ADMIN `actorUserId`, and HTTPS canonical
+origin are designated, run only the Gate 5 zero-write CLI. Gate 6-23 remain
+pending and must continue under their existing approval, mutation, and
+external-action boundaries.
 
 ## Historical Checkpoint Records
 
