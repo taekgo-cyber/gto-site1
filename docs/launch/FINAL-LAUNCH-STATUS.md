@@ -166,6 +166,17 @@ Push, merge, deployment, and production mutation remain outside this closeout.
     restore of Production backup data.
   - Gate 12 + Gate 13 proof therefore remains a hard blocker for Gate 20 actual
     Production migration/deploy/import execution approval.
+- Gate 14: `NO CODE CHANGE / STORAGE CONTRACT PASS / OPERATIONAL EVIDENCE BLOCKED`.
+  - Runtime storage remains intentionally `local` only; unknown providers fail
+    closed. Production documentation and preflight require an explicit absolute
+    `UPLOAD_DIR` and prohibit treating an ephemeral deployment filesystem as
+    durable storage.
+  - Existing recovery policy requires the volume to have snapshot/backup
+    coverage and requires attachment DB-row/file consistency after restore.
+  - Focused attachment/storage service regression: 1 file / 11 tests PASS.
+  - No Production durable volume, restart/redeploy survival proof, or storage
+    backup/restore evidence exists yet. No Production storage mutation was
+    attempted.
 
 Gate 5 adds runtime bundle validation, parameterized image transformation,
 ACTIVE ADMIN read-only authorization, deterministic Category/Article
