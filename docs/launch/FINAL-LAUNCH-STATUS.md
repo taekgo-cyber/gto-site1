@@ -203,6 +203,15 @@ Push, merge, deployment, and production mutation remain outside this closeout.
   - No staging application URL/project, staging DB identifier, staging secret
     set, or isolated staging asset store is currently designated. No Production
     environment was used as a substitute.
+- Gate 17: `NOT EXECUTABLE / STAGING E2E OPERATIONAL EVIDENCE BLOCKED`.
+  - Canonical Gate 17 requires E2E against an actual isolated staging
+    deployment covering desktop/mobile public, auth/admin, Jobs, Lease, Blog,
+    Search, Lead, Company, monetization, and other critical paths.
+  - Gate 6 full automated regression/build evidence and historical Track B/S24
+    local browser evidence remain useful prior evidence but do not satisfy this
+    staging-only requirement.
+  - Because Gate 16 has no designated staging deployment, no staging E2E was
+    executed and Production was not used as a substitute.
 
 Gate 5 adds runtime bundle validation, parameterized image transformation,
 ACTIVE ADMIN read-only authorization, deterministic Category/Article
