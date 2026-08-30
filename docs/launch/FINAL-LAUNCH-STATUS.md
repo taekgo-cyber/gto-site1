@@ -2,7 +2,7 @@
 
 ## Status
 
-`GATE 4 COMPLETE / CHECKPOINTED; GATE 5 BUILD COMPLETE / AUTOMATED VERIFICATION PASS / OPERATIONAL EVIDENCE BLOCKED; GATE 6 NOT STARTED / BUILD AUTHORIZED — LOCAL/TEST ONLY`
+`FINAL LAUNCH GATE 6-23 READINESS REVIEW COMPLETE; GATE 23 VERDICT = NO-GO FOR PUBLIC SWITCH UNTIL HUMAN/PRODUCTION EVIDENCE IS COMPLETE`
 
 This document is the canonical checkpoint ledger for the remaining launch
 roadmap. It records the repository boundary after C4.1 without rewriting the
@@ -271,6 +271,23 @@ Push, merge, deployment, and production mutation remain outside this closeout.
   - Production canonical origin and Search Console property/submission are not
     available, so live-origin robots/sitemap verification and Search Console
     submission remain external operational items. No submission was performed.
+- Gate 23: `NO-GO FOR PUBLIC SWITCH / READINESS REVIEW COMPLETE`.
+  - Code and local automated readiness are strong: Gate 6 importer BUILD and
+    disposable transaction/idempotency evidence PASS; full regression is 136
+    files / 1380 tests PASS; typecheck, targeted lint, Prisma validate,
+    Production build, and focused Gate 7/8/10/18/19/22 regressions PASS.
+  - Launch-critical operational proof remains unresolved: Production target
+    DB/admin/canonical HTTPS origin, canonical 10-Article Production-target
+    durability evidence, valid backup/PITR, restore drill, durable storage,
+    alert destination/test-fire, isolated staging + staging E2E, human-approved
+    Production deploy, and post-deploy Production smoke.
+  - Gate 12/13 hard dependency prevents Production migration/import execution;
+    Gate 21 is not executable before a human-approved Production deploy.
+  - Therefore `GO` and `CONDITIONAL GO` are not declared for a public switch at
+    this point. The correct current verdict is `NO-GO` until the required
+    human/Production evidence is supplied and re-verified.
+  - No public traffic switch, DNS change, Production mutation, deploy, push,
+    merge, main-branch change, tag, or release action was performed.
 
 Gate 5 adds runtime bundle validation, parameterized image transformation,
 ACTIVE ADMIN read-only authorization, deterministic Category/Article
@@ -325,15 +342,26 @@ PRODUCTION IMAGE URL MIGRATION REQUIRED = YES
 These risks are addressed by the remaining Blog durability and production
 readiness gates. They are not closed by this Git checkpoint.
 
-## Next Official Gate
+## Next Human / Production Action
 
-`GATE 5 — BLOG DURABILITY ZERO-WRITE DRY-RUN OPERATIONAL EVIDENCE`
+The Final Launch Gate 6-23 readiness loop is complete through the Gate 23
+verdict. Public launch remains `NO-GO` until the external Production evidence is
+closed in a human-approved release window.
 
-Use only the verified Gate 4 canonical bundle recorded above. After an explicit
-target `DATABASE_URL`, target ACTIVE ADMIN `actorUserId`, and HTTPS canonical
-origin are designated, run only the Gate 5 zero-write CLI. Gate 6-23 remain
-pending and must continue under their existing approval, mutation, and
-external-action boundaries.
+Minimum next evidence sequence:
+
+1. designate the Production project, canonical HTTPS origin, Production DB, and
+   ACTIVE ADMIN actor without exposing credentials;
+2. close deferred Gate 5/7 Production-target durability/image evidence using the
+   verified canonical operating set;
+3. establish valid Backup/PITR and complete an isolated restore drill with
+   measured evidence;
+4. verify durable storage and alert test-fire;
+5. provide an isolated staging deployment and pass Gate 17 E2E;
+6. return for explicit human approval before any Production deploy/migration/
+   import or public traffic switch;
+7. after the approved Production deploy, execute Gate 21 Production smoke and
+   rerun the Gate 23 verdict.
 
 ## Historical Checkpoint Records
 
