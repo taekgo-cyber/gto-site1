@@ -257,6 +257,20 @@ Push, merge, deployment, and production mutation remain outside this closeout.
   - Production smoke was therefore not attempted, simulated, or replaced with
     local checks. Gate 22 static launch verification may continue independently,
     while Gate 23 must treat missing Production smoke as launch-critical.
+- Gate 22: `NO CODE CHANGE / AUTOMATED SEO-POLICY VERIFICATION PASS / EXTERNAL SUBMISSION BLOCKED`.
+  - Final Launch Gate 22 focused regression: 6 files / 66 tests PASS, covering
+    noindex rules, slug/canonical behavior, launch-policy fail-closed rules, S24
+    public launch validation, Blog canonical metadata, and Published-only public
+    discovery/visibility semantics.
+  - Existing S24 evidence for centralized canonical origin, bounded sitemap,
+    robots, Article JSON-LD, and public discovery remains applicable; Gate 9
+    found no SEO/public-route runtime delta after Gate 5.
+  - Gate 8 read-only state confirms `DRAFT` 9 / `PUBLISHED` 1 with consistent
+    publication timestamps, supporting the Draft-vs-Published visibility
+    boundary.
+  - Production canonical origin and Search Console property/submission are not
+    available, so live-origin robots/sitemap verification and Search Console
+    submission remain external operational items. No submission was performed.
 
 Gate 5 adds runtime bundle validation, parameterized image transformation,
 ACTIVE ADMIN read-only authorization, deterministic Category/Article
