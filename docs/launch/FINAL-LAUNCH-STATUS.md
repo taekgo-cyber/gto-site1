@@ -191,6 +191,18 @@ Push, merge, deployment, and production mutation remain outside this closeout.
   - Actual APM/log aggregation provider and an alert destination have not been
     configured, so required real alert test-fire evidence remains BLOCKED and
     no external notification was sent.
+- Gate 16: `NO CODE CHANGE / STAGING REQUIREMENTS READY / OPERATIONAL EVIDENCE BLOCKED`.
+  - Existing S24 evidence already identifies real DB-backed desktop/mobile
+    execution as a staging manual item. The current Production readiness
+    contracts require isolated app/runtime configuration, PostgreSQL migration
+    state, assets, test accounts, and separation from Production before staging
+    can be treated as valid evidence.
+  - Gate 6 proves the current migration chain and application can operate on an
+    isolated disposable PostgreSQL, but that local disposable database is not
+    misclassified as a deployed staging stack.
+  - No staging application URL/project, staging DB identifier, staging secret
+    set, or isolated staging asset store is currently designated. No Production
+    environment was used as a substitute.
 
 Gate 5 adds runtime bundle validation, parameterized image transformation,
 ACTIVE ADMIN read-only authorization, deterministic Category/Article
