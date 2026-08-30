@@ -2,11 +2,15 @@
 
 ## Status
 
-`GATE 4 COMPLETE / CHECKPOINTED; GATE 5 BUILD COMPLETE / AUTOMATED VERIFICATION PASS / OPERATIONAL EVIDENCE BLOCKED; GATE 6 NOT STARTED`
+`GATE 4 COMPLETE / CHECKPOINTED; GATE 5 BUILD COMPLETE / AUTOMATED VERIFICATION PASS / OPERATIONAL EVIDENCE BLOCKED; GATE 6 NOT STARTED / BUILD AUTHORIZED — LOCAL/TEST ONLY`
 
 This document is the canonical checkpoint ledger for the remaining launch
 roadmap. It records the repository boundary after C4.1 without rewriting the
 historical status documents that preceded it.
+
+The canonical Final Launch Gate 6-23 definitions are recorded in
+`docs/launch/FINAL-LAUNCH-ROADMAP.md`. S-stage, Track, Session, SEO, and other
+internal Gate numbering systems must not be remapped onto that roadmap.
 
 ## Canonical Git
 
@@ -44,7 +48,7 @@ Push, merge, deployment, and production mutation remain outside this closeout.
   - Blocker: HTTPS canonical origin is not designated.
   - The exporter was not rerun and the verified canonical bundle was not copied,
     changed, or staged.
-- Gate 6: `NOT STARTED / NOT AUTHORIZED`.
+- Gate 6: `NOT STARTED / BUILD AUTHORIZED — LOCAL/TEST ONLY`.
 
 Gate 5 adds runtime bundle validation, parameterized image transformation,
 ACTIVE ADMIN read-only authorization, deterministic Category/Article
