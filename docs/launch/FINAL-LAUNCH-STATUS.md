@@ -48,7 +48,29 @@ Push, merge, deployment, and production mutation remain outside this closeout.
   - Blocker: HTTPS canonical origin is not designated.
   - The exporter was not rerun and the verified canonical bundle was not copied,
     changed, or staged.
-- Gate 6: `NOT STARTED / BUILD AUTHORIZED — LOCAL/TEST ONLY`.
+- Gate 6: `BUILD COMPLETE / AUTOMATED VERIFICATION PASS / LOCAL DISPOSABLE TRANSACTION EVIDENCE PASS / CANONICAL 10-ARTICLE OPERATIONAL EVIDENCE BLOCKED`.
+  - Bounded importer reruns the complete Gate 5 dry-run before any write and
+    fails closed unless `DATABASE_URL` resolves to loopback PostgreSQL and the
+    caller declares `local`, `test`, or `disposable`.
+  - One interactive transaction creates only missing Categories and Articles;
+    Articles are created as `DRAFT` with `publishedAt = null`, verified, then
+    receive final `status`/`publishedAt` last. Existing checksum-identical rows
+    remain no-op; target drift/conflict stops the transaction.
+  - Transaction-local content/state checksum, Category, author,
+    `automationJobId = null`, and image-reference read-backs are enforced.
+    Post-commit mismatch is a critical stop with no compensating write path.
+  - Focused Gate 5+6 regression: 2 files / 19 tests PASS.
+  - Full regression: 136 files / 1380 tests PASS.
+  - Targeted lint, Prisma validate, typecheck, production build, and
+    `git diff --check`: PASS.
+  - Disposable PostgreSQL proof: isolated PostgreSQL 16 on loopback, existing
+    repository migration chain applied without schema/migration file changes;
+    first synthetic Bundle v1 import created 1 Category + 1 Article and passed
+    post-commit read-back; immediate second import produced Article `NO_OP` and
+    passed post-commit read-back.
+  - Deferred evidence: the previously verified Gate 4 canonical 10-Article
+    bundle file recorded above is no longer present in the current Temp
+    directory, so a canonical-bundle Gate 6 operational import was not run.
 
 Gate 5 adds runtime bundle validation, parameterized image transformation,
 ACTIVE ADMIN read-only authorization, deterministic Category/Article
