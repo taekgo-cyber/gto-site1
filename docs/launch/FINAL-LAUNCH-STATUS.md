@@ -139,6 +139,19 @@ Push, merge, deployment, and production mutation remain outside this closeout.
     schema or migration file changed in Gates 6-11.
   - Actual Production DB identification, backup prerequisite, and Production
     `prisma migrate deploy` remain HUMAN/PRODUCTION blocked.
+- Gate 12: `NO CODE CHANGE / BACKUP-PITR CONTRACT READY / OPERATIONAL EVIDENCE BLOCKED`.
+  - Existing Backup & Recovery runbook defines PostgreSQL application data,
+    migration history, durable uploads, deployment configuration metadata, and
+    Git as the protected recovery set.
+  - Production policy requires managed backup/PITR where available, verified
+    retention and encryption, a separate failure domain, controlled restore
+    permission, and at least one pre-launch restore rehearsal. The runbook also
+    requires evidence without credentials or PII.
+  - Hard dependency is preserved: `NO VALID BACKUP = NO PRODUCTION MIGRATION /
+    IMPORT`.
+  - No Production PostgreSQL provider/instance, backup identifier, retention
+    policy, encryption/PITR proof, or restore permission is currently available;
+    no backup was synthesized or Production connection attempted.
 
 Gate 5 adds runtime bundle validation, parameterized image transformation,
 ACTIVE ADMIN read-only authorization, deterministic Category/Article
