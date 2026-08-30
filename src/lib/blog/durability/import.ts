@@ -39,7 +39,7 @@ type ArticleReadBack = {
 };
 
 export type BlogDurabilityImportReport = {
-  environment: Gate6Environment;
+  environment: Gate6Environment | "production";
   committed: true;
   dryRun: BlogDurabilityDryRunReport;
   createdCategorySlugs: string[];
@@ -205,6 +205,21 @@ export async function importBlogDurabilityBundleV1(input: {
     actorUserId: input.actorUserId,
     targetBaseUrl: input.targetBaseUrl,
   });
+  return executeValidatedBlogDurabilityImportV1({
+    bundle: input.bundle,
+    actorUserId: input.actorUserId,
+    dryRun,
+    environment: input.environment,
+  });
+}
+
+export async function executeValidatedBlogDurabilityImportV1(input: {
+  bundle: BlogDurabilityBundleV1;
+  actorUserId: string;
+  dryRun: BlogDurabilityDryRunReport;
+  environment: Gate6Environment | "production";
+}): Promise<BlogDurabilityImportReport> {
+  const dryRun = input.dryRun;
   if (!dryRun.bundleValid || !dryRun.eligibleForWrite || dryRun.errors.length > 0) {
     throw new Error(`BLOG_DURABILITY_IMPORT_NOT_ELIGIBLE:${dryRun.errors.join(",") || "DRY_RUN_REJECTED"}`);
   }
