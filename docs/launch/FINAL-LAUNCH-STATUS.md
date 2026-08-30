@@ -110,6 +110,21 @@ Push, merge, deployment, and production mutation remain outside this closeout.
     storage path, and related Production inputs are absent). These are retained
     as external/manual blockers rather than treated as code regressions.
   - Production mutation: none.
+- Gate 10: `NO CODE CHANGE / READINESS CONTRACT PASS / OPERATIONAL EVIDENCE BLOCKED`.
+  - Existing `tools/production/preflight.mjs` is fail-closed for Production
+    runtime mode, PostgreSQL URL, auth secret length, HTTPS canonical origin,
+    explicit launch boundaries/order, `FREE_ONLY` monetization, Lead limit,
+    Blog AI/provider configuration, cron/abuse secrets, and local-storage
+    adapter/path requirements. It emits names/status only and does not print
+    secret values.
+  - `docs/operations/production-environment.md` records the matching launch
+    configuration contract; Gate 9 confirmed the current local shell lacks the
+    Production values rather than revealing or synthesizing them.
+  - Focused launch/env fail-closed regression: 2 files / 12 tests PASS;
+    `git diff --check` PASS.
+  - Operational evidence remains BLOCKED pending the real Production secret
+    store, canonical HTTPS origin, launch configuration, provider settings, and
+    durable storage path.
 
 Gate 5 adds runtime bundle validation, parameterized image transformation,
 ACTIVE ADMIN read-only authorization, deterministic Category/Article
