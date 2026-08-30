@@ -71,6 +71,16 @@ Push, merge, deployment, and production mutation remain outside this closeout.
   - Deferred evidence: the previously verified Gate 4 canonical 10-Article
     bundle file recorded above is no longer present in the current Temp
     directory, so a canonical-bundle Gate 6 operational import was not run.
+- Gate 7: `NO CODE CHANGE / AUTOMATED VERIFICATION PASS / OPERATIONAL EVIDENCE BLOCKED`.
+  - Existing Gate 5 transformation code already accepts a parameterized HTTPS
+    target origin, preserves `/images/blog/...` paths and Markdown structure,
+    rejects unsafe/non-canonical origins and source URLs, and fails if localhost
+    Blog image references remain.
+  - Focused Gate 7 delta verification: `blog-durability-dry-run.test.ts`,
+    14/14 tests PASS; Gate 6 full regression/build evidence remains applicable.
+  - Deferred evidence: the real Production canonical HTTPS origin is still not
+    designated, so no Production-target transformation evidence was executed.
+  - Production mutation: none.
 
 Gate 5 adds runtime bundle validation, parameterized image transformation,
 ACTIVE ADMIN read-only authorization, deterministic Category/Article
