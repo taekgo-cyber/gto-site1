@@ -212,6 +212,17 @@ Push, merge, deployment, and production mutation remain outside this closeout.
     staging-only requirement.
   - Because Gate 16 has no designated staging deployment, no staging E2E was
     executed and Production was not used as a substitute.
+- Gate 18: `NO CODE CHANGE / AUTOMATED READINESS PASS / OPERATIONAL EVIDENCE BLOCKED`.
+  - Focused AI/scheduler regression: 6 files / 32 tests PASS, covering provider
+    validation, static QA, generation service, automation scheduling/control,
+    and authenticated cron-route behavior.
+  - Existing policy remains fail-closed and DRAFT-only: provider/QA failure does
+    not create a publishable result, and Production automation requires explicit
+    provider/model/key and cron-secret configuration.
+  - Gate 10 Production preflight confirms the real provider endpoint/key/model
+    and scheduler secret are not configured in the current environment.
+  - No external AI provider call, Production scheduler activation, or automatic
+    Production publishing was performed; operational smoke remains BLOCKED.
 
 Gate 5 adds runtime bundle validation, parameterized image transformation,
 ACTIVE ADMIN read-only authorization, deterministic Category/Article
