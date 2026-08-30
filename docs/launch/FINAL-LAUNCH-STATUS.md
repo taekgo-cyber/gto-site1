@@ -249,6 +249,14 @@ Push, merge, deployment, and production mutation remain outside this closeout.
     Production migration/import execution.
   - No Production deploy, `prisma migrate deploy`, durability import, storage
     mutation, traffic change, push, merge, or release action was performed.
+- Gate 21: `NOT EXECUTABLE / WAITING FOR HUMAN-APPROVED PRODUCTION DEPLOY`.
+  - Canonical Gate 21 is a post-deployment Production smoke and cannot be
+    satisfied by local, disposable, or staging evidence.
+  - No human-approved Production deployment has occurred in this roadmap run;
+    S24 likewise records Production deploy as not performed.
+  - Production smoke was therefore not attempted, simulated, or replaced with
+    local checks. Gate 22 static launch verification may continue independently,
+    while Gate 23 must treat missing Production smoke as launch-critical.
 
 Gate 5 adds runtime bundle validation, parameterized image transformation,
 ACTIVE ADMIN read-only authorization, deterministic Category/Article
