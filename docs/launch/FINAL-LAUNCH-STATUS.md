@@ -152,6 +152,20 @@ Push, merge, deployment, and production mutation remain outside this closeout.
   - No Production PostgreSQL provider/instance, backup identifier, retention
     policy, encryption/PITR proof, or restore permission is currently available;
     no backup was synthesized or Production connection attempted.
+- Gate 13: `NO CODE CHANGE / RESTORE PROCEDURE READY / OPERATIONAL EVIDENCE BLOCKED`.
+  - Existing recovery runbook requires an isolated PostgreSQL 16 restore target,
+    restore of the selected Production-format backup, migration-history/schema
+    compatibility checks, release-app connection, health/read-only smoke,
+    durable-upload restore, and measured RPO/RTO evidence.
+  - Required retained evidence is explicitly non-secret: release SHA,
+    backup/restore identifiers and timestamps, measured RPO/RTO, migration
+    status, and health/smoke result.
+  - No valid Gate 12 Production backup exists yet, so a meaningful Production
+    restore drill cannot be executed. The Gate 6 disposable database proves only
+    clean migration/application compatibility and is not misrepresented as a
+    restore of Production backup data.
+  - Gate 12 + Gate 13 proof therefore remains a hard blocker for Gate 20 actual
+    Production migration/deploy/import execution approval.
 
 Gate 5 adds runtime bundle validation, parameterized image transformation,
 ACTIVE ADMIN read-only authorization, deterministic Category/Article
