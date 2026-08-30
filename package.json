@@ -26,6 +26,7 @@
     "cbt:batch-generate": "tsx tools/cbt/cli-batch-generate.ts",
     "cbt:batch-review": "tsx tools/cbt/cli-batch-review.ts",
     "cbt:batch-promote": "tsx tools/cbt/cli-batch-promote.ts",
+    "cbt:publish": "tsx tools/cbt/cli-publish.ts",
     "cbt:dataset-audit": "tsx tools/cbt/cli-dataset-audit.ts",
     "cbt:answer-fetch": "tsx tools/cbt/cli-answer-fetch.ts",
     "cbt:id-enum": "tsx tools/cbt/cli-id-enum.ts",
