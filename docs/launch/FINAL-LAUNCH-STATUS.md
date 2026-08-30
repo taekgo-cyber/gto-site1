@@ -125,6 +125,20 @@ Push, merge, deployment, and production mutation remain outside this closeout.
   - Operational evidence remains BLOCKED pending the real Production secret
     store, canonical HTTPS origin, launch configuration, provider settings, and
     durable storage path.
+- Gate 11: `NO CODE CHANGE / MIGRATION READINESS PASS / PRODUCTION EXECUTION BLOCKED`.
+  - Canonical migration contract remains `prisma migrate deploy`; Production
+    `migrate dev`/`db push` and startup-coupled schema mutation are prohibited by
+    the existing runbook.
+  - Current repository migration chain: 20 migrations. The isolated Gate 6
+    disposable PostgreSQL reports `Database schema is up to date` after the
+    same 20-migration chain was applied successfully.
+  - Static scan of repository migration SQL found no `DROP TABLE/COLUMN/TYPE/
+    INDEX/CONSTRAINT`, column type contraction, or `SET NOT NULL` destructive
+    pattern requiring a new schema approval.
+  - Gate 6 Prisma validate/typecheck/build evidence remains current; no Prisma
+    schema or migration file changed in Gates 6-11.
+  - Actual Production DB identification, backup prerequisite, and Production
+    `prisma migrate deploy` remain HUMAN/PRODUCTION blocked.
 
 Gate 5 adds runtime bundle validation, parameterized image transformation,
 ACTIVE ADMIN read-only authorization, deterministic Category/Article
