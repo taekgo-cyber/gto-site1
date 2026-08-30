@@ -55,6 +55,28 @@ Completion evidence may record the action (`CREATED` or `NO_OP`), user ID, email
 
 The Production plan is read-only. It validates the exact target DB identity and canonical HTTPS origin, then runs the existing zero-write durability dry-run. In Production mode the canonical origin must exactly match `NEXT_PUBLIC_SITE_URL`.
 
+### Canonical bundle handoff
+
+Do not make the release depend on an old OS Temp path. Before the Production plan,
+the release operator must place a verified Bundle v1 artifact in an
+operator-controlled release-evidence location outside the repository and outside
+ephemeral Temp storage, or reproducibly rerun the read-only exporter against the
+authoritative source database when that source is still available. The artifact
+itself is not committed to Git.
+
+For the first launch, verify before use that the selected bundle still matches
+the approved canonical characteristics: 10 Articles, `DRAFT` 9,
+`PUBLISHED` 1, archived content excluded, and featured/body image references
+10/10. Record only the artifact location identifier, file SHA-256, Bundle v1
+checksum, article/status counts, exporter source checkpoint, and verification
+time in release evidence. Never edit article content to force those counts.
+
+The exporter uses exclusive-create output semantics and performs a second
+read-only export comparison before it reports success, so a fresh artifact can
+be generated without mutating the source database. If the authoritative source
+state has drifted from the approved launch bundle, stop and review the delta
+instead of silently replacing the canonical artifact.
+
 ```text
 npm run blog:durability:production-plan -- \
   --environment production \

@@ -30,6 +30,13 @@ Track B production 환경변수 운영 계약이다. 실제 secret 값은 이 �
 | `BLOG_AI_API_KEY` | AI 기능 사용 시 필수 secret | 관리자 AI 초안 생성과 automation runner가 사용하는 provider key. 로그·브라우저·Git에 노출하지 않는다. |
 | `BLOG_AI_MODEL` | AI provider config | 운영 승인된 model identifier. provider smoke evidence에 값 자체가 아닌 승인된 구성 여부를 기록한다. |
 | `BLOG_AUTOMATION_CRON_SECRET` | scheduler 연결 시 필수 secret | 32자 이상의 강한 Bearer secret. scheduler secret store에서 주입하고 health/log/evidence에 값을 남기지 않는다. |
+| `SUPPORT_ABUSE_HASH_SECRET` | 필수 runtime secret | Support abuse/rate-limit hashing 전용 32자 이상 secret. `AUTH_SECRET` fallback에 의존하지 않고 Production secret store에 별도 주입한다. |
+| `OPS_AUTOMATION_CRON_SECRET` | Ops scheduler 연결 시 필수 secret | 32자 이상의 강한 Bearer secret. 초기 scheduler OFF 상태에서도 activation 전 별도 secret으로 준비하며 로그/evidence에 값을 남기지 않는다. |
+| `TELEGRAM_BOT_TOKEN` | Telegram 활성화 시 provider credential | Telegram Bot API credential. 초기 launch에서 Telegram OFF이면 미설정 허용; 활성화 시 secret store에만 주입한다. |
+| `TELEGRAM_ADMIN_CHAT_ID` | Telegram 활성화 시 operator config | 승인된 관리자 chat 식별자. 초기 launch에서 Telegram OFF이면 불필요하다. |
+| `TELEGRAM_ADMIN_USER_IDS` | Telegram 활성화 시 authorization config | 승인된 관리자 user id allowlist. 초기 launch에서 Telegram OFF이면 불필요하다. |
+| `TELEGRAM_WEBHOOK_SECRET` | Telegram webhook 활성화 시 secret | webhook 검증용 secret. 초기 launch에서 Telegram OFF이면 미설정 허용한다. |
+| `RELEASE_ADMIN_BOOTSTRAP_PASSWORD` | temporary release-execution secret | Production ACTIVE ADMIN bootstrap 실행 순간에만 주입하는 임시 secret. ordinary runtime config로 지속 보관하지 않고 실행/검증 후 제거한다. |
 | `NODE_ENV` | 플랫폼 관리 | production runtime에서 `production`; secure cookie 등 framework/runtime 동작에 사용된다. 수동 임의 변경 금지. |
 
 ## Offline CBT tool variables

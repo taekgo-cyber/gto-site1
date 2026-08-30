@@ -198,11 +198,14 @@ closeout.
     requires evidence without credentials or PII.
   - Hard dependency is preserved: `NO VALID BACKUP = NO PRODUCTION MIGRATION /
     IMPORT`.
-  - Railway shows no backups and requires a paid Pro upgrade to enable Backups
-    and PITR. No paid action was taken. The Production environment also has no
-    PostgreSQL instance, backup identifier, retention policy, encryption/PITR
-    proof, or restore permission; no backup was synthesized or Production
-    connection attempted.
+  - Railway Production currently has no PostgreSQL instance, so there is no
+    Production backup identifier, retention/PITR proof, or restore evidence yet.
+    Current Railway documentation describes volume backups as manual/scheduled
+    volume snapshots and PITR as pgBackRest/WAL archiving billed through normal
+    bucket-storage and network-egress meters; it does not document PITR as a
+    Pro-only entitlement. Account/UI eligibility must therefore be verified on
+    the actual Production database before treating a plan upgrade as required.
+    No paid action, backup synthesis, or Production connection was attempted.
 - Gate 13: `NO CODE CHANGE / RESTORE PROCEDURE READY / OPERATIONAL EVIDENCE BLOCKED`.
   - Existing recovery runbook requires an isolated PostgreSQL 16 restore target,
     restore of the selected Production-format backup, migration-history/schema
