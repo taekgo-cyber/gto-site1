@@ -223,6 +223,18 @@ Push, merge, deployment, and production mutation remain outside this closeout.
     and scheduler secret are not configured in the current environment.
   - No external AI provider call, Production scheduler activation, or automatic
     Production publishing was performed; operational smoke remains BLOCKED.
+- Gate 19: `NO CODE CHANGE / AUTOMATED READINESS PASS / OPERATIONAL EVIDENCE BLOCKED`.
+  - Focused Telegram/Admin Ops regression: 5 files / 19 tests PASS, covering
+    configuration fail-closed behavior, authorized webhook handling, source-of-
+    truth separation, delivery claim/dedupe, bounded retry, and safe provider
+    failure handling without raw external errors.
+  - Existing runbook keeps PostgreSQL as the source of truth, prohibits
+    privileged state changes directly from Telegram text/callbacks, and excludes
+    email, phone, business evidence, detailed address, account data, raw IP/UA,
+    and credentials from Telegram operational payloads.
+  - Real bot/chat/admin-user/webhook credentials are not configured and no
+    external Telegram message/test-fire was sent. Operational evidence remains
+    BLOCKED until explicitly configured.
 
 Gate 5 adds runtime bundle validation, parameterized image transformation,
 ACTIVE ADMIN read-only authorization, deterministic Category/Article
