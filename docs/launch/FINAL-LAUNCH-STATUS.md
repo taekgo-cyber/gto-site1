@@ -81,6 +81,17 @@ Push, merge, deployment, and production mutation remain outside this closeout.
   - Deferred evidence: the real Production canonical HTTPS origin is still not
     designated, so no Production-target transformation evidence was executed.
   - Production mutation: none.
+- Gate 8: `NO CODE CHANGE / EVIDENCE-ONLY PASS`.
+  - Read-only local Blog state at the current canonical HEAD: 11 total rows,
+    10 operating Articles (`DRAFT` 9, `PUBLISHED` 1), one `ARCHIVED` row
+    excluded, 10/10 featured image references, and 10 body image references.
+  - Publication-state consistency: no PUBLISHED row without `publishedAt` and no
+    DRAFT row with `publishedAt`.
+  - Focused publication-readiness regression covering canonical/public
+    discovery, CTA/discovery behavior, list thumbnails, Markdown images, AI QA,
+    and CMS state rules: 6 files / 61 tests PASS.
+  - Gate 6 full regression/build evidence remains applicable; no Blog runtime
+    code changed in Gate 7 or Gate 8.
 
 Gate 5 adds runtime bundle validation, parameterized image transformation,
 ACTIVE ADMIN read-only authorization, deterministic Category/Article
