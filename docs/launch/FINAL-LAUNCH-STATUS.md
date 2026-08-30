@@ -2,7 +2,7 @@
 
 ## Status
 
-`FINAL LAUNCH GATE 6-23 READINESS REVIEW COMPLETE; GATE 23 VERDICT = NO-GO FOR PUBLIC SWITCH UNTIL HUMAN/PRODUCTION EVIDENCE IS COMPLETE`
+`RAILWAY STAGING OPERATIONAL CLOSEOUT PASS; GATE 23 VERDICT = NO-GO FOR PUBLIC SWITCH UNTIL HUMAN/PRODUCTION EVIDENCE IS COMPLETE`
 
 This document is the canonical checkpoint ledger for the remaining launch
 roadmap. It records the repository boundary after C4.1 without rewriting the
@@ -22,10 +22,45 @@ internal Gate numbering systems must not be remapped onto that roadmap.
 - C3: `0b209e7` — Blog image rendering and accessibility
 - C4: `7d52417` — homepage, navigation, and unified search
 - C4.1: `f4ad278` — unified search UX defect closeout
+- Gate 5 checkpoint: `53f0eaf` — zero-write durability dry-run importer
+- Gate 6 checkpoint: `5780eb3` — bounded local-only durability importer
+- Release tooling HEAD before this evidence checkpoint: `725a3cf`
 - Checkpoint ancestry: `C1 -> C2 -> C3 -> C4 -> C4.1` PASS
 
-The commit containing this document becomes the canonical Gate 2 checkpoint.
-Push, merge, deployment, and production mutation remain outside this closeout.
+The RC branch and its upstream matched at `725a3cf` before this evidence-only
+documentation checkpoint. `main` was not checked out or changed. Production
+merge, deployment, mutation, and public traffic changes remain outside this
+closeout.
+
+## Railway Staging Operational Evidence — 2026-08-30 KST
+
+- Railway project/environment: `gto-site1-production` / `staging`.
+- Web service: `gto-web`, source branch
+  `codex/s24-launch-validation`, deployed SHA `725a3cf`.
+- Runtime: Node `24.19.0`; Railway build, pre-deploy, deploy, and healthcheck
+  succeeded. Pre-deploy used `npx prisma migrate deploy`.
+- Dedicated staging PostgreSQL: PostgreSQL `18.6`; all 20 repository migrations
+  applied and a later deploy reported no pending migrations.
+- Dedicated staging volume: `gto-web-volume-N6X2`, mounted at
+  `/data/uploads`; it is distinct from the PostgreSQL volume and from the empty
+  Production environment.
+- Railway HTTPS origin: `https://gto-web-staging.up.railway.app`.
+- Staging environment contract is present without recording values: Production
+  runtime mode, PostgreSQL URL, auth secret, HTTPS site origin, four launch
+  boundaries, `FREE_ONLY`, Lead limit, local storage provider, and absolute
+  upload path. AI, scheduler, Telegram, and Production bootstrap credentials
+  remain absent/off.
+- External health evidence after the final maintenance deploy:
+  `/api/health` = HTTP 200 `{"status":"ok"}` and `/api/ready` = HTTP 200
+  `{"status":"ready"}`; both responses carry `noindex, nofollow`.
+- Bounded staging identities are ACTIVE and isolated: one normal USER, one
+  ADMIN, and one seeded COMPANY. Passwords and actor IDs are not recorded.
+- The staging service was temporarily switched to PUBLIC only for bounded E2E,
+  then restored to `SITE_AVAILABILITY=MAINTENANCE`; `/` redirects to
+  `/maintenance` after the final successful deploy.
+- Production Railway environment remains empty: no Web App, PostgreSQL, Volume,
+  or domain. Production DB connections, migrations, mutations, deploys, and
+  traffic changes performed in this run: zero.
 
 ## Post-Gate 2 Durability Progression
 
@@ -40,14 +75,24 @@ Push, merge, deployment, and production mutation remain outside this closeout.
   - Bundle checksum: `d1efc84727aea4f29f6a5d00562b132e81c0ca712dec5e624929048ebb42e134`
   - Articles: 10 (`DRAFT` 9, `PUBLISHED` 1); `ARCHIVED` excluded: 1;
     featured/body image references: 10/10.
-- Gate 5 working-tree state: `BUILD COMPLETE / AUTOMATED VERIFICATION PASS`;
-  no checkpoint commit is authorized or created.
-- Gate 5 operational evidence: `BLOCKED`; operational dry-run: `NOT RUN`.
-  - Blocker: explicit target `DATABASE_URL` is not designated.
-  - Blocker: target ACTIVE ADMIN `actorUserId` is not designated.
-  - Blocker: HTTPS canonical origin is not designated.
-  - The exporter was not rerun and the verified canonical bundle was not copied,
-    changed, or staged.
+- Gate 5: `BUILD COMPLETE / AUTOMATED VERIFICATION PASS / STAGING OPERATIONAL EVIDENCE PASS / PRODUCTION-TARGET EVIDENCE BLOCKED`.
+  - Checkpoint: `53f0eaf` (`feat(blog): add zero-write durability dry-run
+    importer`).
+  - The canonical Gate 4 bundle above was transferred only to the staging
+    container temporary directory; its file SHA-256 and Bundle checksum matched.
+    The exporter was not rerun and the bundle was not copied into or staged from
+    the repository.
+  - Staging zero-write dry-run: bundle valid, eligible for write, checksum valid,
+    ACTIVE ADMIN validated, and `wouldWrite=false`.
+  - Report: 10 Articles (`DRAFT` 9, `PUBLISHED` 1), Category create/reuse = 4/0,
+    Article create/no-op = 10/0, Category/Article conflicts = 0/0, image
+    references = 20, validation/report issues = 0/0.
+  - Staging Blog Category/Article DB counts remained 0/0 after the dry-run,
+    independently confirming zero writes.
+  - Production-target evidence remains blocked because the Production DB,
+    Production ACTIVE ADMIN actor, and Production canonical HTTPS origin do not
+    exist or are not designated. Staging evidence is not represented as
+    Production evidence.
 - Gate 6: `BUILD COMPLETE / AUTOMATED VERIFICATION PASS / LOCAL DISPOSABLE TRANSACTION EVIDENCE PASS / CANONICAL 10-ARTICLE OPERATIONAL EVIDENCE BLOCKED`.
   - Bounded importer reruns the complete Gate 5 dry-run before any write and
     fails closed unless `DATABASE_URL` resolves to loopback PostgreSQL and the
@@ -68,9 +113,9 @@ Push, merge, deployment, and production mutation remain outside this closeout.
     first synthetic Bundle v1 import created 1 Category + 1 Article and passed
     post-commit read-back; immediate second import produced Article `NO_OP` and
     passed post-commit read-back.
-  - Deferred evidence: the previously verified Gate 4 canonical 10-Article
-    bundle file recorded above is no longer present in the current Temp
-    directory, so a canonical-bundle Gate 6 operational import was not run.
+  - The canonical Gate 4 bundle remains present and verified, but Gate 6 is
+    deliberately local/test/disposable-only. No canonical-bundle write import
+    was run against staging or Production.
 - Gate 7: `NO CODE CHANGE / AUTOMATED VERIFICATION PASS / OPERATIONAL EVIDENCE BLOCKED`.
   - Existing Gate 5 transformation code already accepts a parameterized HTTPS
     target origin, preserves `/images/blog/...` paths and Markdown structure,
@@ -110,7 +155,7 @@ Push, merge, deployment, and production mutation remain outside this closeout.
     storage path, and related Production inputs are absent). These are retained
     as external/manual blockers rather than treated as code regressions.
   - Production mutation: none.
-- Gate 10: `NO CODE CHANGE / READINESS CONTRACT PASS / OPERATIONAL EVIDENCE BLOCKED`.
+- Gate 10: `NO CODE CHANGE / READINESS CONTRACT PASS / STAGING ENV EVIDENCE PASS / PRODUCTION ENV EVIDENCE BLOCKED`.
   - Existing `tools/production/preflight.mjs` is fail-closed for Production
     runtime mode, PostgreSQL URL, auth secret length, HTTPS canonical origin,
     explicit launch boundaries/order, `FREE_ONLY` monetization, Lead limit,
@@ -122,10 +167,11 @@ Push, merge, deployment, and production mutation remain outside this closeout.
     Production values rather than revealing or synthesizing them.
   - Focused launch/env fail-closed regression: 2 files / 12 tests PASS;
     `git diff --check` PASS.
-  - Operational evidence remains BLOCKED pending the real Production secret
-    store, canonical HTTPS origin, launch configuration, provider settings, and
-    durable storage path.
-- Gate 11: `NO CODE CHANGE / MIGRATION READINESS PASS / PRODUCTION EXECUTION BLOCKED`.
+  - The staging service has the required core variable names and fail-closed
+    launch configuration; values were neither printed nor committed. Production
+    still has no service or secret store, canonical origin, launch configuration,
+    provider settings, or durable storage path.
+- Gate 11: `NO CODE CHANGE / MIGRATION READINESS PASS / STAGING MIGRATION PASS / PRODUCTION EXECUTION BLOCKED`.
   - Canonical migration contract remains `prisma migrate deploy`; Production
     `migrate dev`/`db push` and startup-coupled schema mutation are prohibited by
     the existing runbook.
@@ -137,8 +183,11 @@ Push, merge, deployment, and production mutation remain outside this closeout.
     pattern requiring a new schema approval.
   - Gate 6 Prisma validate/typecheck/build evidence remains current; no Prisma
     schema or migration file changed in Gates 6-11.
-  - Actual Production DB identification, backup prerequisite, and Production
-    `prisma migrate deploy` remain HUMAN/PRODUCTION blocked.
+  - Dedicated staging PostgreSQL `18.6` successfully applied all 20 repository
+    migrations; a subsequent pre-deploy reported no pending migrations.
+  - The Production environment has no PostgreSQL service. Production DB
+    identification, backup prerequisite, and Production `prisma migrate deploy`
+    remain HUMAN/PRODUCTION blocked.
 - Gate 12: `NO CODE CHANGE / BACKUP-PITR CONTRACT READY / OPERATIONAL EVIDENCE BLOCKED`.
   - Existing Backup & Recovery runbook defines PostgreSQL application data,
     migration history, durable uploads, deployment configuration metadata, and
@@ -149,9 +198,11 @@ Push, merge, deployment, and production mutation remain outside this closeout.
     requires evidence without credentials or PII.
   - Hard dependency is preserved: `NO VALID BACKUP = NO PRODUCTION MIGRATION /
     IMPORT`.
-  - No Production PostgreSQL provider/instance, backup identifier, retention
-    policy, encryption/PITR proof, or restore permission is currently available;
-    no backup was synthesized or Production connection attempted.
+  - Railway shows no backups and requires a paid Pro upgrade to enable Backups
+    and PITR. No paid action was taken. The Production environment also has no
+    PostgreSQL instance, backup identifier, retention policy, encryption/PITR
+    proof, or restore permission; no backup was synthesized or Production
+    connection attempted.
 - Gate 13: `NO CODE CHANGE / RESTORE PROCEDURE READY / OPERATIONAL EVIDENCE BLOCKED`.
   - Existing recovery runbook requires an isolated PostgreSQL 16 restore target,
     restore of the selected Production-format backup, migration-history/schema
@@ -166,7 +217,7 @@ Push, merge, deployment, and production mutation remain outside this closeout.
     restore of Production backup data.
   - Gate 12 + Gate 13 proof therefore remains a hard blocker for Gate 20 actual
     Production migration/deploy/import execution approval.
-- Gate 14: `NO CODE CHANGE / STORAGE CONTRACT PASS / OPERATIONAL EVIDENCE BLOCKED`.
+- Gate 14: `NO CODE CHANGE / STORAGE CONTRACT PASS / STAGING DURABLE STORAGE PASS / PRODUCTION EVIDENCE BLOCKED`.
   - Runtime storage remains intentionally `local` only; unknown providers fail
     closed. Production documentation and preflight require an explicit absolute
     `UPLOAD_DIR` and prohibit treating an ephemeral deployment filesystem as
@@ -174,10 +225,14 @@ Push, merge, deployment, and production mutation remain outside this closeout.
   - Existing recovery policy requires the volume to have snapshot/backup
     coverage and requires attachment DB-row/file consistency after restore.
   - Focused attachment/storage service regression: 1 file / 11 tests PASS.
-  - No Production durable volume, restart/redeploy survival proof, or storage
-    backup/restore evidence exists yet. No Production storage mutation was
-    attempted.
-- Gate 15: `NO CODE CHANGE / OBSERVABILITY CONTRACT PASS / OPERATIONAL EVIDENCE BLOCKED`.
+  - Staging application upload created a WebP through the supported attachment
+    service. Before and after a full Railway redeploy, the DB reference and
+    volume file matched at 98,446 bytes with SHA-256
+    `3365cfca914fb85dc0245239b4c2935255d7b25473b8b739e5fbcefd95a441bb`;
+    the public file route returned HTTP 200 `image/webp` after redeploy.
+  - No Production durable volume or storage backup/restore evidence exists. No
+    Production storage mutation was attempted.
+- Gate 15: `NO CODE CHANGE / OBSERVABILITY CONTRACT PASS / STAGING HEALTH-READINESS PASS / ALERT EVIDENCE BLOCKED`.
   - Existing observability contract separates `/api/health` process liveness
     from `/api/ready` database readiness, requires readiness failures to return
     only safe status data, and prohibits DB URLs, credentials, raw errors,
@@ -188,30 +243,31 @@ Push, merge, deployment, and production mutation remain outside this closeout.
     SHA/deployment/migration correlation is also documented.
   - Gate 6 full regression and Production build cover the current health/ready
     routes; Gate 9 confirmed no observability runtime delta since S24.
-  - Actual APM/log aggregation provider and an alert destination have not been
-    configured, so required real alert test-fire evidence remains BLOCKED and
-    no external notification was sent.
-- Gate 16: `NO CODE CHANGE / STAGING REQUIREMENTS READY / OPERATIONAL EVIDENCE BLOCKED`.
-  - Existing S24 evidence already identifies real DB-backed desktop/mobile
-    execution as a staging manual item. The current Production readiness
-    contracts require isolated app/runtime configuration, PostgreSQL migration
-    state, assets, test accounts, and separation from Production before staging
-    can be treated as valid evidence.
-  - Gate 6 proves the current migration chain and application can operate on an
-    isolated disposable PostgreSQL, but that local disposable database is not
-    misclassified as a deployed staging stack.
-  - No staging application URL/project, staging DB identifier, staging secret
-    set, or isolated staging asset store is currently designated. No Production
-    environment was used as a substitute.
-- Gate 17: `NOT EXECUTABLE / STAGING E2E OPERATIONAL EVIDENCE BLOCKED`.
-  - Canonical Gate 17 requires E2E against an actual isolated staging
-    deployment covering desktop/mobile public, auth/admin, Jobs, Lease, Blog,
-    Search, Lead, Company, monetization, and other critical paths.
-  - Gate 6 full automated regression/build evidence and historical Track B/S24
-    local browser evidence remain useful prior evidence but do not satisfy this
-    staging-only requirement.
-  - Because Gate 16 has no designated staging deployment, no staging E2E was
-    executed and Production was not used as a substitute.
+  - Railway healthcheck uses `/api/ready`. External post-deploy checks returned
+    HTTP 200 for `/api/health` and `/api/ready` with safe status-only bodies and
+    noindex headers.
+  - Actual APM/log aggregation provider and an alert destination remain
+    unconfigured, so real alert test-fire evidence is BLOCKED and no external
+    notification was sent.
+- Gate 16: `NO CODE CHANGE / STAGING READINESS OPERATIONAL PASS`.
+  - Isolated Railway staging has its own Web App, PostgreSQL, two volumes, secret
+    set, HTTPS domain, RC-branch source binding, migration state, test identities,
+    seeded content, and maintenance boundary. Production remains empty and was
+    not used as a substitute or shared resource.
+  - The deployed commit was the canonical RC HEAD `725a3cf`; Railway pre-deploy,
+    deploy, healthcheck, and later same-configuration redeploy succeeded.
+- Gate 17: `NO CODE CHANGE / STAGING DESKTOP-MOBILE E2E PASS`.
+  - Actual Railway staging desktop (1440x900) and mobile (390x844) E2E covered
+    Home, Jobs, Lease list/detail/write/edit, Companies list/detail, Blog,
+    Search, Support, CBT, notifications, My Page, Lead, login/signup, and
+    maintenance/public behavior.
+  - ACTIVE ADMIN access passed for Blog, Companies, Leads, Ads, Tickets, and Ops.
+    A normal USER reached My Page and received the intentional 404 boundary at
+    `/admin/blog`.
+  - A synthetic staging-only CS ticket was accepted and appeared in Admin
+    Tickets. No real customer contact data or Production system was used.
+  - The canonical lease creation route is `/lease/write`; `/lease/new` correctly
+    remains absent rather than being treated as a staging failure.
 - Gate 18: `NO CODE CHANGE / AUTOMATED READINESS PASS / OPERATIONAL EVIDENCE BLOCKED`.
   - Focused AI/scheduler regression: 6 files / 32 tests PASS, covering provider
     validation, static QA, generation service, automation scheduling/control,
@@ -240,15 +296,16 @@ Push, merge, deployment, and production mutation remain outside this closeout.
     transaction/idempotency proof PASS; Gate 7 parameterized transformation
     automation PASS; Gate 8 content readiness PASS; Gate 9-11 delta/env/
     migration readiness reviews are complete.
-  - Actual execution prerequisites are not satisfied: Gate 12 has no valid
-    Production backup/PITR proof, Gate 13 has no restore-drill proof, Gate 14 has
-    no durable Production storage proof, Gate 15 has no alert test-fire, Gate
-    16-17 have no staging deployment/E2E, and the real Production DB/admin/
-    canonical HTTPS origin required by deferred Gate 5/7 evidence remain absent.
+  - Gate 14 staging durable storage and Gate 16-17 staging readiness/E2E now
+    PASS. Actual Production execution prerequisites are still not satisfied:
+    Gate 12 has no valid Production backup/PITR proof, Gate 13 has no restore
+    drill, Gate 14 has no Production durable storage, Gate 15 has no alert
+    test-fire, and the Production DB/admin/canonical HTTPS origin required by
+    deferred Gate 5/7 evidence remain absent.
   - By contract, missing Gate 12 + Gate 13 proof alone is sufficient to prohibit
     Production migration/import execution.
   - No Production deploy, `prisma migrate deploy`, durability import, storage
-    mutation, traffic change, push, merge, or release action was performed.
+    mutation, traffic change, merge, or release action was performed.
 - Gate 21: `NOT EXECUTABLE / WAITING FOR HUMAN-APPROVED PRODUCTION DEPLOY`.
   - Canonical Gate 21 is a post-deployment Production smoke and cannot be
     satisfied by local, disposable, or staging evidence.
@@ -268,6 +325,9 @@ Push, merge, deployment, and production mutation remain outside this closeout.
   - Gate 8 read-only state confirms `DRAFT` 9 / `PUBLISHED` 1 with consistent
     publication timestamps, supporting the Draft-vs-Published visibility
     boundary.
+  - Staging `/robots.txt` and `/sitemap.xml` returned HTTP 200 during bounded
+    PUBLIC verification. The final staging state is MAINTENANCE and health
+    endpoints carry `noindex, nofollow`.
   - Production canonical origin and Search Console property/submission are not
     available, so live-origin robots/sitemap verification and Search Console
     submission remain external operational items. No submission was performed.
@@ -276,18 +336,21 @@ Push, merge, deployment, and production mutation remain outside this closeout.
     disposable transaction/idempotency evidence PASS; full regression is 136
     files / 1380 tests PASS; typecheck, targeted lint, Prisma validate,
     Production build, and focused Gate 7/8/10/18/19/22 regressions PASS.
-  - Launch-critical operational proof remains unresolved: Production target
+  - Staging architecture, migration, zero-write Gate 5 evidence, durable storage,
+    desktop/mobile E2E, identities/authorization, CS flow, and health/readiness
+    now have actual Railway evidence.
+  - Launch-critical Production proof remains unresolved: Production target
     DB/admin/canonical HTTPS origin, canonical 10-Article Production-target
-    durability evidence, valid backup/PITR, restore drill, durable storage,
-    alert destination/test-fire, isolated staging + staging E2E, human-approved
-    Production deploy, and post-deploy Production smoke.
+    durability evidence, valid backup/PITR, restore drill, durable Production
+    storage, alert destination/test-fire, human-approved Production deploy, and
+    post-deploy Production smoke.
   - Gate 12/13 hard dependency prevents Production migration/import execution;
     Gate 21 is not executable before a human-approved Production deploy.
   - Therefore `GO` and `CONDITIONAL GO` are not declared for a public switch at
     this point. The correct current verdict is `NO-GO` until the required
     human/Production evidence is supplied and re-verified.
-  - No public traffic switch, DNS change, Production mutation, deploy, push,
-    merge, main-branch change, tag, or release action was performed.
+  - No public traffic switch, DNS change, Production mutation/deploy, merge,
+    main-branch change, tag, or release action was performed.
 
 Gate 5 adds runtime bundle validation, parameterized image transformation,
 ACTIVE ADMIN read-only authorization, deterministic Category/Article
@@ -350,22 +413,25 @@ closed in a human-approved release window.
 
 Minimum next evidence sequence:
 
-1. designate the Production project, canonical HTTPS origin, Production DB, and
-   ACTIVE ADMIN actor without exposing credentials;
-2. close deferred Gate 5/7 Production-target durability/image evidence using the
-   verified canonical operating set;
-3. establish valid Backup/PITR and complete an isolated restore drill with
-   measured evidence;
-4. verify durable storage and alert test-fire;
-5. provide an isolated staging deployment and pass Gate 17 E2E;
-6. return for explicit human approval before any Production deploy/migration/
-   import or public traffic switch;
-7. after the approved Production deploy, execute Gate 21 Production smoke and
-   rerun the Gate 23 verdict.
+1. provision/designate isolated Production Web App, PostgreSQL, durable Volume,
+   canonical HTTPS origin, secret store, and ACTIVE ADMIN bootstrap inputs
+   without exposing credentials;
+2. obtain human approval for the Railway plan needed for Backup/PITR, establish
+   a valid recovery point, and complete an isolated restore drill with measured
+   evidence;
+3. verify Production durable storage architecture and configure/test an alert
+   destination;
+4. close deferred Gate 5/7 Production-target zero-write durability/image
+   evidence using the verified canonical operating set;
+5. return for explicit approval at each Production migration, ADMIN bootstrap,
+   durability import, Production deploy, and public traffic hard stop;
+6. after the approved Production deploy, execute Gate 21 Production smoke and
+   live SEO verification, rerun Gate 23, then seek separate public-switch
+   approval.
 
 ## Historical Checkpoint Records
 
 `docs/launch/S24-STATUS.md` and `docs/blog/TRACK-A-STATUS.md` remain historical
 checkpoint records. They do not supersede this canonical post-C4.1 launch
 status. The preserved untracked `docs/launch/PHASE1-CLOSEOUT-AUDIT.md` is not
-part of this Gate 2 checkpoint.
+part of this Railway staging evidence checkpoint.
