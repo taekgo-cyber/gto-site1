@@ -177,6 +177,20 @@ Push, merge, deployment, and production mutation remain outside this closeout.
   - No Production durable volume, restart/redeploy survival proof, or storage
     backup/restore evidence exists yet. No Production storage mutation was
     attempted.
+- Gate 15: `NO CODE CHANGE / OBSERVABILITY CONTRACT PASS / OPERATIONAL EVIDENCE BLOCKED`.
+  - Existing observability contract separates `/api/health` process liveness
+    from `/api/ready` database readiness, requires readiness failures to return
+    only safe status data, and prohibits DB URLs, credentials, raw errors,
+    request bodies, contact PII, raw IP, and session/token data from ordinary
+    application logging/evidence.
+  - Initial alert conditions are defined for repeated health failure, sustained
+    readiness failure, elevated 5xx rate, DB storage, and backup failure; release
+    SHA/deployment/migration correlation is also documented.
+  - Gate 6 full regression and Production build cover the current health/ready
+    routes; Gate 9 confirmed no observability runtime delta since S24.
+  - Actual APM/log aggregation provider and an alert destination have not been
+    configured, so required real alert test-fire evidence remains BLOCKED and
+    no external notification was sent.
 
 Gate 5 adds runtime bundle validation, parameterized image transformation,
 ACTIVE ADMIN read-only authorization, deterministic Category/Article
