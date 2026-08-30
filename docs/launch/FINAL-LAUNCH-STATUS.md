@@ -92,6 +92,24 @@ Push, merge, deployment, and production mutation remain outside this closeout.
     and CMS state rules: 6 files / 61 tests PASS.
   - Gate 6 full regression/build evidence remains applicable; no Blog runtime
     code changed in Gate 7 or Gate 8.
+- Gate 9: `NO CODE CHANGE / DELTA AUDIT PASS / PRODUCTION INPUT EVIDENCE BLOCKED`.
+  - Authoritative prior evidence: S24 remains `COMPLETE / PASS — READY WITH
+    MANUAL PRODUCTION STEPS`; a full launch re-audit was intentionally not
+    repeated.
+  - Git delta from Gate 5 checkpoint `53f0eaf` is limited to the canonical
+    Final Launch roadmap/status documentation and the bounded Gate 6 Blog
+    durability importer, CLI, package script, and focused test. Prisma schema,
+    migrations, general Production runtime policy, auth, monetization, and
+    public-route code are unchanged by this delta.
+  - Gate 6 already passed 136 files / 1380 tests, targeted lint, Prisma
+    validate, typecheck, Production build, and `git diff --check`; Gate 7-8
+    introduced documentation-only changes.
+  - Current local `production:preflight` reports 18 FAIL + 4 MANUAL because the
+    local shell is not a configured Production runtime (Production NODE_ENV,
+    canonical HTTPS origin, launch boundaries, provider/cron secrets, durable
+    storage path, and related Production inputs are absent). These are retained
+    as external/manual blockers rather than treated as code regressions.
+  - Production mutation: none.
 
 Gate 5 adds runtime bundle validation, parameterized image transformation,
 ACTIVE ADMIN read-only authorization, deterministic Category/Article
