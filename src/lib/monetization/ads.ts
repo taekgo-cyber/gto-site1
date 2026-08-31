@@ -2,7 +2,10 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import {
   ADVERTISEMENT_PRODUCT_CATALOG,
+  compareAdvertisementTiers,
   getAdvertisementProductPolicy,
+  getHomepageAdvertisementProductContract,
+  type PaidRecruitmentTier,
   type ManagedAdvertisementProductCode,
 } from "./policy";
 import {
@@ -438,9 +441,23 @@ export async function listPublicAdvertisementCampaigns(input: {
       linkUrl: true,
       sortOrder: true,
       company: { select: { name: true } },
-      product: { select: { recruitmentEntitlement: { select: { id: true } } } },
+      product: {
+        select: {
+          recruitmentEntitlement: {
+            select: { id: true, recruitmentTier: true },
+          },
+        },
+      },
     },
-    orderBy: [{ sortOrder: "desc" }, { createdAt: "desc" }],
+    orderBy: [
+      {
+        product: {
+          recruitmentEntitlement: { recruitmentTier: "desc" },
+        },
+      },
+      { sortOrder: "desc" },
+      { createdAt: "desc" },
+    ],
     take: MAX_PUBLIC_ADS,
   });
   const candidatePairs = rows
@@ -466,16 +483,36 @@ export async function listPublicAdvertisementCampaigns(input: {
   const activePairs = new Set(
     activeEntitlements.map((row) => `${row.companyId}:${row.productEntitlementId}`),
   );
-  return rows.filter((row) => {
-    const entitlementId = row.product?.recruitmentEntitlement?.id;
-    return Boolean(row.companyId && entitlementId && activePairs.has(`${row.companyId}:${entitlementId}`));
-  }).slice(0, limit).map((row) => ({
-    id: row.id,
-    title: row.title,
-    imageUrl: safeStoredUrl(row.imageUrl, "image"),
-    linkUrl: safeStoredUrl(row.linkUrl, "link"),
-    companyName: row.company?.name ?? null,
-  }));
+  return rows
+    .filter((row) => {
+      const entitlementId = row.product?.recruitmentEntitlement?.id;
+      return Boolean(
+        row.companyId &&
+        entitlementId &&
+        activePairs.has(`${row.companyId}:${entitlementId}`),
+      );
+    })
+    .sort((left, right) => {
+      const leftTier = left.product?.recruitmentEntitlement?.recruitmentTier;
+      const rightTier = right.product?.recruitmentEntitlement?.recruitmentTier;
+      if (!leftTier || !rightTier) return 0;
+      const tierOrder = compareAdvertisementTiers(
+        leftTier as PaidRecruitmentTier,
+        rightTier as PaidRecruitmentTier,
+      );
+      if (tierOrder !== 0) return tierOrder;
+      return right.sortOrder - left.sortOrder;
+    })
+    .slice(0, limit)
+    .map((row) => ({
+      id: row.id,
+      title: row.title,
+      imageUrl: safeStoredUrl(row.imageUrl, "image"),
+      linkUrl: safeStoredUrl(row.linkUrl, "link"),
+      companyName: row.company?.name ?? null,
+      recruitmentTier: row.product!.recruitmentEntitlement!
+        .recruitmentTier as PaidRecruitmentTier,
+    }));
 }
 
 export async function listCompanyAdvertisementCampaigns(input: {
@@ -496,6 +533,9 @@ export async function listCompanyAdvertisementCampaigns(input: {
       startDate: true,
       endDate: true,
       status: true,
+      advertisementType: true,
+      jobPostId: true,
+      leasePostId: true,
       regionId: true,
       product: { select: { code: true, name: true } },
       placement: { select: { code: true, name: true } },
@@ -521,7 +561,7 @@ export async function listActiveAdvertisementPlacementsForCompany(input: {
 
 export async function getAdminAdvertisementOperations(actorUserId: string) {
   await assertActiveAdmin(actorUserId);
-  const [products, placements, campaigns, entitlements, companies] = await Promise.all([
+  const [products, placements, campaigns, entitlements, advertisementEntitlements, companies] = await Promise.all([
     prisma.product.findMany({
       where: { type: "ADVERTISEMENT" },
       select: {
@@ -530,6 +570,7 @@ export async function getAdminAdvertisementOperations(actorUserId: string) {
         name: true,
         price: true,
         status: true,
+        advertisementType: true,
         recruitmentEntitlement: { select: { recruitmentTier: true, weeklyMatchQuota: true } },
       },
       orderBy: { price: "asc" },
@@ -543,6 +584,9 @@ export async function getAdminAdvertisementOperations(actorUserId: string) {
         status: true,
         startDate: true,
         endDate: true,
+        advertisementType: true,
+        jobPostId: true,
+        leasePostId: true,
         company: { select: { id: true, name: true } },
         product: { select: { code: true, name: true } },
         placement: { select: { code: true, name: true } },
@@ -565,6 +609,20 @@ export async function getAdminAdvertisementOperations(actorUserId: string) {
       orderBy: { createdAt: "desc" },
       take: 100,
     }),
+    prisma.companyAdvertisementEntitlement.findMany({
+      select: {
+        id: true,
+        validFrom: true,
+        expiresAt: true,
+        cancelledAt: true,
+        cancelReason: true,
+        source: true,
+        company: { select: { id: true, name: true } },
+        product: { select: { code: true, name: true, advertisementType: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    }),
     prisma.company.findMany({
       where: { status: "ACTIVE", deletedAt: null },
       select: { id: true, name: true },
@@ -572,7 +630,7 @@ export async function getAdminAdvertisementOperations(actorUserId: string) {
       take: 200,
     }),
   ]);
-  return { products, placements, campaigns, entitlements, companies };
+  return { products, placements, campaigns, entitlements, advertisementEntitlements, companies };
 }
 
 export type AdvertisementCampaignAdminStatus = "ACTIVE" | "PAUSED" | "CANCELLED";
@@ -589,18 +647,93 @@ export async function getTrackablePublicCampaign(campaignId: string, now = new D
       startDate: { lte: now },
       endDate: { gt: now },
       placement: { isActive: true },
-      company: { status: "ACTIVE" },
+      company: { status: "ACTIVE", deletedAt: null },
       product: { type: "ADVERTISEMENT", status: "ACTIVE" },
     },
     select: {
       id: true,
       companyId: true,
       placementId: true,
+      placement: { select: { code: true } },
       title: true,
       linkUrl: true,
-      product: { select: { recruitmentEntitlement: { select: { id: true } } } },
+      advertisementType: true,
+      jobPostId: true,
+      leasePostId: true,
+      jobPost: {
+        select: { id: true, companyId: true, status: true, deletedAt: true, publishedAt: true },
+      },
+      leasePost: {
+        select: { id: true, companyId: true, status: true, deletedAt: true, publishedAt: true },
+      },
+      product: {
+        select: {
+          id: true,
+          code: true,
+          advertisementType: true,
+          recruitmentEntitlement: { select: { id: true } },
+        },
+      },
     },
   });
+  if (
+    campaign?.companyId &&
+    campaign.product &&
+    campaign.product.code &&
+    campaign.advertisementType
+  ) {
+    const contract = getHomepageAdvertisementProductContract(campaign.product.code);
+    if (
+      !contract ||
+      contract.advertisementType !== campaign.advertisementType ||
+      campaign.product.advertisementType !== campaign.advertisementType ||
+      !(contract.allowedPlacements as readonly string[]).includes(campaign.placement.code)
+    ) return null;
+    let destination: string | null = null;
+    if (campaign.advertisementType === "RECRUITMENT_LISTING") {
+      if (Boolean(campaign.jobPostId) === Boolean(campaign.leasePostId)) return null;
+      if (campaign.jobPostId) {
+        if (
+          !campaign.jobPost ||
+          campaign.jobPost.companyId !== campaign.companyId ||
+          campaign.jobPost.status !== "OPEN" ||
+          campaign.jobPost.deletedAt ||
+          !campaign.jobPost.publishedAt
+        ) return null;
+        destination = `/jobs/${encodeURIComponent(campaign.jobPost.id)}`;
+      } else {
+        if (
+          !campaign.leasePost ||
+          campaign.leasePost.companyId !== campaign.companyId ||
+          campaign.leasePost.status !== "PUBLISHED" ||
+          campaign.leasePost.deletedAt ||
+          !campaign.leasePost.publishedAt
+        ) return null;
+        destination = `/lease/${encodeURIComponent(campaign.leasePost.id)}`;
+      }
+    } else {
+      if (campaign.jobPostId || campaign.leasePostId) return null;
+      destination = safeStoredUrl(campaign.linkUrl, "link") ?? `/companies/${encodeURIComponent(campaign.companyId)}`;
+    }
+    const entitlement = await prisma.companyAdvertisementEntitlement.findFirst({
+      where: {
+        companyId: campaign.companyId,
+        productId: campaign.product.id,
+        cancelledAt: null,
+        validFrom: { lte: now },
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      },
+      select: { id: true },
+    });
+    if (!entitlement) return null;
+    return {
+      id: campaign.id,
+      companyId: campaign.companyId,
+      placementId: campaign.placementId,
+      title: campaign.title,
+      linkUrl: destination,
+    };
+  }
   const productEntitlementId = campaign?.product?.recruitmentEntitlement?.id;
   if (!campaign?.companyId || !productEntitlementId) return null;
   const entitlement = await prisma.companyRecruitmentEntitlement.findFirst({

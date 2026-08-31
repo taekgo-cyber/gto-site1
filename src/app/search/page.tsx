@@ -25,7 +25,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "통합검색",
-  description: "공개된 구인공고, 지입 게시글과 블로그 정보를 한 번에 찾습니다.",
+  description: "공개된 구인공고, 지입 게시글, 업체와 블로그 정보를 한 번에 찾습니다.",
   alternates: { canonical: "/search" },
   robots: { index: false, follow: true },
 };
@@ -33,6 +33,7 @@ export const metadata: Metadata = {
 const DOMAIN_LABELS: Record<SearchDomain, string> = {
   JOBS: "구인공고",
   LEASE: "지입",
+  COMPANIES: "업체정보",
   BLOG: "블로그",
 };
 
@@ -121,7 +122,7 @@ export default async function SearchPage(props: PageProps<"/search">) {
       <header className="space-y-2">
         <h1 className="text-2xl font-bold sm:text-3xl">통합검색</h1>
         <p className="text-sm text-muted-foreground">
-          공개된 구인공고, 지입 게시글과 블로그 정보만 검색합니다.
+          공개된 구인공고, 지입 게시글, 업체와 블로그 정보를 한 번에 검색합니다.
         </p>
       </header>
 
@@ -154,6 +155,7 @@ export default async function SearchPage(props: PageProps<"/search">) {
             <option value="">전체</option>
             <option value="JOBS">구인공고</option>
             <option value="LEASE">지입</option>
+            <option value="COMPANIES">업체정보</option>
             <option value="BLOG">블로그</option>
             <option value="JOBS,LEASE">구인공고 + 지입</option>
             <option value="JOBS,BLOG">구인공고 + 블로그</option>

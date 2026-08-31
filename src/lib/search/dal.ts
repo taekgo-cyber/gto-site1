@@ -8,9 +8,11 @@ import {
 } from "./contract";
 import {
   BLOG_SEARCH_SELECT,
+  COMPANY_SEARCH_SELECT,
   JOB_SEARCH_SELECT,
   LEASE_SEARCH_SELECT,
   buildBlogSearchWhere,
+  buildCompanySearchWhere,
   buildJobSearchWhere,
   buildLeaseSearchWhere,
 } from "./source-contract";
@@ -113,12 +115,35 @@ async function getBlogCandidates(query: string, now: Date): Promise<SearchCandid
   };
 }
 
+async function getCompanyCandidates(query: string): Promise<SearchCandidateBatch> {
+  const rows = await prisma.company.findMany({
+    where: buildCompanySearchWhere(query),
+    select: COMPANY_SEARCH_SELECT,
+    orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+    take: SOURCE_TAKE,
+  });
+
+  return {
+    domain: "COMPANIES",
+    candidates: rows.map((row): SearchCandidate => ({
+      id: row.id,
+      domain: "COMPANIES",
+      title: row.name,
+      body: row.introduction,
+      href: `/companies/${row.id}`,
+      context: row.region?.name ?? "전국",
+      publishedAt: row.createdAt,
+    })),
+  };
+}
+
 const sourceLoaders: Record<
   SearchDomain,
   (query: string, now: Date) => Promise<SearchCandidateBatch>
 > = {
   JOBS: getJobCandidates,
   LEASE: getLeaseCandidates,
+  COMPANIES: getCompanyCandidates,
   BLOG: getBlogCandidates,
 };
 

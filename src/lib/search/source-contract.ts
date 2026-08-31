@@ -34,6 +34,14 @@ export const BLOG_SEARCH_SELECT = {
   category: { select: { slug: true, name: true, isActive: true } },
 } satisfies Prisma.BlogArticleSelect;
 
+export const COMPANY_SEARCH_SELECT = {
+  id: true,
+  name: true,
+  introduction: true,
+  createdAt: true,
+  region: { select: { name: true } },
+} satisfies Prisma.CompanySelect;
+
 export function buildJobSearchWhere(query: string, now: Date): Prisma.JobPostWhereInput {
   return {
     status: "OPEN",
@@ -65,6 +73,17 @@ export function buildBlogSearchWhere(query: string, now: Date): Prisma.BlogArtic
       { title: { contains: query, mode: "insensitive" } },
       { excerpt: { contains: query, mode: "insensitive" } },
       { contentMarkdown: { contains: query, mode: "insensitive" } },
+    ],
+  };
+}
+
+export function buildCompanySearchWhere(query: string): Prisma.CompanyWhereInput {
+  return {
+    status: "ACTIVE",
+    deletedAt: null,
+    OR: [
+      { name: { contains: query, mode: "insensitive" } },
+      { introduction: { contains: query, mode: "insensitive" } },
     ],
   };
 }

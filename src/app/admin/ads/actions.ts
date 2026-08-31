@@ -4,16 +4,22 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/dal";
 import {
-  cancelCompanyAdvertisementEntitlement,
   setManagedAdvertisementProductStatus,
 } from "@/lib/monetization/service";
+import {
+  cancelCompanyAdvertisingEntitlement,
+  grantCompanyAdvertisingEntitlement,
+} from "@/lib/monetization/advertisement-entitlements";
+import {
+  setHomepageAdvertisementCampaignStatusByAdmin,
+  syncHomepageAdvertisementCatalogV3,
+} from "@/lib/monetization/homepage-ads";
 import {
   expireAdvertisementCampaignsByAdmin,
   setAdvertisementCampaignStatusByAdmin,
   syncManagedAdvertisementCatalog,
   upsertAdvertisementPlacementByAdmin,
 } from "@/lib/monetization/ads";
-import { grantCompanyAdvertisementEntitlement } from "@/lib/monetization/service";
 
 function text(formData: FormData, name: string): string {
   const value = formData.get(name);
@@ -37,6 +43,10 @@ function safeMessage(error: unknown): string {
     ADVERTISEMENT_ENTITLEMENT_NOT_ACTIVE: "활성 광고 계약만 취소할 수 있습니다.",
     ADVERTISEMENT_ENTITLEMENT_CANCEL_REASON_TOO_LONG: "계약 취소 사유가 너무 깁니다.",
     ADVERTISEMENT_ENTITLEMENT_CANCEL_CONFLICT: "계약 취소 상태가 동시에 변경되었습니다. 다시 확인해 주세요.",
+    ADVERTISEMENT_PRODUCT_PLACEMENT_MISMATCH: "상품과 광고 위치가 호환되지 않습니다.",
+    ADVERTISEMENT_LISTING_TARGET_INVALID: "업체 소유의 공개 공고만 광고할 수 있습니다.",
+    ADVERTISEMENT_LISTING_TARGET_XOR_REQUIRED: "구인 또는 지입 공고 하나만 연결해야 합니다.",
+    ADVERTISEMENT_INVENTORY_CAPACITY_EXCEEDED: "해당 상품의 활성 판매 수량이 가득 찼습니다.",
   };
   return known[message] ?? "처리 중 오류가 발생했습니다.";
 }
@@ -52,6 +62,7 @@ export async function syncAdvertisementCatalogAction() {
   if (!user) done("로그인이 필요합니다.", true);
   try {
     await syncManagedAdvertisementCatalog({ actorUserId: user.id });
+    await syncHomepageAdvertisementCatalogV3({ actorUserId: user.id });
   } catch (error) {
     done(safeMessage(error), true);
   }
@@ -81,7 +92,7 @@ export async function grantAdvertisementEntitlementAction(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) done("로그인이 필요합니다.", true);
   try {
-    await grantCompanyAdvertisementEntitlement({
+    await grantCompanyAdvertisingEntitlement({
       actorUserId: user.id,
       companyId: text(formData, "companyId"),
       productCode: text(formData, "productCode"),
@@ -105,11 +116,12 @@ export async function setAdvertisementCampaignStatusAction(formData: FormData) {
     done("캠페인 상태가 올바르지 않습니다.", true);
   }
   try {
-    await setAdvertisementCampaignStatusByAdmin({
-      actorUserId: user.id,
-      campaignId: text(formData, "campaignId"),
-      status: rawStatus,
-    });
+    const campaignInput = { actorUserId: user.id, campaignId: text(formData, "campaignId"), status: rawStatus } as const;
+    if (text(formData, "advertisementType")) {
+      await setHomepageAdvertisementCampaignStatusByAdmin(campaignInput);
+    } else {
+      await setAdvertisementCampaignStatusByAdmin(campaignInput);
+    }
   } catch (error) {
     done(safeMessage(error), true);
   }
@@ -160,7 +172,7 @@ export async function cancelAdvertisementEntitlementAction(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) done("로그인이 필요합니다.", true);
   try {
-    await cancelCompanyAdvertisementEntitlement({
+    await cancelCompanyAdvertisingEntitlement({
       actorUserId: user.id,
       entitlementId: text(formData, "entitlementId"),
       reason: text(formData, "reason") || null,

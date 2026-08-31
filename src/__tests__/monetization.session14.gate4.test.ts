@@ -139,8 +139,8 @@ describe("Session 14 Gate 4 advertisement operations", () => {
 
   it("public query requests ACTIVE/effective/non-deleted campaigns and strips unsafe legacy URLs", async () => {
     mocks.campaignFindMany.mockResolvedValue([
-      { id: "c1", companyId: "company-1", title: "정상", imageUrl: "https://img.example/a.png", linkUrl: "/jobs", sortOrder: 1, company: { name: "업체A" }, product: { recruitmentEntitlement: { id: "product-ent-1" } } },
-      { id: "c2", companyId: "company-2", title: "legacy", imageUrl: "javascript:bad", linkUrl: "data:text/html,bad", sortOrder: 0, company: { name: "업체B" }, product: { recruitmentEntitlement: { id: "product-ent-2" } } },
+      { id: "c1", companyId: "company-1", title: "정상", imageUrl: "https://img.example/a.png", linkUrl: "/jobs", sortOrder: 1, company: { name: "업체A" }, product: { recruitmentEntitlement: { id: "product-ent-1", recruitmentTier: "PREMIUM" } } },
+      { id: "c2", companyId: "company-2", title: "legacy", imageUrl: "javascript:bad", linkUrl: "data:text/html,bad", sortOrder: 0, company: { name: "업체B" }, product: { recruitmentEntitlement: { id: "product-ent-2", recruitmentTier: "GENERAL" } } },
     ]);
     const result = await listPublicAdvertisementCampaigns({ placementCode: "home_top", now, limit: 99 });
     expect(mocks.campaignFindMany).toHaveBeenCalledWith(expect.objectContaining({
@@ -151,6 +151,11 @@ describe("Session 14 Gate 4 advertisement operations", () => {
         endDate: { gt: now },
         regionId: null,
       }),
+      orderBy: [
+        { product: { recruitmentEntitlement: { recruitmentTier: "desc" } } },
+        { sortOrder: "desc" },
+        { createdAt: "desc" },
+      ],
       take: 10,
     }));
     expect(result[0]).toMatchObject({ linkUrl: "/jobs", companyName: "업체A" });
@@ -158,6 +163,38 @@ describe("Session 14 Gate 4 advertisement operations", () => {
     expect(mocks.entitlementFindMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({ cancelledAt: null }),
     }));
+  });
+
+  it("prioritizes MAIN then PREMIUM then GENERAL after public eligibility checks", async () => {
+    mocks.campaignFindMany.mockResolvedValue([
+      { id: "general", companyId: "company-1", title: "일반", imageUrl: null, linkUrl: "/jobs/general", sortOrder: 999, company: { name: "일반사" }, product: { recruitmentEntitlement: { id: "general-ent", recruitmentTier: "GENERAL" } } },
+      { id: "main", companyId: "company-2", title: "메인", imageUrl: null, linkUrl: "/jobs/main", sortOrder: 0, company: { name: "메인사" }, product: { recruitmentEntitlement: { id: "main-ent", recruitmentTier: "MAIN" } } },
+      { id: "premium", companyId: "company-3", title: "프리미엄", imageUrl: null, linkUrl: "/jobs/premium", sortOrder: 10, company: { name: "프리미엄사" }, product: { recruitmentEntitlement: { id: "premium-ent", recruitmentTier: "PREMIUM" } } },
+    ]);
+    mocks.entitlementFindMany.mockResolvedValue([
+      { companyId: "company-1", productEntitlementId: "general-ent" },
+      { companyId: "company-2", productEntitlementId: "main-ent" },
+      { companyId: "company-3", productEntitlementId: "premium-ent" },
+    ]);
+
+    const result = await listPublicAdvertisementCampaigns({
+      placementCode: "HOME_TOP",
+      now,
+      limit: 3,
+    });
+
+    expect(result.map((campaign) => campaign.id)).toEqual(["main", "premium", "general"]);
+    expect(result.map((campaign) => campaign.recruitmentTier)).toEqual(["MAIN", "PREMIUM", "GENERAL"]);
+  });
+
+  it("returns no public ads when no active entitlement covers the candidates", async () => {
+    mocks.campaignFindMany.mockResolvedValue([
+      { id: "main", companyId: "company-1", title: "메인", imageUrl: null, linkUrl: "/jobs/main", sortOrder: 1, company: { name: "업체" }, product: { recruitmentEntitlement: { id: "main-ent", recruitmentTier: "MAIN" } } },
+    ]);
+    mocks.entitlementFindMany.mockResolvedValue([]);
+
+    await expect(listPublicAdvertisementCampaigns({ placementCode: "HOME_TOP", now }))
+      .resolves.toEqual([]);
   });
 
   it("allows ACTIVE transition only after admin and current campaign invariants are rechecked", async () => {

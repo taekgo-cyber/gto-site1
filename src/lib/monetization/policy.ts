@@ -24,6 +24,62 @@ export const WEEKLY_MATCH_QUOTA = {
 export type RecruitmentTier = keyof typeof WEEKLY_MATCH_QUOTA;
 export type PaidRecruitmentTier = Exclude<RecruitmentTier, "NONE">;
 
+export const HOMEPAGE_AD_PLACEMENTS = {
+  RECRUITMENT: "HOME_RECRUITMENT",
+  COMPANY_LEFT: "HOME_COMPANY_LEFT",
+  COMPANY_RIGHT: "HOME_COMPANY_RIGHT",
+} as const;
+
+export type HomepageAdPlacementCode =
+  (typeof HOMEPAGE_AD_PLACEMENTS)[keyof typeof HOMEPAGE_AD_PLACEMENTS];
+
+export const HOMEPAGE_AD_INVENTORY_CAPACITY = {
+  MAIN: 8,
+  PREMIUM: 20,
+  GENERAL: null,
+  COMPANY_LEFT: 4,
+  COMPANY_RIGHT: 4,
+} as const;
+
+export const HOMEPAGE_AD_VISIBLE_SLOTS = {
+  MAIN: 2,
+  PREMIUM: 6,
+  GENERAL: 6,
+  COMPANY_LEFT: 1,
+  COMPANY_RIGHT: 1,
+} as const;
+
+export const ADVERTISEMENT_ROTATION_WINDOW_MINUTES = 30;
+
+export const COMPANY_BANNER_PRODUCT = {
+  code: "AD_COMPANY_BANNER_30D",
+  displayName: "기업 배너 광고 30일",
+  advertisementType: "COMPANY_BANNER",
+  priceKrw: 300_000,
+  durationDays: 30,
+  allowedPlacements: [
+    HOMEPAGE_AD_PLACEMENTS.COMPANY_LEFT,
+    HOMEPAGE_AD_PLACEMENTS.COMPANY_RIGHT,
+  ],
+} as const;
+
+export type AdvertisementProductType =
+  | "RECRUITMENT_LISTING"
+  | "COMPANY_BANNER";
+
+export const ADVERTISEMENT_TIER_PRIORITY: Record<PaidRecruitmentTier, number> = {
+  GENERAL: 1,
+  PREMIUM: 2,
+  MAIN: 3,
+};
+
+export function compareAdvertisementTiers(
+  left: PaidRecruitmentTier,
+  right: PaidRecruitmentTier,
+): number {
+  return ADVERTISEMENT_TIER_PRIORITY[right] - ADVERTISEMENT_TIER_PRIORITY[left];
+}
+
 export const ADVERTISEMENT_PRODUCT_CATALOG = {
   GENERAL: {
     code: "AD_GENERAL_7D",
@@ -71,6 +127,27 @@ const ADVERTISEMENT_PRODUCTS_BY_CODE = Object.values(ADVERTISEMENT_PRODUCT_CATAL
 
 export function getAdvertisementProductPolicy(code: string) {
   return ADVERTISEMENT_PRODUCTS_BY_CODE[code as ManagedAdvertisementProductCode] ?? null;
+}
+
+export type HomepageAdvertisementProductContract =
+  | ((typeof ADVERTISEMENT_PRODUCT_CATALOG)[PaidRecruitmentTier] & {
+      advertisementType: "RECRUITMENT_LISTING";
+      allowedPlacements: readonly [typeof HOMEPAGE_AD_PLACEMENTS.RECRUITMENT];
+    })
+  | typeof COMPANY_BANNER_PRODUCT;
+
+export function getHomepageAdvertisementProductContract(
+  code: string,
+): HomepageAdvertisementProductContract | null {
+  if (code === COMPANY_BANNER_PRODUCT.code) return COMPANY_BANNER_PRODUCT;
+  const recruitment = getAdvertisementProductPolicy(code);
+  return recruitment
+    ? {
+        ...recruitment,
+        advertisementType: "RECRUITMENT_LISTING" as const,
+        allowedPlacements: [HOMEPAGE_AD_PLACEMENTS.RECRUITMENT] as const,
+      }
+    : null;
 }
 
 export const WEEKLY_QUOTA_TIME_ZONE = "Asia/Seoul" as const;

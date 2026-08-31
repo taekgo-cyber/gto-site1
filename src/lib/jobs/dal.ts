@@ -98,11 +98,13 @@ export const getJobPostList = cache(
     regionId?: string;
     keyword?: string;
     page?: number;
+    excludeIds?: string[];
   }): Promise<JobPostListResult> => {
-    const { type, regionId, keyword, page = 1 } = input;
+    const { type, regionId, keyword, page = 1, excludeIds = [] } = input;
     const skip = (page - 1) * LIST_PAGE_SIZE;
 
     const where = await buildJobPostListWhere({ type, regionId, keyword });
+    if (excludeIds.length > 0) where.id = { notIn: [...new Set(excludeIds)] };
 
     const [items, totalCount] = await Promise.all([
       prisma.jobPost.findMany({

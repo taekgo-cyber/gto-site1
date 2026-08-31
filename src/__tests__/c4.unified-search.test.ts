@@ -14,13 +14,13 @@ describe("C4 unified search entry contract", () => {
   it("trims and normalizes homepage/header q-only submissions", () => {
     const req = parseUnifiedSearchRequest({ q: "  5톤 지입  " });
     expect(req.query).toBe("5톤 지입");
-    expect(req.domains).toHaveLength(3);
+    expect(req.domains).toHaveLength(4);
     expect(req.page).toBe(1);
   });
 
   it("omitting domains/page defaults to all domains and page 1", () => {
     const req = parseUnifiedSearchRequest({ q: "화물" });
-    expect(req.domains).toEqual(["JOBS", "LEASE", "BLOG"]);
+    expect(req.domains).toEqual(["JOBS", "LEASE", "COMPANIES", "BLOG"]);
     expect(req.page).toBe(1);
   });
 

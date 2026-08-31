@@ -248,8 +248,14 @@ export async function getPostAuthorPhone(id: string): Promise<string | null> {
   return post?.author.phone ?? null;
 }
 
-export async function getPostList(query: PostListQuery): Promise<PostListResult> {
+export async function getPostList(
+  query: PostListQuery,
+  options: { excludeIds?: string[] } = {},
+): Promise<PostListResult> {
   const where = buildListWhere(query);
+  if (options.excludeIds?.length) {
+    where.id = { notIn: [...new Set(options.excludeIds)] };
+  }
   const skip = (query.page - 1) * query.pageSize;
 
   const [rows, totalCount] = await Promise.all([

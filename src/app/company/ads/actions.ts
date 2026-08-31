@@ -7,6 +7,7 @@ import {
   createCompanyAdvertisementCampaign,
   updateCompanyAdvertisementCampaign,
 } from "@/lib/monetization/ads";
+import { createHomepageAdvertisementCampaign } from "@/lib/monetization/homepage-ads";
 
 function text(formData: FormData, name: string): string {
   const value = formData.get(name);
@@ -36,6 +37,10 @@ function safeMessage(error: unknown): string {
     ADVERTISEMENT_IMAGE_URL_INVALID: "이미지 주소는 http/https 또는 사이트 내부 경로만 허용됩니다.",
     ADVERTISEMENT_CAMPAIGN_NOT_EDITABLE: "승인 대기 또는 일시중지 캠페인만 수정할 수 있습니다.",
     ADVERTISEMENT_CAMPAIGN_NOT_FOUND: "캠페인을 찾을 수 없습니다.",
+    ADVERTISEMENT_PRODUCT_PLACEMENT_MISMATCH: "상품과 광고 위치가 호환되지 않습니다.",
+    ADVERTISEMENT_LISTING_TARGET_XOR_REQUIRED: "구인 또는 지입 공고 하나만 선택해 주세요.",
+    ADVERTISEMENT_LISTING_TARGET_INVALID: "업체 소유의 공개 중인 공고만 선택할 수 있습니다.",
+    ADVERTISEMENT_BANNER_TARGET_FORBIDDEN: "기업 배너에는 공고를 연결할 수 없습니다.",
   };
   return known[message] ?? "처리 중 오류가 발생했습니다.";
 }
@@ -95,4 +100,31 @@ export async function updateAdvertisementCampaignAction(formData: FormData) {
   revalidatePath("/company/ads");
   revalidatePath("/admin/ads");
   done(companyId, "광고 캠페인을 수정하고 승인 대기로 전환했습니다.");
+}
+
+export async function createHomepageAdvertisementCampaignAction(formData: FormData) {
+  const user = await getCurrentUser();
+  const companyId = text(formData, "companyId");
+  if (!user) done(companyId, "로그인이 필요합니다.", true);
+  try {
+    await createHomepageAdvertisementCampaign({
+      actorUserId: user.id,
+      companyId,
+      productCode: text(formData, "productCode"),
+      placementCode: text(formData, "placementCode"),
+      jobPostId: text(formData, "jobPostId") || null,
+      leasePostId: text(formData, "leasePostId") || null,
+      title: text(formData, "title"),
+      bannerCopy: text(formData, "bannerCopy") || null,
+      imageUrl: text(formData, "imageUrl") || null,
+      linkUrl: text(formData, "linkUrl") || null,
+      startDate: parseDate(formData, "startDate"),
+      endDate: parseDate(formData, "endDate"),
+    });
+  } catch (error) {
+    done(companyId, safeMessage(error), true);
+  }
+  revalidatePath("/company/ads");
+  revalidatePath("/admin/ads");
+  done(companyId, "홈페이지 광고 캠페인을 승인 대기 상태로 제출했습니다.");
 }

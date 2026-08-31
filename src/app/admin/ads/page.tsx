@@ -61,7 +61,7 @@ export default async function AdminAdsPage({ searchParams }: { searchParams: Pro
                     <td className="p-2">{product.recruitmentEntitlement ? `${product.recruitmentEntitlement.recruitmentTier} / ${product.recruitmentEntitlement.weeklyMatchQuota}` : "-"}</td>
                     <td className="p-2">{product.status}</td>
                     <td className="p-2">
-                      {product.code ? (
+                      {product.code && product.recruitmentEntitlement ? (
                         <form action={setAdvertisementProductStatusAction}>
                           <input type="hidden" name="productCode" value={product.code} />
                           <input type="hidden" name="status" value={product.status === "ACTIVE" ? "INACTIVE" : "ACTIVE"} />
@@ -119,12 +119,12 @@ export default async function AdminAdsPage({ searchParams }: { searchParams: Pro
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>광고주 계약 이력</CardTitle></CardHeader>
+        <CardHeader><CardTitle>독립 광고 권한 이력</CardTitle></CardHeader>
         <CardContent className="space-y-2">
-          {data.entitlements.length === 0 ? <p className="text-sm text-muted-foreground">부여된 권한이 없습니다.</p> : data.entitlements.map((entitlement) => (
+          {data.advertisementEntitlements.length === 0 ? <p className="text-sm text-muted-foreground">부여된 권한이 없습니다.</p> : data.advertisementEntitlements.map((entitlement) => (
             <div key={entitlement.id} className="space-y-2 rounded-md border border-border p-3 text-sm">
               <div>
-                <strong>{entitlement.company.name}</strong> · {entitlement.productEntitlement?.product.code ?? entitlement.recruitmentTier} · {formatDate(entitlement.validFrom)} ~ {formatDate(entitlement.expiresAt)} · {entitlement.cancelledAt ? "CANCELLED" : "GRANTED"} · {entitlement.source}
+                <strong>{entitlement.company.name}</strong> · {entitlement.product.code ?? entitlement.product.name} · {entitlement.product.advertisementType} · {formatDate(entitlement.validFrom)} ~ {formatDate(entitlement.expiresAt)} · {entitlement.cancelledAt ? "CANCELLED" : "GRANTED"} · {entitlement.source}
               </div>
               {entitlement.cancelledAt ? (
                 <p className="text-xs text-muted-foreground">취소: {formatDate(entitlement.cancelledAt)}{entitlement.cancelReason ? ` · ${entitlement.cancelReason}` : ""}</p>
@@ -151,6 +151,7 @@ export default async function AdminAdsPage({ searchParams }: { searchParams: Pro
               <div className="mt-1 text-xs text-muted-foreground">{formatDate(campaign.startDate)} ~ {formatDate(campaign.endDate)}</div>
               <form action={setAdvertisementCampaignStatusAction} className="mt-3 flex flex-wrap gap-2">
                 <input type="hidden" name="campaignId" value={campaign.id} />
+                <input type="hidden" name="advertisementType" value={campaign.advertisementType ?? ""} />
                 {(campaign.status === "PENDING" || campaign.status === "PAUSED") ? <Button name="status" value="ACTIVE" size="sm">승인/재개</Button> : null}
                 {campaign.status === "ACTIVE" ? <Button name="status" value="PAUSED" variant="outline" size="sm">일시중지</Button> : null}
                 {campaign.status !== "CANCELLED" && campaign.status !== "EXPIRED" ? <Button name="status" value="CANCELLED" variant="outline" size="sm">취소</Button> : null}

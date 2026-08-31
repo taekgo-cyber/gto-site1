@@ -8,15 +8,16 @@ import { isSearchRequestValidationError } from "@/lib/search/validation";
 
 describe("C4.1 defect 1 — domain state preservation", () => {
   it.each([
-    [{ q: "화물" }, ["JOBS", "LEASE", "BLOG"]],
-    [{ q: "화물", domains: "" }, ["JOBS", "LEASE", "BLOG"]],
+    [{ q: "화물" }, ["JOBS", "LEASE", "COMPANIES", "BLOG"]],
+    [{ q: "화물", domains: "" }, ["JOBS", "LEASE", "COMPANIES", "BLOG"]],
     [{ q: "화물", domains: "JOBS" }, ["JOBS"]],
     [{ q: "화물", domains: "LEASE" }, ["LEASE"]],
+    [{ q: "화물", domains: "COMPANIES" }, ["COMPANIES"]],
     [{ q: "화물", domains: "BLOG" }, ["BLOG"]],
     [{ q: "화물", domains: "JOBS,LEASE" }, ["JOBS", "LEASE"]],
     [{ q: "화물", domains: "JOBS,BLOG" }, ["JOBS", "BLOG"]],
     [{ q: "화물", domains: "LEASE,BLOG" }, ["LEASE", "BLOG"]],
-    [{ q: "화물", domains: "JOBS,LEASE,BLOG" }, ["JOBS", "LEASE", "BLOG"]],
+    [{ q: "화물", domains: "JOBS,LEASE,COMPANIES,BLOG" }, ["JOBS", "LEASE", "COMPANIES", "BLOG"]],
   ])("preserves domain set %#", (params, expected) => {
     expect(parseUnifiedSearchRequest(params).domains).toEqual(expected);
   });
@@ -32,8 +33,8 @@ describe("C4.1 defect 1 — domain state preservation", () => {
   });
 
   it("explicit all triple is semantically all", () => {
-    const req = parseUnifiedSearchRequest({ q: "화물", domains: "JOBS,LEASE,BLOG" });
-    expect(req.domains).toEqual(["JOBS", "LEASE", "BLOG"]);
+    const req = parseUnifiedSearchRequest({ q: "화물", domains: "JOBS,LEASE,COMPANIES,BLOG" });
+    expect(req.domains).toEqual(["JOBS", "LEASE", "COMPANIES", "BLOG"]);
   });
 });
 
@@ -154,7 +155,7 @@ describe("C4.1 defect 4 — pagination disabled semantics", () => {
 
 describe("C4.1 regression — C4 entry still q-only", () => {
   it("homepage/header q-only entry defaults to all domains and page 1", () => {
-    expect(parseUnifiedSearchRequest({ q: " 5톤 지입 " }).domains).toHaveLength(3);
+    expect(parseUnifiedSearchRequest({ q: " 5톤 지입 " }).domains).toHaveLength(4);
     expect(parseUnifiedSearchRequest({ q: "5톤 지입" }).page).toBe(1);
   });
 });

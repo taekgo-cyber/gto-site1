@@ -22,14 +22,14 @@ export async function Header() {
 
   return (
     <header className="border-b border-border bg-background">
-      <Container className="flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 py-2 sm:min-h-16 sm:flex-nowrap sm:gap-3 sm:py-0">
+      <Container className="flex min-h-14 min-w-0 flex-wrap items-center gap-x-3 gap-y-2 py-2 sm:min-h-16 xl:flex-nowrap xl:gap-3 xl:py-0">
         <Link
           href="/"
           className="inline-flex min-h-11 shrink-0 items-center rounded-md text-lg font-bold sm:text-xl"
         >
           트럭포털
         </Link>
-        <div className="order-3 flex w-full sm:order-2 sm:mx-2 sm:w-auto sm:flex-1 sm:max-w-[320px] lg:max-w-sm">
+        <div className="order-3 flex w-full xl:order-2 xl:mx-2 xl:w-auto xl:flex-1 xl:max-w-sm">
           <UnifiedSearchForm
             formId="header-search"
             inputId="header-search-input"
@@ -40,7 +40,7 @@ export async function Header() {
         </div>
         <nav
           aria-label="주요 메뉴"
-          className="order-4 -mx-4 flex w-[calc(100%+2rem)] items-center gap-1 overflow-x-auto px-4 pb-1 sm:order-3 sm:mx-0 sm:w-auto sm:flex-none sm:gap-1 sm:px-0 sm:pb-0"
+          className="order-4 -mx-4 flex w-[calc(100%+2rem)] items-center gap-1 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden xl:order-3 xl:mx-0 xl:w-auto xl:flex-none xl:gap-1 xl:px-0 xl:pb-0"
         >
           {PRIMARY_NAV_ITEMS.map((item) => (
             <Link
@@ -52,7 +52,7 @@ export async function Header() {
             </Link>
           ))}
         </nav>
-        <div className="flex shrink-0 items-center gap-1 sm:order-4 sm:gap-2">
+        <div className="flex shrink-0 items-center gap-1 xl:order-4 xl:gap-2">
           {user ? (
             <>
               <Link

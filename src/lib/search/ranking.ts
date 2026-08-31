@@ -9,7 +9,8 @@ import { normalizeSearchText } from "./validation";
 const DOMAIN_ORDER: Record<SearchDomain, number> = {
   JOBS: 0,
   LEASE: 1,
-  BLOG: 2,
+  COMPANIES: 2,
+  BLOG: 3,
 };
 
 const MATCH_SCORE: Record<SearchMatchKind, number> = {

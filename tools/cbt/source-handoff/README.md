@@ -22,7 +22,7 @@ users/auth data, activity/exam data, and unrelated candidates or masters.
 ## Contracts
 
 - The manifest checksum must be
-  `1979a83ca20db5423599a48224571765bbd65c9fd1edd9b5e9948198c4944f07`.
+  `d953d5880307a151260000c5d333ab3f3af9b1c88f5b7fb2e92fadf67bac254f`.
 - Export is local-loopback and read-only. It reads the exact graph twice and
   requires the source fingerprint to remain unchanged.
 - Bundle ordering and checksums are deterministic. `exportedAt` is metadata and

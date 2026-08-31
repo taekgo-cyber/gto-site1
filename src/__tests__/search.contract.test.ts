@@ -8,9 +8,11 @@ import { rankSearchCandidates } from "@/lib/search/ranking";
 import { createUnifiedSearchPage } from "@/lib/search/service";
 import {
   BLOG_SEARCH_SELECT,
+  COMPANY_SEARCH_SELECT,
   JOB_SEARCH_SELECT,
   LEASE_SEARCH_SELECT,
   buildBlogSearchWhere,
+  buildCompanySearchWhere,
   buildJobSearchWhere,
   buildLeaseSearchWhere,
 } from "@/lib/search/source-contract";
@@ -55,10 +57,19 @@ describe("S21 unified search public source contract", () => {
       status: "PUBLISHED",
       publishedAt: { lte: now, not: null },
     }));
+    expect(buildCompanySearchWhere("운송")).toEqual(expect.objectContaining({
+      status: "ACTIVE",
+      deletedAt: null,
+    }));
   });
 
   it("allow-lists source fields and excludes identity, contact, answer, analytics, and credit data", () => {
-    const serialized = JSON.stringify({ JOB_SEARCH_SELECT, LEASE_SEARCH_SELECT, BLOG_SEARCH_SELECT });
+    const serialized = JSON.stringify({
+      JOB_SEARCH_SELECT,
+      LEASE_SEARCH_SELECT,
+      COMPANY_SEARCH_SELECT,
+      BLOG_SEARCH_SELECT,
+    });
     for (const forbidden of [
       "author",
       "phone",

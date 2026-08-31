@@ -1,4 +1,4 @@
-export const SEARCH_DOMAINS = ["JOBS", "LEASE", "BLOG"] as const;
+export const SEARCH_DOMAINS = ["JOBS", "LEASE", "COMPANIES", "BLOG"] as const;
 
 export type SearchDomain = (typeof SEARCH_DOMAINS)[number];
 
