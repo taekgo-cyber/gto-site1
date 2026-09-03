@@ -2,6 +2,7 @@ import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import type { JobPostType } from "@/generated/prisma/enums";
+import type { PaidRecruitmentTier } from "@/lib/monetization/policy";
 
 export type RegionOption = {
   id: string;
@@ -34,6 +35,7 @@ export type JobPostListItem = {
   destRegionName: string | null;
   vehicleTypeName: string | null;
   tonnageName: string | null;
+  advertisementTier: PaidRecruitmentTier | null;
 };
 
 export type JobPostListResult = {
@@ -73,6 +75,18 @@ export type JobPostDetail = {
 
 const LIST_PAGE_SIZE = 10;
 
+const TIER_PRIORITY: Record<PaidRecruitmentTier, number> = { MAIN: 3, PREMIUM: 2, GENERAL: 1 };
+
+function resolveCurrentAdvertisementTier(
+  campaigns: Array<{ startDate: Date; endDate: Date; product: { recruitmentEntitlement: { recruitmentTier: PaidRecruitmentTier } | null } | null }> | undefined,
+  now: Date,
+): PaidRecruitmentTier | null {
+  return (campaigns ?? [])
+    .filter((campaign) => campaign.startDate <= now && campaign.endDate > now)
+    .flatMap((campaign) => campaign.product?.recruitmentEntitlement?.recruitmentTier ?? [])
+    .sort((left, right) => TIER_PRIORITY[right] - TIER_PRIORITY[left])[0] ?? null;
+}
+
 export const getMasterData = cache(async (): Promise<MasterData> => {
   const regions = await prisma.region.findMany({
     where: { isActive: true },
@@ -102,6 +116,7 @@ export const getJobPostList = cache(
   }): Promise<JobPostListResult> => {
     const { type, regionId, keyword, page = 1, excludeIds = [] } = input;
     const skip = (page - 1) * LIST_PAGE_SIZE;
+    const now = new Date();
 
     const where = await buildJobPostListWhere({ type, regionId, keyword });
     if (excludeIds.length > 0) where.id = { notIn: [...new Set(excludeIds)] };
@@ -124,6 +139,14 @@ export const getJobPostList = cache(
           destRegion: { select: { name: true } },
           vehicleType: { select: { name: true } },
           tonnage: { select: { name: true } },
+          adCampaigns: {
+            where: { status: "ACTIVE", deletedAt: null, advertisementType: "RECRUITMENT_LISTING" },
+            select: {
+              startDate: true,
+              endDate: true,
+              product: { select: { recruitmentEntitlement: { select: { recruitmentTier: true } } } },
+            },
+          },
         },
         orderBy: { publishedAt: "desc" },
         skip,
@@ -148,6 +171,7 @@ export const getJobPostList = cache(
         destRegionName: item.destRegion?.name ?? null,
         vehicleTypeName: item.vehicleType?.name ?? null,
         tonnageName: item.tonnage?.name ?? null,
+        advertisementTier: resolveCurrentAdvertisementTier(item.adCampaigns, now),
       })),
       totalCount,
     };

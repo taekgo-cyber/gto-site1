@@ -2,13 +2,17 @@
 
 @theme {
   --color-background: #ffffff;
-  --color-foreground: #0f172a;
-  --color-surface: #f8fafc;
-  --color-muted-foreground: #64748b;
-  --color-border: #e2e8f0;
-  --color-primary: #2563eb;
+  --color-foreground: #142033;
+  --color-surface: #f4f7fb;
+  --color-surface-strong: #eaf0f7;
+  --color-muted-foreground: #5f6f83;
+  --color-border: #d7e0ea;
+  --color-primary: #1764d8;
   --color-primary-foreground: #ffffff;
-  --color-ring: #93c5fd;
+  --color-brand-deep: #0b1f3a;
+  --color-brand-navy: #12365f;
+  --color-accent: #f59e0b;
+  --color-ring: #70a7f5;
 
   --font-sans: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic",
     "Noto Sans KR", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
@@ -24,6 +28,8 @@
 
   html {
     -webkit-text-size-adjust: 100%;
+    overflow-x: clip;
+    scroll-padding-top: 8rem;
     text-size-adjust: 100%;
   }
 
@@ -31,6 +37,12 @@
     background: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-primary) 20%, white);
   }
 
   a:focus-visible {
@@ -47,5 +59,15 @@
       scroll-behavior: auto !important;
       transition-duration: 0.01ms !important;
     }
+  }
+}
+
+@layer utilities {
+  .scrollbar-hidden {
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hidden::-webkit-scrollbar {
+    display: none;
   }
 }

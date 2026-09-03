@@ -7,10 +7,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
   title: {
-    default: "트럭포털",
-    template: "%s | 트럭포털",
+    default: "운전픽",
+    template: "%s | 운전픽",
   },
-  description: "운송/화물차 관련 정보를 제공하는 포털 사이트입니다.",
+  description: "화물·운전 구인공고, 지입·차량, 운송업체와 자격시험 정보를 제공하는 전문 플랫폼입니다.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -34,7 +34,7 @@ export default async function PublicCompanyPage({ params }: { params: Promise<Pa
   return (
     <Container className="space-y-6 py-8">
       <div className="rounded-xl border border-border bg-surface p-5 sm:p-7">
-        <p className="text-sm font-medium text-primary">지입몰 확인 업체</p>
+        <p className="text-sm font-medium text-primary">운전픽 검토 완료 업체</p>
         <h1 className="mt-1 text-2xl font-bold sm:text-3xl">{company.name}</h1>
         <p className="mt-2 text-sm text-muted-foreground">{company.region?.name ?? "전국"} · 등록 {company.createdAt.toLocaleDateString("ko-KR")}</p>
         <p className="mt-5 whitespace-pre-wrap leading-7">{company.introduction ?? "등록된 업체 소개가 없습니다."}</p>

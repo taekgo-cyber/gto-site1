@@ -2,17 +2,10 @@ import Link from "next/link";
 import { Container } from "@/components/common/Container";
 import { Button } from "@/components/ui/Button";
 import { UnifiedSearchForm } from "@/components/search/UnifiedSearchForm";
+import { PrimaryNavigation } from "@/components/layout/PrimaryNavigation";
 import { logout } from "@/lib/auth/actions";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { countUnreadInAppNotifications } from "@/lib/notifications/service";
-
-const PRIMARY_NAV_ITEMS = [
-  { label: "구인공고", href: "/jobs" },
-  { label: "지입", href: "/lease" },
-  { label: "CBT 시험", href: "/cbt" },
-  { label: "업체정보", href: "/companies" },
-  { label: "블로그", href: "/blog" },
-] as const;
 
 export async function Header() {
   const user = await getCurrentUser();
@@ -21,15 +14,25 @@ export async function Header() {
     : 0;
 
   return (
-    <header className="border-b border-border bg-background">
-      <Container className="flex min-h-14 min-w-0 flex-wrap items-center gap-x-3 gap-y-2 py-2 sm:min-h-16 xl:flex-nowrap xl:gap-3 xl:py-0">
-        <Link
-          href="/"
-          className="inline-flex min-h-11 shrink-0 items-center rounded-md text-lg font-bold sm:text-xl"
-        >
-          트럭포털
+    <header className="sticky top-0 z-40 border-b border-border bg-background/95 shadow-[0_1px_0_rgba(15,23,42,0.03)] backdrop-blur">
+      <div className="hidden bg-brand-deep text-white sm:block">
+        <Container className="flex h-8 items-center justify-between text-xs">
+          <p className="font-medium text-white/75">화물·운전 일자리와 현장 정보를 한곳에서</p>
+          <div className="flex items-center gap-4 text-white/80">
+            <Link href="/company/apply" className="hover:text-white">업체 등록</Link>
+            <Link href="/support" className="hover:text-white">광고·서비스 문의</Link>
+          </div>
+        </Container>
+      </div>
+      <Container className="flex min-h-[4.5rem] min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 py-2 lg:flex-nowrap lg:gap-6 lg:py-0">
+        <Link href="/" className="group inline-flex min-h-12 shrink-0 items-center gap-2.5 rounded-lg">
+          <span aria-hidden="true" className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-lg font-black text-white shadow-sm transition-transform group-hover:-translate-y-0.5">운</span>
+          <span className="flex flex-col leading-none">
+            <span className="text-[1.35rem] font-black tracking-[-0.04em]">운전픽</span>
+            <span className="mt-1 text-[10px] font-bold tracking-[0.08em] text-muted-foreground">CARGO &amp; DRIVER</span>
+          </span>
         </Link>
-        <div className="order-3 flex w-full xl:order-2 xl:mx-2 xl:w-auto xl:flex-1 xl:max-w-sm">
+        <div className="order-3 flex w-full lg:order-none lg:ml-3 lg:w-auto lg:max-w-md lg:flex-1">
           <UnifiedSearchForm
             formId="header-search"
             inputId="header-search-input"
@@ -38,26 +41,12 @@ export async function Header() {
             variant="compact"
           />
         </div>
-        <nav
-          aria-label="주요 메뉴"
-          className="order-4 -mx-4 flex w-[calc(100%+2rem)] items-center gap-1 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden xl:order-3 xl:mx-0 xl:w-auto xl:flex-none xl:gap-1 xl:px-0 xl:pb-0"
-        >
-          {PRIMARY_NAV_ITEMS.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className="inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-md px-3 text-[15px] font-medium text-muted-foreground hover:bg-surface hover:text-foreground"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="flex shrink-0 items-center gap-1 xl:order-4 xl:gap-2">
+        <div className="flex shrink-0 items-center gap-1 lg:gap-2">
           {user ? (
             <>
               <Link
                 href="/notifications"
-                className="relative inline-flex min-h-11 items-center whitespace-nowrap rounded-md px-2 text-[15px] font-medium hover:bg-surface"
+                className="relative inline-flex min-h-11 items-center whitespace-nowrap rounded-lg px-2 text-[15px] font-semibold hover:bg-surface"
                 aria-label={unreadNotifications > 0 ? `알림 ${unreadNotifications}개 읽지 않음` : "알림"}
               >
                 알림
@@ -69,7 +58,7 @@ export async function Header() {
               </Link>
               <Link
                 href="/mypage"
-                className="inline-flex min-h-11 items-center whitespace-nowrap rounded-md px-2 text-[15px] font-medium hover:bg-surface"
+                className="inline-flex min-h-11 items-center whitespace-nowrap rounded-lg px-2 text-[15px] font-semibold hover:bg-surface"
               >
                 {user.nickname ?? user.name}
               </Link>
@@ -83,13 +72,13 @@ export async function Header() {
             <>
               <Link
                 href="/login"
-                className="inline-flex min-h-11 items-center whitespace-nowrap rounded-md px-2 text-[15px] text-muted-foreground hover:bg-surface hover:text-foreground"
+                className="inline-flex min-h-11 items-center whitespace-nowrap rounded-lg px-2 text-[15px] font-medium text-muted-foreground hover:bg-surface hover:text-foreground"
               >
                 로그인
               </Link>
               <Link
                 href="/signup"
-                className="inline-flex min-h-11 items-center justify-center rounded-md bg-primary px-3.5 text-[15px] font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 text-[15px] font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-[#0f56c0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 회원가입
               </Link>
@@ -97,6 +86,11 @@ export async function Header() {
           )}
         </div>
       </Container>
+      <div className="border-t border-border/80">
+        <Container>
+          <PrimaryNavigation />
+        </Container>
+      </div>
     </header>
   );
 }

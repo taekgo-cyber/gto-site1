@@ -5,9 +5,11 @@ import {
   HomepagePremiumSection,
   HomepagePrimeCommercialZone,
 } from "@/components/ads/HomepageAdvertisementSections";
+import { shouldAutoAdvanceCommercialRail } from "@/components/ads/CommercialRail";
 import {
   getHomepageAdvertisementFixture,
   isHomepageAdvertisementFixtureEnabled,
+  resolveHomepageAdvertisementFixture,
 } from "@/lib/monetization/homepage-fixtures";
 import {
   HOMEPAGE_AD_INVENTORY_CAPACITY,
@@ -101,6 +103,18 @@ describe("Homepage Monetization V3 empty and responsive rendering", () => {
   it("disables the fixture in production", () => {
     expect(isHomepageAdvertisementFixtureEnabled("production")).toBe(false);
     expect(isHomepageAdvertisementFixtureEnabled("development")).toBe(true);
+    expect(resolveHomepageAdvertisementFixture("full", "production")).toBeNull();
+    expect(resolveHomepageAdvertisementFixture("full", "development")?.main).toHaveLength(2);
+    expect(resolveHomepageAdvertisementFixture("unknown", "development")).toBeNull();
+  });
+});
+
+describe("homepage commercial rail motion policy", () => {
+  it("auto-advances only when hover, focus, and reduced-motion pauses are all inactive", () => {
+    expect(shouldAutoAdvanceCommercialRail({ hovered: false, focusWithin: false, reducedMotion: false })).toBe(true);
+    expect(shouldAutoAdvanceCommercialRail({ hovered: true, focusWithin: false, reducedMotion: false })).toBe(false);
+    expect(shouldAutoAdvanceCommercialRail({ hovered: false, focusWithin: true, reducedMotion: false })).toBe(false);
+    expect(shouldAutoAdvanceCommercialRail({ hovered: false, focusWithin: false, reducedMotion: true })).toBe(false);
   });
 });
 

@@ -8,6 +8,7 @@ import type {
   WorkType,
 } from "@/generated/prisma/enums";
 import type { PostCreateInput, PostListQuery, PostUpdateInput } from "./validation";
+import type { PaidRecruitmentTier } from "@/lib/monetization/policy";
 
 export type PostAttachmentRecord = {
   id: string;
@@ -64,6 +65,8 @@ export type PostListItem = {
   regionName: string | null;
   vehicleTypeName: string | null;
   tonnageName: string | null;
+  companyName: string | null;
+  advertisementTier: PaidRecruitmentTier | null;
   representativeImage: {
     id: string;
     mimeType: string;
@@ -178,6 +181,7 @@ const LIST_SELECT = {
   payAmount: true,
   workType: true,
   publishedAt: true,
+  company: { select: { name: true } },
   region: { select: { name: true } },
   vehicleType: { select: { name: true } },
   tonnage: { select: { name: true } },
@@ -187,7 +191,27 @@ const LIST_SELECT = {
     take: 1,
     select: { id: true, mimeType: true, mediaType: true },
   },
+  adCampaigns: {
+    where: { status: "ACTIVE", deletedAt: null, advertisementType: "RECRUITMENT_LISTING" },
+    select: {
+      startDate: true,
+      endDate: true,
+      product: { select: { recruitmentEntitlement: { select: { recruitmentTier: true } } } },
+    },
+  },
 } satisfies Prisma.LeasePostSelect;
+
+const TIER_PRIORITY: Record<PaidRecruitmentTier, number> = { MAIN: 3, PREMIUM: 2, GENERAL: 1 };
+
+function resolveCurrentAdvertisementTier(
+  campaigns: Array<{ startDate: Date; endDate: Date; product: { recruitmentEntitlement: { recruitmentTier: PaidRecruitmentTier } | null } | null }> | undefined,
+  now: Date,
+): PaidRecruitmentTier | null {
+  return (campaigns ?? [])
+    .filter((campaign) => campaign.startDate <= now && campaign.endDate > now)
+    .flatMap((campaign) => campaign.product?.recruitmentEntitlement?.recruitmentTier ?? [])
+    .sort((left, right) => TIER_PRIORITY[right] - TIER_PRIORITY[left])[0] ?? null;
+}
 
 const ATTACHMENT_SELECT = {
   id: true,
@@ -257,6 +281,7 @@ export async function getPostList(
     where.id = { notIn: [...new Set(options.excludeIds)] };
   }
   const skip = (query.page - 1) * query.pageSize;
+  const now = new Date();
 
   const [rows, totalCount] = await Promise.all([
     prisma.leasePost.findMany({
@@ -282,6 +307,8 @@ export async function getPostList(
     regionName: row.region?.name ?? null,
     vehicleTypeName: row.vehicleType?.name ?? null,
     tonnageName: row.tonnage?.name ?? null,
+    companyName: row.company?.name ?? null,
+    advertisementTier: resolveCurrentAdvertisementTier(row.adCampaigns, now),
     representativeImage: row.attachments[0] ?? null,
   }));
 

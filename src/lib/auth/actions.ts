@@ -71,7 +71,7 @@ export async function signup(
     await createInAppNotification({
       userId: created.id,
       type: "SYSTEM",
-      title: "트럭포털 가입을 환영합니다",
+      title: "운전픽 가입을 환영합니다",
       body: "마이페이지에서 내 정보와 서비스 이용 현황을 확인할 수 있습니다.",
       href: "/mypage",
       dedupeKey: `signup:${created.id}:welcome`,

@@ -31,7 +31,7 @@ export function UnifiedSearchForm({
       aria-label={ariaLabel}
       className={
         isHero
-          ? "flex w-full max-w-2xl items-center gap-2 rounded-lg border border-border bg-background p-2 shadow-sm"
+          ? "flex w-full max-w-3xl items-center gap-2 rounded-xl bg-background"
           : "flex w-full items-center gap-1.5"
       }
     >
@@ -50,16 +50,16 @@ export function UnifiedSearchForm({
         autoComplete="off"
         className={
           isHero
-            ? "h-12 flex-1 rounded-md border border-border bg-background px-4 text-[16px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
-            : "h-11 flex-1 rounded-md border border-border bg-background px-3 text-[15px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
+            ? "h-13 min-w-0 flex-1 rounded-lg border-0 bg-background px-4 text-[16px] font-medium text-foreground placeholder:font-normal placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            : "h-11 min-w-0 flex-1 rounded-lg border border-border bg-background px-3 text-[15px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
         }
       />
       <button
         type="submit"
         className={
           isHero
-            ? "inline-flex min-h-12 shrink-0 items-center justify-center rounded-md bg-primary px-6 text-[15px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            : "inline-flex min-h-11 shrink-0 items-center justify-center rounded-md bg-primary px-4 text-[15px] font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            ? "inline-flex min-h-13 shrink-0 items-center justify-center rounded-lg bg-primary px-5 text-[15px] font-bold text-primary-foreground shadow-sm transition-colors hover:bg-[#0f56c0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:px-7"
+            : "inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg bg-primary px-4 text-[15px] font-semibold text-primary-foreground transition-colors hover:bg-[#0f56c0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         }
       >
         검색

@@ -26,6 +26,20 @@ export function isHomepageAdvertisementFixtureEnabled(environment: string | unde
   return environment !== "production";
 }
 
+export function resolveHomepageAdvertisementFixture(
+  preset: string | undefined,
+  environment: string | undefined,
+): HomepageAdvertisementInventory | null {
+  if (
+    !preset ||
+    !isHomepageAdvertisementFixtureEnabled(environment) ||
+    !HOMEPAGE_AD_FIXTURE_PRESETS.includes(preset as HomepageAdFixturePreset)
+  ) {
+    return null;
+  }
+  return getHomepageAdvertisementFixture(preset as HomepageAdFixturePreset);
+}
+
 function listingAd(index: number, tier: PaidRecruitmentTier, overrides: Partial<PublicHomepageAdvertisement> = {}): PublicHomepageAdvertisement {
   return {
     id: `${tier.toLowerCase()}-${index}`,
@@ -34,7 +48,7 @@ function listingAd(index: number, tier: PaidRecruitmentTier, overrides: Partial<
     recruitmentTier: tier,
     title: `수도권 ${index + 1}번 5톤 냉장 화물 운송기사 모집`,
     bannerCopy: null,
-    imageUrl: index % 2 === 0 ? "/images/og-default.png" : null,
+    imageUrl: index % 2 === 0 ? "/images/blog/one-ton-cargo-job-beginner-guide-featured.webp" : null,
     linkUrl: `/jobs/fixture-${index}`,
     companyId: `company-${index}`,
     companyName: `안심운송 ${index + 1}지점`,
@@ -63,7 +77,7 @@ function banner(index: number, side: "left" | "right"): PublicHomepageAdvertisem
     recruitmentTier: null,
     title: "안전 운행과 정산을 우선하는 운송 파트너",
     bannerCopy: "투명한 배차와 정산 기준을 확인하세요.",
-    imageUrl: index % 2 === 0 ? "/images/og-default.png" : null,
+    imageUrl: index % 2 === 0 ? "/images/blog/gyeonggi-incheon-cargo-jobs-guide-featured.webp" : null,
     linkUrl: `/companies/fixture-${side}-${index}`,
     companyId: `banner-company-${side}-${index}`,
     companyName: `${side === "left" ? "대한" : "한결"}물류`,

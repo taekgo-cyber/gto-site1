@@ -16,7 +16,7 @@ export function BlogDiscovery({
         <section aria-labelledby="service-links-heading" className="space-y-4">
           <div>
             <h2 id="service-links-heading" className="text-2xl font-bold">다음 단계로 이어가기</h2>
-            <p className="mt-1 text-sm text-muted-foreground">공개된 지입몰 서비스 정보만 연결합니다.</p>
+            <p className="mt-1 text-sm text-muted-foreground">현재 공개된 운전픽 서비스 정보만 연결합니다.</p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {serviceLinks.map((link) => (

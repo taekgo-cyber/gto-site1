@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@/components/common/Container";
-import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/common/EmptyState";
+import { PageIntro } from "@/components/common/PageIntro";
 import { LeaseCard } from "@/components/lease/LeaseCard";
 import { LeaseFilters } from "@/components/lease/LeaseFilters";
 import { Pagination } from "@/components/jobs/Pagination";
@@ -42,20 +43,10 @@ export default async function LeasePage(props: PageProps<"/lease">) {
   };
 
   return (
-    <Container className="space-y-6 py-8">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">지입 구인/구직</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            총 {result.totalCount}건의 게시글이 있습니다.
-          </p>
-        </div>
-        <Link href="/lease/write">
-          <Button>글쓰기</Button>
-        </Link>
-      </div>
-
-      <LeaseFilters
+    <div className="min-h-screen bg-surface">
+      <PageIntro eyebrow="LEASE & VEHICLES" title="지입·차량 정보" description="차량, 지역, 톤수와 수익 조건을 빠르게 비교하고 지입 구인·구직 정보를 확인하세요." meta={<>현재 공개된 지입 정보 <strong className="text-primary">{result.totalCount.toLocaleString("ko-KR")}건</strong></>} action={<Link href="/lease/write" className="inline-flex min-h-12 items-center justify-center rounded-lg bg-primary px-5 font-bold text-white shadow-sm hover:bg-[#0f56c0]">지입 글 등록</Link>} />
+      <Container className="space-y-7 py-8 sm:py-10">
+        <LeaseFilters
         masterData={masterData}
         type={query.type}
         regionId={query.regionId}
@@ -63,28 +54,20 @@ export default async function LeasePage(props: PageProps<"/lease">) {
         tonnageId={query.tonnageId}
         payType={query.payType}
         keyword={query.keyword}
-      />
-
-      {result.items.length === 0 ? (
-        <div className="rounded-lg border border-border bg-background p-8 text-center text-sm text-muted-foreground">
-          등록된 지입 구인/구직 게시글이 없습니다.
-        </div>
-      ) : (
-        <ul className="space-y-3">
-          {result.items.map((post) => (
-            <li key={post.id}>
-              <LeaseCard post={post} />
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <Pagination
+        />
+        <div className="flex items-center justify-between gap-3"><h2 className="text-xl font-bold">지입·차량 목록</h2><p className="text-sm text-muted-foreground">최신 등록순</p></div>
+        {result.items.length === 0 ? (
+          <EmptyState title="등록된 지입 정보가 없습니다." description="검색 조건을 넓히거나 새로운 지입 정보를 등록해 보세요." />
+        ) : (
+          <ul className="space-y-3.5">{result.items.map((post) => <li key={post.id}><LeaseCard post={post} /></li>)}</ul>
+        )}
+        <Pagination
         currentPage={result.page}
         totalPages={result.totalPages}
         query={paginationQuery}
         basePath="/lease"
-      />
-    </Container>
+        />
+      </Container>
+    </div>
   );
 }

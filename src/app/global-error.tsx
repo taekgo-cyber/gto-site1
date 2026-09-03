@@ -32,7 +32,7 @@ export default function GlobalError({
         }}
       >
         <main style={{ maxWidth: 520, textAlign: "center" }}>
-          <title>오류가 발생했습니다 - 트럭포털</title>
+          <title>오류가 발생했습니다 - 운전픽</title>
           <p style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 700 }}>
             서비스 오류
           </p>

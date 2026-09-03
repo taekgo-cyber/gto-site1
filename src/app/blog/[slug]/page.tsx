@@ -66,7 +66,7 @@ export default async function BlogArticlePage({ params }: { params: Promise<Para
     dateModified: modifiedAt.toISOString(),
     mainEntityOfPage: `${siteUrl}/blog/${article.slug}`,
     image: article.featuredImageUrl ?? undefined,
-    publisher: { "@type": "Organization", name: "트럭포털", url: siteUrl },
+    publisher: { "@type": "Organization", name: "운전픽", url: siteUrl },
   }).replace(/</g, "\\u003c");
 
   return (
