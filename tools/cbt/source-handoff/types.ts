@@ -2,9 +2,21 @@ export const CBT_SOURCE_BUNDLE_FORMAT = "gto.cbt-exact-source";
 export const CBT_SOURCE_BUNDLE_VERSION = 1;
 export const CBT_SOURCE_BUNDLE_CANONICALIZATION = "gto-stable-json-v1";
 export const CBT_SOURCE_BUNDLE_CHECKSUM_ALGORITHM = "sha256";
+export const CBT_EXACT_80_CANONICAL_VERSION = "launch-exact-80-manifest-v1";
 export const CBT_EXACT_80_MANIFEST_CHECKSUM =
-  "d953d5880307a151260000c5d333ab3f3af9b1c88f5b7fb2e92fadf67bac254f";
+  "dd07ebcf5ab9d38c30438e125033e078cf165c53acfd4c27c38d24614d48ebbb";
+export const CBT_EXACT_80_ARTIFACT_CHECKSUM =
+  "fe45f65e10ae004c4a8ace3cc931cf47aaf9fdefe2e15e12b28836ecfb51847e";
 export const CBT_EXACT_80_COUNT = 80;
+export const CBT_EXACT_80_CATEGORY_COUNTS = {
+  "CAT-LAW": 20,
+  "CAT-HANDLING": 20,
+  "CAT-SAFETY": 20,
+  "CAT-SERVICE": 20,
+} as const;
+export const CBT_EXACT_80_EXCLUDED_SOURCE_QUESTION_ID = "92477";
+export const CBT_EXACT_80_INCLUDED_REPLACEMENT_SOURCE_QUESTION_ID = "92582";
+export const CBT_EXACT_80_REPLACEMENT_MASTER_QUESTION_ID = "cmtli1lsi0000s4romcyrkw3n";
 export const CBT_SOURCE_CATEGORY_SLUG = "cargo-driver";
 
 export type JsonValue =

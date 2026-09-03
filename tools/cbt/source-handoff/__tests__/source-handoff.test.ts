@@ -9,6 +9,7 @@ import {
 import { assertStagingTargetBoundary } from "../boundary";
 import { exportCbtSourceBundleV1 } from "../export";
 import { CBT_SOURCE_IMPORT_APPROVAL, executeCbtSourceImportV1 } from "../import";
+import { verifyOperatorArtifact } from "../operator-artifact";
 import { planCbtSourceImportV1 } from "../preflight";
 import { CBT_EXACT_80_MANIFEST_CHECKSUM } from "../types";
 import type {
@@ -243,6 +244,34 @@ describe("CBT exact-80 source handoff", () => {
       if (forbidden === "generatedQuestionQAs") expect(exactBundle.exclusions.generatedQuestionQAs).toBe(true);
       else expect(serialized).not.toContain(`\"${forbidden}\":`);
     }
+  });
+
+  it("verifies the tracked operator artifact identity without exposing content", () => {
+    const exactBundle = bundle();
+    const firstCandidate = exactBundle.candidateQuestions[0];
+    const firstMaster = exactBundle.masterQuestions[0];
+    const counts = { "CAT-LAW": 80 };
+    const summary = verifyOperatorArtifact(exactBundle, {
+      artifactChecksum: exactBundle.checksums.bundleChecksum,
+      canonicalVersion: exactBundle.manifest.version,
+      categoryCounts: counts,
+      excludedSourceQuestionId: "source-excluded",
+      includedSourceQuestionId: firstCandidate.sourceQuestionId,
+      replacementMasterQuestionId: firstMaster.id,
+    });
+
+    expect(summary).toMatchObject({
+      artifactChecksum: exactBundle.checksums.bundleChecksum,
+      categoryCounts: counts,
+      candidateQuestionCount: 80,
+      generatedQuestionCount: 80,
+      masterQuestionCount: 80,
+      excludedSourceQuestionPresent: false,
+      includedReplacementSourceQuestionPresent: true,
+      replacementMasterQuestionPresent: true,
+      dataMinimization: "PASS",
+      dbWrite: false,
+    });
   });
 
   it("rejects sensitive paths or credentials even when checksum is recomputed", () => {

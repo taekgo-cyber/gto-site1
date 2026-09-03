@@ -19,10 +19,42 @@ questions or change sample questions.
 The bundle deliberately omits raw HTML pointers, raw HTML, raw LLM responses,
 users/auth data, activity/exam data, and unrelated candidates or masters.
 
+## Git and artifact policy
+
+Git is the source of truth for the canonical identity and verification contract,
+not a distribution channel for CBT source-derived content. Question text,
+choices, answers, explanations, and Candidate/Generated/Master source bundles
+must remain ignored and must not be force-added to the repository, including
+when a bundle is otherwise data-minimized.
+
+The verified bundle under `data/cbt/evidence/launch-closeout-80/` is an
+operator-managed release artifact. It must remain unchanged and ignored. Before
+operational use, an operator must verify its checksum against the tracked
+contract below. An immutable private artifact store has not yet been provisioned;
+durable storage, stable identity, a redundant backup, and retrieval instructions
+remain the `CBT OPERATOR ARTIFACT DURABILITY` release follow-up.
+
+## Canonical identity contract
+
+- Version: `launch-exact-80-manifest-v1`
+- Total: 80 (`LAW` 20, `HANDLING` 20, `SAFETY` 20, `SERVICE` 20)
+- Excluded source question: `92477`
+- Included replacement source question: `92582`
+- Replacement master question: `cmtli1lsi0000s4romcyrkw3n`
+- Semantic manifest checksum:
+  `dd07ebcf5ab9d38c30438e125033e078cf165c53acfd4c27c38d24614d48ebbb`
+- Current operator handoff artifact checksum:
+  `fe45f65e10ae004c4a8ace3cc931cf47aaf9fdefe2e15e12b28836ecfb51847e`
+
+The semantic checksum identifies the frozen canonical selection. The artifact
+checksum identifies the deterministic Bundle v1 projection and excludes the
+`exportedAt` metadata field. Neither checksum permits the source content itself
+to be committed to Git.
+
 ## Contracts
 
 - The manifest checksum must be
-  `d953d5880307a151260000c5d333ab3f3af9b1c88f5b7fb2e92fadf67bac254f`.
+  `dd07ebcf5ab9d38c30438e125033e078cf165c53acfd4c27c38d24614d48ebbb`.
 - Export is local-loopback and read-only. It reads the exact graph twice and
   requires the source fingerprint to remain unchanged.
 - Bundle ordering and checksums are deterministic. `exportedAt` is metadata and
@@ -41,6 +73,12 @@ Export a local ignored bundle:
 
 ```text
 npm run cbt:source-handoff:export -- --output <ignored-json-path> --branch <branch> --head <40-char-sha>
+```
+
+Validate an existing operator-managed bundle without writing to a database:
+
+```text
+npm run cbt:source-handoff:validate -- --bundle <ignored-json-path>
 ```
 
 Run the Staging zero-write preflight through an approved local tunnel:

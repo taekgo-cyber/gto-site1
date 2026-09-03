@@ -40,6 +40,7 @@
     "cbt:residual-13": "tsx tools/cbt/cli-residual-13.ts",
     "cbt:residual-13-uncertain": "tsx tools/cbt/cli-residual-13-uncertain.ts",
     "cbt:source-handoff:export": "tsx tools/cbt/source-handoff/cli-export.ts",
+    "cbt:source-handoff:validate": "tsx tools/cbt/source-handoff/cli-validate.ts",
     "cbt:source-handoff:preflight": "tsx tools/cbt/source-handoff/cli-preflight.ts",
     "cbt:source-handoff:import": "tsx tools/cbt/source-handoff/cli-import.ts",
     "blog:durability:export": "tsx tools/blog/export-durability-bundle.ts",
