@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Brand } from "@/components/common/Brand";
 import { Container } from "@/components/common/Container";
 import { Button } from "@/components/ui/Button";
 import { UnifiedSearchForm } from "@/components/search/UnifiedSearchForm";
@@ -14,34 +15,15 @@ export async function Header() {
     : 0;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/95 shadow-[0_1px_0_rgba(15,23,42,0.03)] backdrop-blur">
-      <div className="hidden bg-brand-deep text-white sm:block">
-        <Container className="flex h-8 items-center justify-between text-xs">
-          <p className="font-medium text-white/75">화물·운전 일자리와 현장 정보를 한곳에서</p>
-          <div className="flex items-center gap-4 text-white/80">
-            <Link href="/company/apply" className="hover:text-white">업체 등록</Link>
-            <Link href="/support" className="hover:text-white">광고·서비스 문의</Link>
-          </div>
-        </Container>
-      </div>
-      <Container className="flex min-h-[4.5rem] min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 py-2 lg:flex-nowrap lg:gap-6 lg:py-0">
-        <Link href="/" className="group inline-flex min-h-12 shrink-0 items-center gap-2.5 rounded-lg">
-          <span aria-hidden="true" className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-lg font-black text-white shadow-sm transition-transform group-hover:-translate-y-0.5">운</span>
-          <span className="flex flex-col leading-none">
-            <span className="text-[1.35rem] font-black tracking-[-0.04em]">운전픽</span>
-            <span className="mt-1 text-[10px] font-bold tracking-[0.08em] text-muted-foreground">CARGO &amp; DRIVER</span>
-          </span>
-        </Link>
-        <div className="order-3 flex w-full lg:order-none lg:ml-3 lg:w-auto lg:max-w-md lg:flex-1">
-          <UnifiedSearchForm
-            formId="header-search"
-            inputId="header-search-input"
-            ariaLabel="헤더 통합검색"
-            placeholder="검색어를 입력하세요"
-            variant="compact"
-          />
-        </div>
-        <div className="flex shrink-0 items-center gap-1 lg:gap-2">
+    <header className="site-header sticky top-0 z-40 border-b border-border bg-background">
+      <Container className="site-header-inner">
+        <Link href="/" className="site-brand" aria-label="운전픽 홈"><Brand /></Link>
+        <div className="site-navigation"><PrimaryNavigation /></div>
+        <details className="site-header-search">
+          <summary aria-label="통합검색 열기"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg></summary>
+          <div className="site-header-search-form"><UnifiedSearchForm formId="header-search" inputId="header-search-input" ariaLabel="헤더 통합검색" placeholder="검색어를 입력하세요" variant="compact" /></div>
+        </details>
+        <div className="site-auth flex shrink-0 items-center gap-1 lg:gap-2">
           {user ? (
             <>
               <Link
@@ -86,11 +68,6 @@ export async function Header() {
           )}
         </div>
       </Container>
-      <div className="border-t border-border/80">
-        <Container>
-          <PrimaryNavigation />
-        </Container>
-      </div>
     </header>
   );
 }

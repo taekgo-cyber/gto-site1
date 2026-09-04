@@ -15,8 +15,9 @@ export function AdvertisementImage({
   const [failed, setFailed] = useState(false);
   if (!advertisement.imageUrl || failed) {
     return (
-      <div className={`${className} flex items-center justify-center bg-primary/5 px-5 text-center text-sm font-semibold text-primary`}>
-        {advertisement.companyName}
+      <div className={`${className} home-ad-image-fallback`}>
+        <span>{advertisement.companyName}</span>
+        <small>운송 참고 이미지</small>
       </div>
     );
   }
@@ -29,6 +30,7 @@ export function AdvertisementImage({
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={advertisement.imageUrl}
+        style={{ objectPosition: advertisement.imagePosition }}
         alt=""
         width={720}
         height={405}

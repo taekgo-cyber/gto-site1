@@ -21,18 +21,18 @@ import { createViewabilityController } from "@/lib/monetization/viewability";
 describe("Homepage Monetization V3 policy and rotation", () => {
   it("keeps sales capacity separate from visible slot policy", () => {
     expect(HOMEPAGE_AD_INVENTORY_CAPACITY).toEqual({
-      MAIN: 8,
-      PREMIUM: 20,
-      GENERAL: null,
-      COMPANY_LEFT: 4,
-      COMPANY_RIGHT: 4,
+      MAIN: 20,
+      PREMIUM: 30,
+      GENERAL: 40,
+      COMPANY_LEFT: 6,
+      COMPANY_RIGHT: 6,
     });
     expect(HOMEPAGE_AD_VISIBLE_SLOTS).toEqual({
-      MAIN: 2,
-      PREMIUM: 6,
-      GENERAL: 6,
-      COMPANY_LEFT: 1,
-      COMPANY_RIGHT: 1,
+      MAIN: 10,
+      PREMIUM: 15,
+      GENERAL: 20,
+      COMPANY_LEFT: 6,
+      COMPANY_RIGHT: 6,
     });
   });
 
@@ -85,17 +85,17 @@ describe("Homepage Monetization V3 empty and responsive rendering", () => {
     expect(renderToStaticMarkup(createElement(HomepagePremiumSection, { inventory: empty }))).toBe("");
   });
 
-  it("shows two MAIN cards from a three-candidate pool and at most six PREMIUM cards", () => {
-    expect(getHomepageAdvertisementFixture("main-3-pool").main).toHaveLength(2);
-    expect(getHomepageAdvertisementFixture("main-full").main).toHaveLength(2);
-    expect(getHomepageAdvertisementFixture("premium-full").premium).toHaveLength(6);
+  it("retains complete inventory before client page grouping", () => {
+    expect(getHomepageAdvertisementFixture("main-3-pool").main).toHaveLength(3);
+    expect(getHomepageAdvertisementFixture("main-full").main).toHaveLength(20);
+    expect(getHomepageAdvertisementFixture("premium-full").premium).toHaveLength(30);
   });
 
   it("does not render an empty side rail and exposes mobile snap rails", () => {
     const html = renderToStaticMarkup(createElement(HomepagePrimeCommercialZone, {
       inventory: getHomepageAdvertisementFixture("one-side"),
     }));
-    expect(html).toContain("추천 기업");
+    expect(html).toContain("기업 광고");
     expect(html).toContain("snap-mandatory");
     expect(html).not.toContain("banner-right-0");
   });
@@ -104,7 +104,7 @@ describe("Homepage Monetization V3 empty and responsive rendering", () => {
     expect(isHomepageAdvertisementFixtureEnabled("production")).toBe(false);
     expect(isHomepageAdvertisementFixtureEnabled("development")).toBe(true);
     expect(resolveHomepageAdvertisementFixture("full", "production")).toBeNull();
-    expect(resolveHomepageAdvertisementFixture("full", "development")?.main).toHaveLength(2);
+    expect(resolveHomepageAdvertisementFixture("full", "development")?.main).toHaveLength(20);
     expect(resolveHomepageAdvertisementFixture("unknown", "development")).toBeNull();
   });
 });

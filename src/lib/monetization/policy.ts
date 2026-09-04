@@ -1,5 +1,6 @@
 /**
- * Session 13 Gate 4 locked product policy.
+ * Product policy. Homepage capacity finalized in the paid-inventory closeout;
+ * existing pricing, credits and quotas remain unchanged.
  * Catalog/policy only: no purchase, payment, or credit grant side effects.
  */
 
@@ -34,20 +35,24 @@ export type HomepageAdPlacementCode =
   (typeof HOMEPAGE_AD_PLACEMENTS)[keyof typeof HOMEPAGE_AD_PLACEMENTS];
 
 export const HOMEPAGE_AD_INVENTORY_CAPACITY = {
-  MAIN: 8,
-  PREMIUM: 20,
-  GENERAL: null,
-  COMPANY_LEFT: 4,
-  COMPANY_RIGHT: 4,
+  MAIN: 20,
+  PREMIUM: 30,
+  GENERAL: 40,
+  COMPANY_LEFT: 6,
+  COMPANY_RIGHT: 6,
 } as const;
 
+// Per carousel page (company rails show their full six-slot placement).
 export const HOMEPAGE_AD_VISIBLE_SLOTS = {
-  MAIN: 2,
-  PREMIUM: 6,
-  GENERAL: 6,
-  COMPANY_LEFT: 1,
-  COMPANY_RIGHT: 1,
+  MAIN: 10,
+  PREMIUM: 15,
+  GENERAL: 20,
+  COMPANY_LEFT: 6,
+  COMPANY_RIGHT: 6,
 } as const;
+
+// Client page rotation is independent of server-side candidate selection.
+export const HOMEPAGE_AD_PAGE_INTERVAL_MS = 5_000;
 
 export const ADVERTISEMENT_ROTATION_WINDOW_MINUTES = 30;
 

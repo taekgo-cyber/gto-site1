@@ -79,7 +79,7 @@ export function CommercialRail({
       }}
     >
       {hasOverflow ? (
-        <div className="mb-3 flex justify-end gap-2">
+        <div className="commercial-rail-controls mb-3 flex justify-end gap-2">
           <button type="button" onClick={() => move(-1)} aria-label={`${label} 이전 항목`} className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-background text-lg font-bold text-foreground shadow-sm transition hover:border-primary/35 hover:text-primary">←</button>
           <button type="button" onClick={() => move(1)} aria-label={`${label} 다음 항목`} className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-background text-lg font-bold text-foreground shadow-sm transition hover:border-primary/35 hover:text-primary">→</button>
         </div>

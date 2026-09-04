@@ -213,4 +213,23 @@ describe("Homepage V3 public eligibility", () => {
       main: [], premium: [], general: [], companyLeft: [], companyRight: [],
     });
   });
+
+  it("delivers both complete pages and all twelve banners from the canonical pool", async () => {
+    const campaigns = (["MAIN", "PREMIUM", "GENERAL"] as const).flatMap((tier, t) => Array.from({ length: [20,30,40][t] }, (_, i) => {
+      const row = jobCampaign({ id: `${tier}-${i}`, tier });
+      row.jobPostId = `job-${tier}-${i}`;
+      row.jobPost.id = row.jobPostId;
+      return row;
+    }));
+    const banners = ["LEFT", "RIGHT"].flatMap(side => Array.from({ length: 6 }, (_, i) => ({ ...bannerCampaign(), id: `banner-${side}-${i}`, placement: { code: `HOME_COMPANY_${side}`, isActive: true } })));
+    mocks.campaignFindMany.mockResolvedValue([...campaigns, ...banners]);
+    mocks.entitlementFindMany.mockResolvedValue([
+      ...["MAIN", "PREMIUM", "GENERAL"].map(tier => ({ companyId: "company-1", productId: `product-${tier}` })),
+      { companyId: "company-banner", productId: "product-banner" },
+    ]);
+    const result = await listHomepageAdvertisementInventory({ now, windowKey: 0 });
+    expect(Object.values(result).map(ads => ads.length)).toEqual([20,30,40,6,6]);
+    expect(new Set(Object.values(result).flat().map(ad => ad.id)).size).toBe(102);
+    expect(mocks.campaignCreate).not.toHaveBeenCalled();
+  });
 });

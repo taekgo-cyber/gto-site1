@@ -1,26 +1,17 @@
+import { homepageAdTracking } from "@/lib/monetization/homepage-samples";
 import { AdViewabilityTracker } from "./AdViewabilityTracker";
-import { AdvertisementDetails } from "./AdvertisementDetails";
+import { formatPayAmount } from "@/lib/jobs/labels";
 import type { PublicHomepageAdvertisement } from "@/lib/monetization/homepage-ads";
 
-export function GeneralAdCard({
-  advertisement,
-  trackingEnabled = true,
-}: {
-  advertisement: PublicHomepageAdvertisement;
-  trackingEnabled?: boolean;
-}) {
-  return (
-    <AdViewabilityTracker campaignId={advertisement.id} enabled={trackingEnabled} className="h-full">
-      <a
-        href={trackingEnabled ? `/api/ads/${encodeURIComponent(advertisement.id)}/click` : advertisement.linkUrl}
-        rel="sponsored noopener noreferrer"
-        className="group flex h-full min-h-40 flex-col rounded-xl border border-border border-l-[3px] border-l-primary/55 bg-background p-4 shadow-sm transition hover:border-primary/35 hover:bg-blue-50/30 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-      >
-        <p className="text-xs font-bold text-primary">GENERAL · 스폰서</p>
-        <h3 className="mt-2 line-clamp-2 text-[17px] font-bold leading-snug">{advertisement.title}</h3>
-        <AdvertisementDetails advertisement={advertisement} compact />
-        <div className="mt-auto flex items-end justify-between gap-3 pt-3 text-sm text-muted-foreground"><p className="truncate">{advertisement.companyName}</p><span aria-hidden="true" className="shrink-0 font-bold text-primary transition-transform group-hover:translate-x-0.5">→</span></div>
-      </a>
-    </AdViewabilityTracker>
-  );
+export function GeneralAdCard({ advertisement, trackingEnabled = true }: { advertisement: PublicHomepageAdvertisement; trackingEnabled?: boolean }) {
+  const listing = advertisement.listing;
+  const tracking = homepageAdTracking(advertisement, trackingEnabled);
+  return <AdViewabilityTracker campaignId={advertisement.id} enabled={tracking.enabled}>
+    <a href={tracking.href} data-sample={advertisement.isSample || undefined} rel="sponsored noopener noreferrer" className="home-general-card">
+      <span className="sr-only">GENERAL · 스폰서 </span><h3>{advertisement.title}</h3>
+      <span>{listing ? [listing.originRegionName ?? listing.regionName, listing.destRegionName].filter(Boolean).join(" → ") : advertisement.companyName}</span>
+      {listing ? <strong>{formatPayAmount(listing.payType, listing.payAmount)}</strong> : null}
+      <small>{advertisement.sampleListingType ?? (advertisement.leasePostId ? "지입" : "구인")} · {advertisement.companyName}</small>
+    </a>
+  </AdViewabilityTracker>;
 }

@@ -7,7 +7,6 @@ import {
   COMPANY_BANNER_PRODUCT,
   HOMEPAGE_AD_INVENTORY_CAPACITY,
   HOMEPAGE_AD_PLACEMENTS,
-  HOMEPAGE_AD_VISIBLE_SLOTS,
   getHomepageAdvertisementProductContract,
   type AdvertisementProductType,
   type HomepageAdPlacementCode,
@@ -29,6 +28,10 @@ export type HomepageAdvertisementListing = {
 };
 
 export type PublicHomepageAdvertisement = {
+  /** Synthetic presentation only; never a persisted campaign or billable event. */
+  isSample?: boolean;
+  imagePosition?: string;
+  sampleListingType?: "구인" | "지입";
   id: string;
   advertisementType: AdvertisementProductType;
   placementCode: HomepageAdPlacementCode;
@@ -632,10 +635,10 @@ export async function listHomepageAdvertisementInventory(input: {
     groupKey: `homepage:${placementCode}`,
   });
   return {
-    main: group("MAIN", HOMEPAGE_AD_VISIBLE_SLOTS.MAIN),
-    premium: group("PREMIUM", HOMEPAGE_AD_VISIBLE_SLOTS.PREMIUM),
-    general: group("GENERAL", HOMEPAGE_AD_VISIBLE_SLOTS.GENERAL),
-    companyLeft: bannerGroup(HOMEPAGE_AD_PLACEMENTS.COMPANY_LEFT, HOMEPAGE_AD_VISIBLE_SLOTS.COMPANY_LEFT),
-    companyRight: bannerGroup(HOMEPAGE_AD_PLACEMENTS.COMPANY_RIGHT, HOMEPAGE_AD_VISIBLE_SLOTS.COMPANY_RIGHT),
+    main: group("MAIN", HOMEPAGE_AD_INVENTORY_CAPACITY.MAIN),
+    premium: group("PREMIUM", HOMEPAGE_AD_INVENTORY_CAPACITY.PREMIUM),
+    general: group("GENERAL", HOMEPAGE_AD_INVENTORY_CAPACITY.GENERAL),
+    companyLeft: bannerGroup(HOMEPAGE_AD_PLACEMENTS.COMPANY_LEFT, HOMEPAGE_AD_INVENTORY_CAPACITY.COMPANY_LEFT),
+    companyRight: bannerGroup(HOMEPAGE_AD_PLACEMENTS.COMPANY_RIGHT, HOMEPAGE_AD_INVENTORY_CAPACITY.COMPANY_RIGHT),
   };
 }
