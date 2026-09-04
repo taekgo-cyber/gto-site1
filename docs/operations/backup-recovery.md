@@ -41,7 +41,12 @@ Managed PostgreSQL을 사용할 경우 provider snapshot/PITR를 우선한다.
 
 ### Logical backup fallback
 
-자가 운영 PostgreSQL에서는 PostgreSQL 16과 호환되는 `pg_dump` custom format을 사용한다.
+먼저 실제 원본 PostgreSQL major version과 `pg_dump --version`을 확인한다.
+원본과 같은 major version의 도구를 기본으로 사용하고, 더 최신 도구를 쓸 경우
+복구 대상 호환성까지 검증한다. 더 오래된 major version의 `pg_dump`는 신규 서버를
+덤프할 수 없다. PostgreSQL 16은 초기 로컬 기준일 뿐 Production 고정값이 아니다.
+과거 Railway staging은 18.6이었으며 현재 Production 버전은 아직 미확인이다.
+[PostgreSQL pg_dump 호환성 지침](https://www.postgresql.org/docs/current/app-pgdump.html)
 
 예시 운영 절차:
 
@@ -71,7 +76,9 @@ Object storage adapter가 도입되면 object versioning/lifecycle/replication �
 
 Production 출시 전 staging/disposable environment에서 다음을 실제 수행한다.
 
-1. clean PostgreSQL 16 인스턴스를 준비한다.
+1. 원본 DB와 backup 방식의 버전 호환성을 확인하고, 원본과 같은 major version의
+   격리된 빈 복구 인스턴스를 기본으로 준비한다. 물리 backup/PITR는 공급자가 요구하는
+   동일 image/major version을 따른다. 신규 서버 dump를 PostgreSQL 16으로 낮춰 복구하지 않는다.
 2. 선택한 production-format backup을 restore한다.
 3. migration history가 존재하고 Prisma schema와 호환되는지 확인한다.
 4. release application을 복구 DB에 연결한다.
@@ -109,3 +116,22 @@ secret/PII 없이 다음만 남긴다.
 2026-08-24 Track B에서는 코드베이스의 PostgreSQL 16, Docker local named volume, local-only upload storage 구조를 확인하고 본 runbook을 확정했다.
 
 실제 production backup 생성/PITR 설정/restore rehearsal은 production hosting 및 durable storage가 준비되어야 실행할 수 있으므로 **release 전 외부 인프라 gate**로 남는다. 특히 ephemeral filesystem에 local upload storage를 배포하는 것은 NO-GO다.
+
+## Railway 실행 전 확인 — 2026-09-05
+
+현재 계정의 plan/backup/PITR 활성 상태는 미확인이다. 공개 문서의 기능 설명은
+이 계정의 사용 가능 여부 또는 복구 성공 증거를 대신하지 않는다. 유료 변경은 별도 승인 대상이다.
+
+- Railway volume backup 기본 보관 기간은 daily 6일, weekly 1개월, monthly 3개월이다.
+  위 임시 정책의 daily 7일과 동일하지 않으므로 보완 보관 또는 정책 변경을 운영자가 승인해야 한다.
+- Volume restore는 같은 project/environment 안에서 적용되며 redeploy를 수반한다.
+  더 최신 backup이 삭제될 수 있으므로 Production 서비스에서 복구 연습용으로 실행하지 않는다.
+  원래 volume이 남는다는 사실만으로 무위험 rollback이라고 판단하지 않는다.
+- 격리된 복구 연습에는 승인된 별도 대상에 logical dump를 복구하거나, 공급자가 지원하는
+  별도 PITR 복구 서비스 경로를 검토한다. 이 과정의 리소스 생성/쓰기/비용도 별도 승인 대상이다.
+- Upload volume도 별도 backup/복구 증거가 필요하다. DB 복구만으로 파일 복구를 대체하지 않는다.
+
+공급자 동작 근거: [Railway Backups](https://docs.railway.com/volumes/backups),
+[Postgres backup/restore guide](https://docs.railway.com/guides/postgres-backups-restores).
+실행 순서와 필요한 evidence는
+[2026-09-05 복구 준비 계획](../launch/overnight-gated-2026-09-05/GATE-8-RECOVERY-READINESS.md)을 따른다.
