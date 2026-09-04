@@ -1,3 +1,4 @@
+import { publicCompanyHref, publicJobHref, publicLeaseHref } from "@/lib/public-detail-links";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { normalizeAdvertisementUrl } from "./ads";
@@ -572,7 +573,7 @@ export async function listHomepageAdvertisementInventory(input: {
           vehicleTypeName: job.vehicleType?.name ?? null,
           tonnageName: job.tonnage?.name ?? null,
         };
-        linkUrl = `/jobs/${encodeURIComponent(job.id)}`;
+        linkUrl = publicJobHref(job.id);
       } else {
         const lease = row.leasePost;
         if (!lease || lease.companyId !== row.companyId || lease.status !== "PUBLISHED" || lease.deletedAt || !lease.publishedAt) continue;
@@ -585,11 +586,11 @@ export async function listHomepageAdvertisementInventory(input: {
           vehicleTypeName: lease.vehicleType?.name ?? null,
           tonnageName: lease.tonnage?.name ?? null,
         };
-        linkUrl = `/lease/${encodeURIComponent(lease.id)}`;
+        linkUrl = publicLeaseHref(lease.id);
       }
     } else {
       if (row.jobPostId || row.leasePostId) continue;
-      linkUrl = safeUrl(row.linkUrl, "link") ?? `/companies/${encodeURIComponent(row.company.id)}`;
+      linkUrl = publicCompanyHref(row.company.id);
     }
 
     eligible.push({

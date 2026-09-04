@@ -1,3 +1,4 @@
+import { publicCompanyHref, publicJobHref, publicLeaseHref } from "@/lib/public-detail-links";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import {
@@ -700,7 +701,7 @@ export async function getTrackablePublicCampaign(campaignId: string, now = new D
           campaign.jobPost.deletedAt ||
           !campaign.jobPost.publishedAt
         ) return null;
-        destination = `/jobs/${encodeURIComponent(campaign.jobPost.id)}`;
+        destination = publicJobHref(campaign.jobPost.id);
       } else {
         if (
           !campaign.leasePost ||
@@ -709,11 +710,11 @@ export async function getTrackablePublicCampaign(campaignId: string, now = new D
           campaign.leasePost.deletedAt ||
           !campaign.leasePost.publishedAt
         ) return null;
-        destination = `/lease/${encodeURIComponent(campaign.leasePost.id)}`;
+        destination = publicLeaseHref(campaign.leasePost.id);
       }
     } else {
       if (campaign.jobPostId || campaign.leasePostId) return null;
-      destination = safeStoredUrl(campaign.linkUrl, "link") ?? `/companies/${encodeURIComponent(campaign.companyId)}`;
+      destination = publicCompanyHref(campaign.companyId);
     }
     const entitlement = await prisma.companyAdvertisementEntitlement.findFirst({
       where: {

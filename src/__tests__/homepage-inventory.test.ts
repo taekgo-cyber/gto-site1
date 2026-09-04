@@ -34,7 +34,7 @@ describe("homepage full inventory contract", () => {
       expect(ad.isSample).toBe(true);
       expect(ad.companyName).toMatch(/^샘플/);
       expect(ad.jobPostId).toBeNull(); expect(ad.leasePostId).toBeNull();
-      expect(["/jobs", "/lease", "/companies"]).toContain(ad.linkUrl);
+      expect(ad.linkUrl).toMatch(/^\/(jobs|lease|companies)\/sample-[a-z]+-\d{2}$/);
       expect(ad.imageUrl).toMatch(/^\/images\/blog\//);
       expect(existsSync(`public${ad.imageUrl}`)).toBe(true);
     }
@@ -96,6 +96,11 @@ describe("homepage full inventory contract", () => {
 });
 
 describe("shared five-second advertisement pager", () => {
+  it("reconnects a preserved second page without restarting its position", () => {
+    vi.useFakeTimers(); const change = vi.fn(); const pager = createAdvertisementPager(2, change, 1);
+    pager.pause("user", true); pager.start(); vi.advanceTimersByTime(6000); expect(change).not.toHaveBeenCalled();
+    pager.move(1); expect(change).toHaveBeenLastCalledWith(0); pager.dispose();
+  });
   afterEach(() => vi.useRealTimers());
   it("cycles A → B → A and resets a full interval after manual navigation", () => {
     vi.useFakeTimers(); const change = vi.fn(); const pager = createAdvertisementPager(2, change); pager.start();

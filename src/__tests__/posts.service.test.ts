@@ -142,6 +142,13 @@ describe("createPost", () => {
 });
 
 describe("getPostDetail", () => {
+  it("read-only presentation skips the counter without bypassing publishability", async () => {
+    vi.mocked(postDal.findPost).mockResolvedValue(makePost());
+    expect((await getPostDetail(null, "post-1", { recordView: false })).id).toBe("post-1");
+    expect(postDal.incrementPostView).not.toHaveBeenCalled();
+    vi.mocked(postDal.findPost).mockResolvedValue(makePost({ status: "DRAFT" }));
+    await expect(getPostDetail(null, "post-1", { recordView: false })).rejects.toMatchObject({ status: 404 });
+  });
   it("PUBLISHED 게시글은 비로그인도 조회 가능하고 조회수가 증가한다", async () => {
     vi.mocked(postDal.findPost).mockResolvedValue(makePost());
 

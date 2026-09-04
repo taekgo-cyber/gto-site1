@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   campaignFindMany: vi.fn(),
+  campaignFindFirst: vi.fn(),
   campaignCreate: vi.fn(),
   entitlementFindMany: vi.fn(),
   entitlementFindFirst: vi.fn(),
@@ -18,7 +19,7 @@ vi.mock("@/lib/monetization/service", () => ({
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    adCampaign: { findMany: mocks.campaignFindMany, create: mocks.campaignCreate },
+    adCampaign: { findMany: mocks.campaignFindMany, findFirst: mocks.campaignFindFirst, create: mocks.campaignCreate },
     companyAdvertisementEntitlement: { findMany: mocks.entitlementFindMany, findFirst: mocks.entitlementFindFirst },
     product: { findUnique: mocks.productFindUnique },
     adPlacement: { findUnique: mocks.placementFindUnique },
@@ -33,6 +34,7 @@ import {
 } from "@/lib/monetization/homepage-ads";
 
 const now = new Date("2026-08-31T00:00:00.000Z");
+import { getTrackablePublicCampaign } from "@/lib/monetization/ads";
 
 function jobCampaign(input: {
   id: string;
@@ -231,5 +233,36 @@ describe("Homepage V3 public eligibility", () => {
     expect(Object.values(result).map(ads => ads.length)).toEqual([20,30,40,6,6]);
     expect(new Set(Object.values(result).flat().map(ad => ad.id)).size).toBe(102);
     expect(mocks.campaignCreate).not.toHaveBeenCalled();
+  });
+
+  it.each(["MAIN", "PREMIUM", "GENERAL"] as const)("%s promotes the associated job or lease, never the campaign ID or stored generic link", async tier => {
+    for (const domain of ["jobs", "lease"] as const) {
+      const job = jobCampaign({ id: "campaign-id", tier });
+      const targetId = `${domain}-public-entity`;
+      const row = domain === "jobs" ? { ...job, jobPostId: targetId, jobPost: { ...job.jobPost, id: targetId }, linkUrl: "/jobs" } : {
+        ...job, jobPostId: null, jobPost: null, leasePostId: targetId, linkUrl: "/lease",
+        leasePost: { ...job.jobPost, id: targetId, status: "PUBLISHED", region: { name: "부산" } },
+      };
+      mocks.campaignFindMany.mockResolvedValue([row]);
+      mocks.campaignFindFirst.mockResolvedValue(row);
+      mocks.entitlementFindMany.mockResolvedValue([{ companyId: row.companyId, productId: row.productId }]);
+      mocks.entitlementFindFirst.mockResolvedValue({ id: "entitlement" });
+      const inventory = await listHomepageAdvertisementInventory({ now });
+      const ad = [...inventory.main, ...inventory.premium, ...inventory.general][0];
+      expect(ad.linkUrl).toBe(`/${domain}/${targetId}`);
+      expect((await getTrackablePublicCampaign(row.id, now))?.linkUrl).toBe(ad.linkUrl);
+      expect(mocks.campaignCreate).not.toHaveBeenCalled();
+    }
+  });
+
+  it.each(["/companies", "/jobs", "/lease/unrelated", "https://example.com/offer"])("company banners use their company relation instead of stored %s", async stored => {
+    const row = { ...bannerCampaign(), linkUrl: stored };
+    mocks.campaignFindMany.mockResolvedValue([row]);
+    mocks.campaignFindFirst.mockResolvedValue(row);
+    mocks.entitlementFindMany.mockResolvedValue([{ companyId: row.companyId, productId: row.productId }]);
+    mocks.entitlementFindFirst.mockResolvedValue({ id: "entitlement" });
+    const inventory = await listHomepageAdvertisementInventory({ now });
+    expect(inventory.companyLeft[0].linkUrl).toBe("/companies/company-banner");
+    expect((await getTrackablePublicCampaign(row.id, now))?.linkUrl).toBe("/companies/company-banner");
   });
 });

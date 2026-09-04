@@ -1,4 +1,5 @@
 import type { HomepageAdvertisementInventory, PublicHomepageAdvertisement } from "./homepage-ads";
+import { publicCompanyHref, publicJobHref, publicLeaseHref } from "@/lib/public-detail-links";
 import { HOMEPAGE_AD_INVENTORY_CAPACITY as capacity, HOMEPAGE_AD_PLACEMENTS, type PaidRecruitmentTier } from "./policy";
 
 const regions = ["서울", "인천", "경기", "충청", "대전", "세종", "전북", "전남", "광주", "경북", "경남", "부산", "대구", "강원", "제주"];
@@ -29,7 +30,7 @@ export function createHomepageSample(index: number, tier: PaidRecruitmentTier | 
     title: `${tonnage} ${vehicle} · ${work[n % work.length]}`,
     bannerCopy: `${regions[n % regions.length]} · ${work[n % work.length]}`,
     imageUrl: images[n % images.length],
-    linkUrl: company ? "/companies" : n % 3 === 0 ? "/lease" : "/jobs",
+    linkUrl: company ? publicCompanyHref(id) : n % 3 === 0 ? publicLeaseHref(id) : publicJobHref(id),
     companyId: id, companyName: `${n % 2 ? "샘플물류" : "샘플운송"} ${String(n + 1).padStart(3, "0")}`,
     jobPostId: null, leasePostId: null,
     listing: company ? null : {

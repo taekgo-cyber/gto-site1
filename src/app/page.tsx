@@ -33,7 +33,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ a
     <div className="home-shell home-wide-layout">
       <HomepageCompanyRail inventory={homeAds} trackingEnabled={!fixture} side="left" />
       <div className="home-center-content">
-      {Object.values(homeAds).some(ads => ads.some(ad => ad.isSample)) && <p className="home-sample-notice">광고 구성 미리보기 · 샘플기업과 공고 조건은 허구이며, 선택하면 공개 목록으로 이동합니다.</p>}
+      {Object.values(homeAds).some(ads => ads.some(ad => ad.isSample)) && <p className="home-sample-notice">광고 구성 미리보기 · 샘플기업과 공고 조건은 허구이며, 선택하면 개별 샘플 상세를 확인할 수 있습니다.</p>}
       <HomepagePrimeCommercialZone inventory={homeAds} trackingEnabled={!fixture}>
         <HomeHero jobCount={jobResult.totalCount} leaseCount={leaseResult.totalCount} />
       </HomepagePrimeCommercialZone>

@@ -127,6 +127,7 @@ export async function createPost(
 export async function getPostDetail(
   user: ApiUser | null,
   id: string,
+  options: { recordView?: boolean } = {},
 ): Promise<PostPublic> {
   const record = await findPost(id);
   if (!record || record.deletedAt !== null) throw notFound();
@@ -134,7 +135,7 @@ export async function getPostDetail(
   const isOwner = user !== null && user.id === record.authorId;
   if (record.status !== "PUBLISHED" && !isOwner) throw notFound();
 
-  if (record.status === "PUBLISHED") {
+  if (record.status === "PUBLISHED" && options.recordView !== false) {
     await incrementPostView(id);
   }
 

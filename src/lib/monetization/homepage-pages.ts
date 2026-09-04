@@ -9,8 +9,8 @@ export function splitAdvertisementPages<T extends { id: string }>(items: T[], si
 export type PagePause = "hover" | "focus" | "motion" | "user" | "hidden";
 
 /** Shared, disposable timer for all three tiers. Every interaction starts a fresh interval. */
-export function createAdvertisementPager(count: number, onPage: (page: number) => void) {
-  let page = 0;
+export function createAdvertisementPager(count: number, onPage: (page: number) => void, initialPage = 0) {
+  let page = initialPage < count ? initialPage : 0;
   let disposed = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const pauses = new Set<PagePause>();
