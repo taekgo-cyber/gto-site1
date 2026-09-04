@@ -1,0 +1,13 @@
+
+> gto-site1@0.1.0 test
+> vitest run src/__tests__/homepage-deep-links.test.ts src/__tests__/homepage-inventory.test.ts src/__tests__/homepage-ads.eligibility.test.ts src/__tests__/homepage.closeout.test.ts src/__tests__/c41.search-ux-defects.test.ts src/__tests__/c4.unified-search.test.ts src/__tests__/search.contract.test.ts src/__tests__/recommendations.contract.test.ts
+
+The plugin "vite-tsconfig-paths" is detected. Vite now supports tsconfig paths resolution natively via the resolve.tsconfigPaths option. You can remove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.
+
+ RUN  v4.1.10 C:/Users/taekg/gto-site1
+
+
+ Test Files  8 passed (8)
+      Tests  80 passed (80)
+   Start at  00:07:29
+   Duration  839ms (transform 1.03s, setup 0ms, import 1.81s, tests 356ms, environment 1ms)

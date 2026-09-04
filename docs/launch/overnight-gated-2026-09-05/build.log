@@ -1,0 +1,92 @@
+
+> gto-site1@0.1.0 build
+> next build
+
+▲ Next.js 16.3.0 (Turbopack)
+- Environments: .env.local, .env
+✓ Running next.config.ts took 25ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 1678ms
+  Running TypeScript ...
+  Finished TypeScript in 2.5s ...
+  Collecting page data using 11 workers ...
+  Generating static pages using 11 workers (0/16) ...
+  Generating static pages using 11 workers (4/16)
+  Generating static pages using 11 workers (8/16)
+  Generating static pages using 11 workers (12/16)
+✓ Generating static pages using 11 workers (16/16) in 284ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /admin/ads
+├ ƒ /admin/blog
+├ ƒ /admin/blog/[id]/edit
+├ ƒ /admin/blog/[id]/preview
+├ ƒ /admin/blog/ai
+├ ƒ /admin/blog/automation
+├ ƒ /admin/blog/new
+├ ƒ /admin/companies
+├ ƒ /admin/companies/[id]
+├ ƒ /admin/leads
+├ ƒ /admin/ops
+├ ƒ /admin/tickets
+├ ƒ /admin/tickets/[id]
+├ ƒ /api/ads/[campaignId]/click
+├ ƒ /api/ads/[campaignId]/impression
+├ ƒ /api/company/leads
+├ ƒ /api/company/leads/[id]
+├ ƒ /api/company/leads/[id]/match
+├ ƒ /api/company/leads/[id]/unlock
+├ ƒ /api/cron/blog-content
+├ ƒ /api/cron/ops
+├ ƒ /api/health
+├ ƒ /api/posts
+├ ƒ /api/posts/[id]
+├ ƒ /api/posts/[id]/attachments
+├ ƒ /api/posts/[id]/attachments/[attachmentId]
+├ ƒ /api/posts/[id]/attachments/[attachmentId]/file
+├ ƒ /api/ready
+├ ƒ /api/telegram/webhook
+├ ƒ /blog
+├ ƒ /blog/[slug]
+├ ƒ /blog/category/[slug]
+├ ƒ /cbt
+├ ƒ /cbt/[categorySlug]
+├ ƒ /cbt/[categorySlug]/exam
+├ ƒ /cbt/[categorySlug]/practice
+├ ƒ /cbt/my
+├ ƒ /companies
+├ ƒ /companies/[id]
+├ ƒ /company/ads
+├ ƒ /company/apply
+├ ƒ /company/leads
+├ ƒ /company/operations
+├ ƒ /dev/homepage-ads
+├ ƒ /jobs
+├ ƒ /jobs/[id]
+├ ƒ /lease
+├ ƒ /lease/[id]
+├ ƒ /lease/[id]/edit
+├ ƒ /lease/region/[region]
+├ ƒ /lease/region/[region]/[tonnage]
+├ ƒ /lease/write
+├ ƒ /login
+├ ƒ /maintenance
+├ ƒ /mypage
+├ ƒ /mypage/lead
+├ ƒ /notifications
+├ ○ /robots.txt
+├ ƒ /search
+├ ƒ /signup
+├ ƒ /sitemap.xml
+├ ƒ /support
+└ ƒ /support/tickets/[token]
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand

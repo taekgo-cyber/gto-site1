@@ -1,0 +1,21 @@
+{"mode":"anonymous","path":"/notifications?page=2","status":307,"mechanism":"http","next":"/notifications?page=2","result":"PASS"}
+{"mode":"anonymous","path":"/lease/write","status":200,"mechanism":"streaming-meta","next":"/lease/write","result":"PASS"}
+{"mode":"anonymous","path":"/lease/review-placeholder/edit","status":200,"mechanism":"streaming-meta","next":"/lease/review-placeholder/edit","result":"PASS"}
+{"mode":"anonymous","path":"/cbt/my","status":307,"mechanism":"http","next":"/cbt/my","result":"PASS"}
+{"mode":"anonymous","path":"/mypage","status":307,"mechanism":"http","next":"/mypage","result":"PASS"}
+{"mode":"anonymous","path":"/mypage/lead?page=2&pageSize=20","status":307,"mechanism":"http","next":"/mypage/lead?page=2&pageSize=20","result":"PASS"}
+{"mode":"anonymous","path":"/company/apply","status":307,"mechanism":"http","next":"/company/apply","result":"PASS"}
+{"mode":"anonymous","path":"/company/ads?companyId=review-placeholder","status":307,"mechanism":"http","next":"/company/ads?companyId=review-placeholder","result":"PASS"}
+{"mode":"anonymous","path":"/company/leads?companyId=review-placeholder&leadId=review-lead&page=2","status":307,"mechanism":"http","next":"/company/leads?companyId=review-placeholder&leadId=review-lead&page=2","result":"PASS"}
+{"mode":"anonymous","path":"/company/operations?companyId=review-placeholder&page=2&filter=all","status":307,"mechanism":"http","next":"/company/operations?companyId=review-placeholder&page=2&filter=all","result":"PASS"}
+{"mode":"expired","path":"/notifications?page=2","status":307,"mechanism":"http","next":"/notifications?page=2","result":"PASS"}
+{"mode":"expired","path":"/lease/write","status":200,"mechanism":"streaming-meta","next":"/lease/write","result":"PASS"}
+{"mode":"expired","path":"/lease/review-placeholder/edit","status":200,"mechanism":"streaming-meta","next":"/lease/review-placeholder/edit","result":"PASS"}
+{"mode":"expired","path":"/cbt/my","status":307,"mechanism":"http","next":"/cbt/my","result":"PASS"}
+{"mode":"expired","path":"/mypage","status":307,"mechanism":"http","next":"/mypage","result":"PASS"}
+{"mode":"expired","path":"/mypage/lead?page=2&pageSize=20","status":307,"mechanism":"http","next":"/mypage/lead?page=2&pageSize=20","result":"PASS"}
+{"mode":"expired","path":"/company/apply","status":307,"mechanism":"http","next":"/company/apply","result":"PASS"}
+{"mode":"expired","path":"/company/ads?companyId=review-placeholder","status":307,"mechanism":"http","next":"/company/ads?companyId=review-placeholder","result":"PASS"}
+{"mode":"expired","path":"/company/leads?companyId=review-placeholder&leadId=review-lead&page=2","status":307,"mechanism":"http","next":"/company/leads?companyId=review-placeholder&page=2&leadId=review-lead","result":"PASS"}
+{"mode":"expired","path":"/company/operations?companyId=review-placeholder&page=2&filter=all","status":307,"mechanism":"http","next":"/company/operations?companyId=review-placeholder&page=2&filter=all","result":"PASS"}
+{"total":20,"failed":0,"databaseWrites":0,"note":"Initial header-only smoke produced five false negatives: four streaming redirects and one query-order difference; this run validates actual redirect semantics."}

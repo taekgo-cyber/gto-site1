@@ -1,0 +1,314 @@
+{
+  "files": 552,
+  "errors": 0,
+  "warnings": 16,
+  "findings": [
+    {
+      "file": "C:/Users/taekg/gto-site1/prisma/seed.ts",
+      "messages": [
+        {
+          "ruleId": "@typescript-eslint/no-unused-vars",
+          "severity": 1,
+          "message": "'index' is assigned a value but never used.",
+          "line": 432,
+          "column": 15,
+          "nodeType": "Identifier",
+          "messageId": "unusedVar",
+          "endLine": 432,
+          "endColumn": 20
+        }
+      ]
+    },
+    {
+      "file": "C:/Users/taekg/gto-site1/src/app/admin/blog/[id]/preview/page.tsx",
+      "messages": [
+        {
+          "ruleId": "@next/next/no-img-element",
+          "severity": 1,
+          "message": "Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element",
+          "line": 44,
+          "column": 39,
+          "nodeType": "JSXOpeningElement",
+          "endLine": 44,
+          "endColumn": 182
+        }
+      ]
+    },
+    {
+      "file": "C:/Users/taekg/gto-site1/src/app/blog/[slug]/page.tsx",
+      "messages": [
+        {
+          "ruleId": "@next/next/no-img-element",
+          "severity": 1,
+          "message": "Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element",
+          "line": 90,
+          "column": 35,
+          "nodeType": "JSXOpeningElement",
+          "endLine": 90,
+          "endColumn": 178
+        }
+      ]
+    },
+    {
+      "file": "C:/Users/taekg/gto-site1/src/app/blog/category/[slug]/page.tsx",
+      "messages": [
+        {
+          "ruleId": "@next/next/no-img-element",
+          "severity": 1,
+          "message": "Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element",
+          "line": 76,
+          "column": 21,
+          "nodeType": "JSXOpeningElement",
+          "endLine": 81,
+          "endColumn": 23
+        }
+      ]
+    },
+    {
+      "file": "C:/Users/taekg/gto-site1/src/components/blog/MarkdownArticle.tsx",
+      "messages": [
+        {
+          "ruleId": "@next/next/no-img-element",
+          "severity": 1,
+          "message": "Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element",
+          "line": 183,
+          "column": 15,
+          "nodeType": "JSXOpeningElement",
+          "endLine": 188,
+          "endColumn": 17
+        }
+      ]
+    },
+    {
+      "file": "C:/Users/taekg/gto-site1/src/lib/storage/local.ts",
+      "messages": [
+        {
+          "ruleId": "@typescript-eslint/no-unused-vars",
+          "severity": 1,
+          "message": "'_mimeType' is defined but never used.",
+          "line": 21,
+          "column": 40,
+          "nodeType": "Identifier",
+          "messageId": "unusedVar",
+          "endLine": 21,
+          "endColumn": 49
+        }
+      ]
+    },
+    {
+      "file": "C:/Users/taekg/gto-site1/tools/cbt/batch/gate2-closeout-evidence.ts",
+      "messages": [
+        {
+          "ruleId": "@typescript-eslint/no-unused-vars",
+          "severity": 1,
+          "message": "'GATE2_CLOSEOUT_TOTAL' is defined but never used.",
+          "line": 20,
+          "column": 3,
+          "nodeType": "Identifier",
+          "messageId": "unusedVar",
+          "endLine": 20,
+          "endColumn": 23,
+          "suggestions": [
+            {
+              "messageId": "removeUnusedVar",
+              "data": {
+                "varName": "GATE2_CLOSEOUT_TOTAL"
+              },
+              "fix": {
+                "range": [
+                  901,
+                  925
+                ],
+                "text": ""
+              },
+              "desc": "Remove unused variable \"GATE2_CLOSEOUT_TOTAL\"."
+            }
+          ]
+        },
+        {
+          "ruleId": "@typescript-eslint/no-unused-vars",
+          "severity": 1,
+          "message": "'GATE2_CLOSEOUT_PROMOTE_ELIGIBILITY' is defined but never used.",
+          "line": 21,
+          "column": 3,
+          "nodeType": "Identifier",
+          "messageId": "unusedVar",
+          "endLine": 21,
+          "endColumn": 37,
+          "suggestions": [
+            {
+              "messageId": "removeUnusedVar",
+              "data": {
+                "varName": "GATE2_CLOSEOUT_PROMOTE_ELIGIBILITY"
+              },
+              "fix": {
+                "range": [
+                  925,
+                  963
+                ],
+                "text": ""
+              },
+              "desc": "Remove unused variable \"GATE2_CLOSEOUT_PROMOTE_ELIGIBILITY\"."
+            }
+          ]
+        },
+        {
+          "ruleId": "@typescript-eslint/no-unused-vars",
+          "severity": 1,
+          "message": "'readRunLog' is defined but never used.",
+          "line": 38,
+          "column": 10,
+          "nodeType": "Identifier",
+          "messageId": "unusedVar",
+          "endLine": 38,
+          "endColumn": 20,
+          "suggestions": [
+            {
+              "messageId": "removeUnusedImportDeclaration",
+              "data": {
+                "varName": "readRunLog"
+              },
+              "fix": {
+                "range": [
+                  1378,
+                  1417
+                ],
+                "text": ""
+              },
+              "desc": "Remove unused import declaration."
+            }
+          ]
+        },
+        {
+          "ruleId": "@typescript-eslint/no-unused-vars",
+          "severity": 1,
+          "message": "'writeExclusiveJson' is defined but never used.",
+          "line": 323,
+          "column": 16,
+          "nodeType": "Identifier",
+          "messageId": "unusedVar",
+          "endLine": 323,
+          "endColumn": 34
+        }
+      ]
+    },
+    {
+      "file": "C:/Users/taekg/gto-site1/tools/cbt/batch/gate2-closeout-promotion-guard.ts",
+      "messages": [
+        {
+          "ruleId": "@typescript-eslint/no-unused-vars",
+          "severity": 1,
+          "message": "'FROZEN_GATE_TARGET_IDS' is defined but never used.",
+          "line": 6,
+          "column": 10,
+          "nodeType": "Identifier",
+          "messageId": "unusedVar",
+          "endLine": 6,
+          "endColumn": 32,
+          "suggestions": [
+            {
+              "messageId": "removeUnusedImportDeclaration",
+              "data": {
+                "varName": "FROZEN_GATE_TARGET_IDS"
+              },
+              "fix": {
+                "range": [
+                  385,
+                  447
+                ],
+                "text": ""
+              },
+              "desc": "Remove unused import declaration."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "C:/Users/taekg/gto-site1/tools/cbt/batch/gate2-integrity-evidence.ts",
+      "messages": [
+        {
+          "ruleId": "@typescript-eslint/no-unused-vars",
+          "severity": 1,
+          "message": "'preManifestHash' is assigned a value but never used.",
+          "line": 933,
+          "column": 9,
+          "nodeType": "Identifier",
+          "messageId": "unusedVar",
+          "endLine": 933,
+          "endColumn": 24
+        }
+      ]
+    },
+    {
+      "file": "C:/Users/taekg/gto-site1/tools/cbt/cli-gate2-closeout.ts",
+      "messages": [
+        {
+          "ruleId": "@typescript-eslint/no-unused-vars",
+          "severity": 1,
+          "message": "'computeCloseoutBaselineIdentity' is defined but never used.",
+          "line": 17,
+          "column": 3,
+          "nodeType": "Identifier",
+          "messageId": "unusedVar",
+          "endLine": 17,
+          "endColumn": 34,
+          "suggestions": [
+            {
+              "messageId": "removeUnusedVar",
+              "data": {
+                "varName": "computeCloseoutBaselineIdentity"
+              },
+              "fix": {
+                "range": [
+                  746,
+                  781
+                ],
+                "text": ""
+              },
+              "desc": "Remove unused variable \"computeCloseoutBaselineIdentity\"."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "C:/Users/taekg/gto-site1/tools/cbt/cli-provider-probe.test.ts",
+      "messages": [
+        {
+          "ruleId": "@typescript-eslint/no-unused-vars",
+          "severity": 1,
+          "message": "'_prompt' is defined but never used.",
+          "line": 24,
+          "column": 7,
+          "nodeType": "Identifier",
+          "messageId": "unusedVar",
+          "endLine": 24,
+          "endColumn": 14
+        },
+        {
+          "ruleId": "@typescript-eslint/no-unused-vars",
+          "severity": 1,
+          "message": "'_schema' is defined but never used.",
+          "line": 25,
+          "column": 7,
+          "nodeType": "Identifier",
+          "messageId": "unusedVar",
+          "endLine": 25,
+          "endColumn": 14
+        },
+        {
+          "ruleId": "@typescript-eslint/no-unused-vars",
+          "severity": 1,
+          "message": "'_options' is defined but never used.",
+          "line": 26,
+          "column": 7,
+          "nodeType": "Identifier",
+          "messageId": "unusedVar",
+          "endLine": 26,
+          "endColumn": 15
+        }
+      ]
+    }
+  ]
+}

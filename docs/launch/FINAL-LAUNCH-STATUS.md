@@ -1,5 +1,23 @@
 # Final Launch Canonical Status
 
+## Current local reconciliation — 2026-09-05
+
+The dated evidence below remains historical. Current source checkpoint
+`4f4fe01` includes Auth return URLs and homepage deep links; the fresh local
+suite is 148 files / 1,536 tests PASS, with typecheck/build PASS and tracked
+lint 0 errors / 16 warnings. Raw local lint retains 12 errors / 18 warnings.
+Current migration chain is **21**, not the historical staging count of 20.
+
+Production inventory could not be refreshed because Railway CLI reports
+`Unable to get home directory`; current infrastructure, backup/restore and
+deployment remain unverified. **Production/public-switch verdict remains NO-GO.**
+The Sept 12 Soft Launch target vs Oct 1 example FREE boundary requires owner
+policy confirmation; no code/env date was changed.
+
+See the [current execution runbook](overnight-gated-2026-09-05/GATE-9-RELEASE-RUNBOOK.md)
+and [prioritized open items](overnight-gated-2026-09-05/GATE-10-SOFT-LAUNCH.md).
+Overnight Gate numbers 0–11 are separate from canonical Final Launch Gates 6–23.
+
 ## Status
 
 `RAILWAY STAGING OPERATIONAL CLOSEOUT PASS; GATE 23 VERDICT = NO-GO FOR PUBLIC SWITCH UNTIL HUMAN/PRODUCTION EVIDENCE IS COMPLETE`

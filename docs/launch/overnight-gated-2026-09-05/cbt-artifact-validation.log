@@ -1,0 +1,5 @@
+
+> gto-site1@0.1.0 cbt:source-handoff:validate
+> tsx tools/cbt/source-handoff/cli-validate.ts --bundle data/cbt/evidence/launch-closeout-80/exact-80-source-bundle-final-a.json
+
+CLI_EXIT=1: tsx failed before validation with uv_os_get_passwd / ENOMEM (Windows execution context). See cbt-artifact-verified.log for the identical verifier executed via installed Vite.

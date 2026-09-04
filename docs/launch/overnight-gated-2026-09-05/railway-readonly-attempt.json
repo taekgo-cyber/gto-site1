@@ -1,0 +1,7 @@
+{
+  "command": "railway status --project gto-site1-production --environment production --json",
+  "exit": 1,
+  "reason": "UNCLASSIFIED_CLI_FAILURE",
+  "secretValuesPrinted": false,
+  "mutations": 0
+}

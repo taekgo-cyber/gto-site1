@@ -1,0 +1,40 @@
+
+C:\Users\taekg\gto-site1\prisma\seed.ts
+  432:15  warning  'index' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\taekg\gto-site1\src\app\admin\blog\[id]\preview\page.tsx
+  44:39  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\taekg\gto-site1\src\app\blog\[slug]\page.tsx
+  90:35  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\taekg\gto-site1\src\app\blog\category\[slug]\page.tsx
+  76:21  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\taekg\gto-site1\src\components\blog\MarkdownArticle.tsx
+  183:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\taekg\gto-site1\src\lib\storage\local.ts
+  21:40  warning  '_mimeType' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\taekg\gto-site1\tools\cbt\batch\gate2-closeout-evidence.ts
+   20:3   warning  'GATE2_CLOSEOUT_TOTAL' is defined but never used                @typescript-eslint/no-unused-vars
+   21:3   warning  'GATE2_CLOSEOUT_PROMOTE_ELIGIBILITY' is defined but never used  @typescript-eslint/no-unused-vars
+   38:10  warning  'readRunLog' is defined but never used                          @typescript-eslint/no-unused-vars
+  323:16  warning  'writeExclusiveJson' is defined but never used                  @typescript-eslint/no-unused-vars
+
+C:\Users\taekg\gto-site1\tools\cbt\batch\gate2-closeout-promotion-guard.ts
+  6:10  warning  'FROZEN_GATE_TARGET_IDS' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\taekg\gto-site1\tools\cbt\batch\gate2-integrity-evidence.ts
+  933:9  warning  'preManifestHash' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\taekg\gto-site1\tools\cbt\cli-gate2-closeout.ts
+  17:3  warning  'computeCloseoutBaselineIdentity' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\taekg\gto-site1\tools\cbt\cli-provider-probe.test.ts
+  24:7  warning  '_prompt' is defined but never used   @typescript-eslint/no-unused-vars
+  25:7  warning  '_schema' is defined but never used   @typescript-eslint/no-unused-vars
+  26:7  warning  '_options' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 16 problems (0 errors, 16 warnings)

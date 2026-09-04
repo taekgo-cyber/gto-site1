@@ -1,0 +1,529 @@
+{
+  "routeCount": 62,
+  "staticReferences": 87,
+  "missing": [],
+  "references": [
+    {
+      "file": "src/app/admin/blog/ai/page.tsx",
+      "line": 48,
+      "url": "/admin/blog",
+      "exists": true
+    },
+    {
+      "file": "src/app/admin/blog/automation/page.tsx",
+      "line": 34,
+      "url": "/admin/blog",
+      "exists": true
+    },
+    {
+      "file": "src/app/admin/blog/new/page.tsx",
+      "line": 27,
+      "url": "/admin/blog",
+      "exists": true
+    },
+    {
+      "file": "src/app/admin/blog/page.tsx",
+      "line": 38,
+      "url": "/admin/blog/new",
+      "exists": true
+    },
+    {
+      "file": "src/app/admin/blog/page.tsx",
+      "line": 38,
+      "url": "/admin/blog/ai",
+      "exists": true
+    },
+    {
+      "file": "src/app/admin/blog/page.tsx",
+      "line": 38,
+      "url": "/admin/blog/automation",
+      "exists": true
+    },
+    {
+      "file": "src/app/admin/blog/page.tsx",
+      "line": 38,
+      "url": "/blog",
+      "exists": true
+    },
+    {
+      "file": "src/app/admin/blog/[id]/edit/page.tsx",
+      "line": 45,
+      "url": "/admin/blog",
+      "exists": true
+    },
+    {
+      "file": "src/app/admin/blog/[id]/preview/page.tsx",
+      "line": 31,
+      "url": "/admin/blog",
+      "exists": true
+    },
+    {
+      "file": "src/app/admin/companies/page.tsx",
+      "line": 25,
+      "url": "/admin/tickets",
+      "exists": true
+    },
+    {
+      "file": "src/app/admin/companies/page.tsx",
+      "line": 25,
+      "url": "/admin/ops",
+      "exists": true
+    },
+    {
+      "file": "src/app/admin/companies/page.tsx",
+      "line": 27,
+      "url": "/admin/companies",
+      "exists": true
+    },
+    {
+      "file": "src/app/admin/companies/[id]/page.tsx",
+      "line": 22,
+      "url": "/admin/companies",
+      "exists": true
+    },
+    {
+      "file": "src/app/admin/leads/page.tsx",
+      "line": 43,
+      "url": "/login",
+      "exists": true
+    },
+    {
+      "file": "src/app/admin/leads/page.tsx",
+      "line": 79,
+      "url": "/admin/leads",
+      "exists": true
+    },
+    {
+      "file": "src/app/admin/leads/page.tsx",
+      "line": 168,
+      "url": "/admin/companies",
+      "exists": true
+    },
+    {
+      "file": "src/app/admin/leads/page.tsx",
+      "line": 197,
+      "url": "/admin/leads",
+      "exists": true
+    },
+    {
+      "file": "src/app/admin/ops/page.tsx",
+      "line": 41,
+      "url": "/admin/companies",
+      "exists": true
+    },
+    {
+      "file": "src/app/admin/ops/page.tsx",
+      "line": 41,
+      "url": "/admin/tickets",
+      "exists": true
+    },
+    {
+      "file": "src/app/admin/tickets/page.tsx",
+      "line": 21,
+      "url": "/admin/companies",
+      "exists": true
+    },
+    {
+      "file": "src/app/admin/tickets/page.tsx",
+      "line": 21,
+      "url": "/admin/ops",
+      "exists": true
+    },
+    {
+      "file": "src/app/admin/tickets/page.tsx",
+      "line": 22,
+      "url": "/admin/tickets",
+      "exists": true
+    },
+    {
+      "file": "src/app/admin/tickets/[id]/page.tsx",
+      "line": 19,
+      "url": "/admin/tickets",
+      "exists": true
+    },
+    {
+      "file": "src/app/blog/category/[slug]/page.tsx",
+      "line": 62,
+      "url": "/blog",
+      "exists": true
+    },
+    {
+      "file": "src/app/blog/page.tsx",
+      "line": 47,
+      "url": "/blog",
+      "exists": true
+    },
+    {
+      "file": "src/app/blog/page.tsx",
+      "line": 98,
+      "url": "/jobs",
+      "exists": true
+    },
+    {
+      "file": "src/app/blog/page.tsx",
+      "line": 99,
+      "url": "/lease",
+      "exists": true
+    },
+    {
+      "file": "src/app/blog/page.tsx",
+      "line": 100,
+      "url": "/cbt",
+      "exists": true
+    },
+    {
+      "file": "src/app/blog/[slug]/page.tsx",
+      "line": 77,
+      "url": "/blog",
+      "exists": true
+    },
+    {
+      "file": "src/app/blog/[slug]/page.tsx",
+      "line": 97,
+      "url": "/blog",
+      "exists": true
+    },
+    {
+      "file": "src/app/cbt/my/page.tsx",
+      "line": 109,
+      "url": "/cbt",
+      "exists": true
+    },
+    {
+      "file": "src/app/cbt/page.tsx",
+      "line": 29,
+      "url": "/cbt/my",
+      "exists": true
+    },
+    {
+      "file": "src/app/cbt/page.tsx",
+      "line": 71,
+      "url": "/cbt/my",
+      "exists": true
+    },
+    {
+      "file": "src/app/cbt/[categorySlug]/page.tsx",
+      "line": 50,
+      "url": "/cbt",
+      "exists": true
+    },
+    {
+      "file": "src/app/companies/page.tsx",
+      "line": 26,
+      "url": "/companies",
+      "exists": true
+    },
+    {
+      "file": "src/app/companies/page.tsx",
+      "line": 76,
+      "url": "/company/apply",
+      "exists": true
+    },
+    {
+      "file": "src/app/company/apply/page.tsx",
+      "line": 27,
+      "url": "/mypage",
+      "exists": true
+    },
+    {
+      "file": "src/app/company/apply/page.tsx",
+      "line": 62,
+      "url": "/mypage",
+      "exists": true
+    },
+    {
+      "file": "src/app/company/apply/page.tsx",
+      "line": 95,
+      "url": "/mypage",
+      "exists": true
+    },
+    {
+      "file": "src/app/company/leads/page.tsx",
+      "line": 123,
+      "url": "/mypage",
+      "exists": true
+    },
+    {
+      "file": "src/app/company/operations/page.tsx",
+      "line": 184,
+      "url": "/mypage",
+      "exists": true
+    },
+    {
+      "file": "src/app/error.tsx",
+      "line": 35,
+      "url": "/",
+      "exists": true
+    },
+    {
+      "file": "src/app/lease/page.tsx",
+      "line": 47,
+      "url": "/lease/write",
+      "exists": true
+    },
+    {
+      "file": "src/app/mypage/lead/page.tsx",
+      "line": 91,
+      "url": "/mypage",
+      "exists": true
+    },
+    {
+      "file": "src/app/mypage/lead/page.tsx",
+      "line": 148,
+      "url": "/mypage/lead",
+      "exists": true
+    },
+    {
+      "file": "src/app/mypage/page.tsx",
+      "line": 87,
+      "url": "/cbt/my",
+      "exists": true
+    },
+    {
+      "file": "src/app/mypage/page.tsx",
+      "line": 101,
+      "url": "/mypage/lead",
+      "exists": true
+    },
+    {
+      "file": "src/app/mypage/page.tsx",
+      "line": 112,
+      "url": "/company/leads",
+      "exists": true
+    },
+    {
+      "file": "src/app/not-found.tsx",
+      "line": 14,
+      "url": "/",
+      "exists": true
+    },
+    {
+      "file": "src/app/search/page.tsx",
+      "line": 129,
+      "url": "/search",
+      "exists": true
+    },
+    {
+      "file": "src/app/support/page.tsx",
+      "line": 33,
+      "url": "/company/apply",
+      "exists": true
+    },
+    {
+      "file": "src/app/support/page.tsx",
+      "line": 34,
+      "url": "/company/ads",
+      "exists": true
+    },
+    {
+      "file": "src/app/support/page.tsx",
+      "line": 35,
+      "url": "/lease/write",
+      "exists": true
+    },
+    {
+      "file": "src/components/ads/HomepageAdvertisementSections.tsx",
+      "line": 27,
+      "url": "/support",
+      "exists": true
+    },
+    {
+      "file": "src/components/ads/HomepageAdvertisementSections.tsx",
+      "line": 34,
+      "url": "/jobs",
+      "exists": true
+    },
+    {
+      "file": "src/components/ads/HomepageAdvertisementSections.tsx",
+      "line": 42,
+      "url": "/companies",
+      "exists": true
+    },
+    {
+      "file": "src/components/ads/HomepageAdvertisementSections.tsx",
+      "line": 60,
+      "url": "/jobs",
+      "exists": true
+    },
+    {
+      "file": "src/components/ads/HomepageAdvertisementSections.tsx",
+      "line": 67,
+      "url": "/jobs",
+      "exists": true
+    },
+    {
+      "file": "src/components/ads/SampleDetailPreview.tsx",
+      "line": 7,
+      "url": "/",
+      "exists": true
+    },
+    {
+      "file": "src/components/cbt/ExamRunner.tsx",
+      "line": 181,
+      "url": "/login",
+      "exists": true
+    },
+    {
+      "file": "src/components/cbt/ExamRunner.tsx",
+      "line": 265,
+      "url": "/cbt",
+      "exists": true
+    },
+    {
+      "file": "src/components/cbt/PracticeRunner.tsx",
+      "line": 114,
+      "url": "/login",
+      "exists": true
+    },
+    {
+      "file": "src/components/cbt/PracticeRunner.tsx",
+      "line": 128,
+      "url": "/cbt",
+      "exists": true
+    },
+    {
+      "file": "src/components/cbt/PracticeRunner.tsx",
+      "line": 240,
+      "url": "/login",
+      "exists": true
+    },
+    {
+      "file": "src/components/company/PublicCompanyDetailView.tsx",
+      "line": 26,
+      "url": "/companies",
+      "exists": true
+    },
+    {
+      "file": "src/components/home/HomeContent.tsx",
+      "line": 30,
+      "url": "/jobs",
+      "exists": true
+    },
+    {
+      "file": "src/components/home/HomeContent.tsx",
+      "line": 38,
+      "url": "/lease",
+      "exists": true
+    },
+    {
+      "file": "src/components/home/HomeContent.tsx",
+      "line": 54,
+      "url": "/support",
+      "exists": true
+    },
+    {
+      "file": "src/components/home/HomeContent.tsx",
+      "line": 55,
+      "url": "/cbt",
+      "exists": true
+    },
+    {
+      "file": "src/components/home/HomeContent.tsx",
+      "line": 56,
+      "url": "/company/apply",
+      "exists": true
+    },
+    {
+      "file": "src/components/home/HomeContent.tsx",
+      "line": 57,
+      "url": "/blog",
+      "exists": true
+    },
+    {
+      "file": "src/components/home/HomeContent.tsx",
+      "line": 63,
+      "url": "/blog",
+      "exists": true
+    },
+    {
+      "file": "src/components/jobs/JobFilters.tsx",
+      "line": 23,
+      "url": "/jobs",
+      "exists": true
+    },
+    {
+      "file": "src/components/jobs/JobFilters.tsx",
+      "line": 67,
+      "url": "/jobs",
+      "exists": true
+    },
+    {
+      "file": "src/components/jobs/JobPostDetailView.tsx",
+      "line": 32,
+      "url": "/jobs",
+      "exists": true
+    },
+    {
+      "file": "src/components/layout/Footer.tsx",
+      "line": 11,
+      "url": "/",
+      "exists": true
+    },
+    {
+      "file": "src/components/layout/Footer.tsx",
+      "line": 19,
+      "url": "/support",
+      "exists": true
+    },
+    {
+      "file": "src/components/layout/Footer.tsx",
+      "line": 19,
+      "url": "/support",
+      "exists": true
+    },
+    {
+      "file": "src/components/layout/Header.tsx",
+      "line": 20,
+      "url": "/",
+      "exists": true
+    },
+    {
+      "file": "src/components/layout/Header.tsx",
+      "line": 29,
+      "url": "/notifications",
+      "exists": true
+    },
+    {
+      "file": "src/components/layout/Header.tsx",
+      "line": 41,
+      "url": "/mypage",
+      "exists": true
+    },
+    {
+      "file": "src/components/layout/Header.tsx",
+      "line": 55,
+      "url": "/login",
+      "exists": true
+    },
+    {
+      "file": "src/components/layout/Header.tsx",
+      "line": 61,
+      "url": "/signup",
+      "exists": true
+    },
+    {
+      "file": "src/components/lease/LeaseFilters.tsx",
+      "line": 30,
+      "url": "/lease",
+      "exists": true
+    },
+    {
+      "file": "src/components/lease/LeaseFilters.tsx",
+      "line": 100,
+      "url": "/lease",
+      "exists": true
+    },
+    {
+      "file": "src/components/lease/LeasePostDetailView.tsx",
+      "line": 51,
+      "url": "/lease",
+      "exists": true
+    },
+    {
+      "file": "src/components/search/UnifiedSearchForm.tsx",
+      "line": 27,
+      "url": "/search",
+      "exists": true
+    }
+  ]
+}
