@@ -12,6 +12,7 @@ import { getCurrentUser } from "@/lib/auth/dal";
 import type { PracticeMode } from "@/lib/cbt/types";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { buildLoginUrl } from "@/lib/auth/redirect";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -48,7 +49,7 @@ function LoginPrompt({
           저장하려면 로그인하세요.
         </p>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <Link href={`/login?next=/cbt/${categorySlug}/practice?mode=${mode}`}>
+          <Link href={buildLoginUrl(`/cbt/${categorySlug}/practice?mode=${mode}`)}>
             <Button className="w-full sm:w-auto">로그인</Button>
           </Link>
           <Link href={`/cbt/${categorySlug}`}>

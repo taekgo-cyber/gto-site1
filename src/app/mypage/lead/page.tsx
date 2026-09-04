@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { CandidateLeadForm, type CandidateLeadFormValue } from "@/components/leads/CandidateLeadForm";
 import { requireUser } from "@/lib/auth/dal";
+import { buildSafeReturnTo } from "@/lib/auth/redirect";
 import { prisma } from "@/lib/prisma";
 import { getActiveLeadForUser, getLatestLeadForUser } from "@/lib/leads/dal";
 import { listCandidateOperations } from "@/lib/leads/operations";
@@ -39,8 +40,9 @@ function href(params: URLSearchParams, updates: Record<string, string | null>) {
 }
 
 export default async function CandidateLeadPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
-  const user = await requireUser();
   const raw = searchParams ? await searchParams : {};
+  // Documented query: parseCandidateOperationsQuery (page/pageSize).
+  const user = await requireUser(buildSafeReturnTo("/mypage/lead", raw, ["page", "pageSize"]));
   const params = toSearchParams(raw);
   const query = parseCandidateOperationsQuery(params);
   const activeLead = await getActiveLeadForUser(user.id);

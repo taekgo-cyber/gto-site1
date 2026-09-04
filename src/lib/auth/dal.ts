@@ -9,6 +9,7 @@ import type {
   UserStatus,
 } from "@/generated/prisma/enums";
 import { readSessionToken, verifySessionToken } from "./session";
+import { buildLoginUrl } from "./redirect";
 
 export type CurrentUser = {
   id: string;
@@ -67,12 +68,24 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   };
 });
 
-export async function requireUser(): Promise<CurrentUser> {
+/**
+ * Require an authenticated user.
+ * Anonymous callers are sent to `/login?next=<safe-destination>` so the
+ * original intent survives login. `returnTo` is sanitized by
+ * `normalizeAuthRedirect` (via `buildLoginUrl`); omit it only when the
+ * caller has no meaningful destination (falls back to `/mypage`).
+ */
+export async function requireUser(returnTo?: string): Promise<CurrentUser> {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(buildLoginUrl(returnTo));
   return user;
 }
 
+/**
+ * Require one of the given roles. Authentication failures redirect to
+ * login (default destination); authorization failures stay `notFound()` and
+ * must never be converted into login redirects.
+ */
 export async function requireRole(...roles: UserRole[]): Promise<CurrentUser> {
   const user = await requireUser();
   if (!roles.includes(user.role)) notFound();

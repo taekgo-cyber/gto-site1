@@ -3,6 +3,7 @@ import { Container } from "@/components/common/Container";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { getCompanyMemberships, requireUser } from "@/lib/auth/dal";
+import { buildSafeReturnTo } from "@/lib/auth/redirect";
 import { resolveActiveCompanyId } from "@/lib/company/context";
 import {
   listActiveAdvertisementPlacementsForCompany,
@@ -28,7 +29,8 @@ function localInput(date: Date): string {
 
 export default async function CompanyAdsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const params = await searchParams;
-  const user = await requireUser();
+  // Preserve company selection only; message/error are transient result banners.
+  const user = await requireUser(buildSafeReturnTo("/company/ads", params, ["companyId"]));
   const memberships = await getCompanyMemberships(user.id);
   let selectedCompanyId: string | null = null;
   let requireSelection = false;

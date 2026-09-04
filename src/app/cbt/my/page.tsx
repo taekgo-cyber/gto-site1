@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CbtMyPage() {
-  const user = await requireUser();
+  const user = await requireUser("/cbt/my");
   const [progress, records] = await Promise.all([
     getCbtUserProgress(user.id),
     getRecentExamRecords(user.id, 5),

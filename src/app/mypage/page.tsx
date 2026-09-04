@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 };
 
 export default async function MyPage() {
-  const user = await requireUser();
+  const user = await requireUser("/mypage");
   const memberships = await getCompanyMemberships(user.id);
 
   return (

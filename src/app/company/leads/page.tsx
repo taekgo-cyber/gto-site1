@@ -4,6 +4,7 @@ import { Container } from "@/components/common/Container";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { getCompanyMemberships, requireUser } from "@/lib/auth/dal";
+import { buildSafeReturnTo } from "@/lib/auth/redirect";
 import { prisma } from "@/lib/prisma";
 import { getLeadMatch, getLeadUnlock } from "@/lib/leads/dal";
 import { canMatchOrUnlock, resolveActiveCompanyActor } from "@/lib/leads/authorization";
@@ -36,9 +37,14 @@ function href(params: URLSearchParams, updates: Record<string, string | null>) {
 }
 
 export default async function CompanyLeadDiscoveryPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
-  const user = await requireUser();
-  const memberships = await getCompanyMemberships(user.id);
   const raw = searchParams ? await searchParams : {};
+  // Documented query: parseLeadDiscoveryQuery + leadId detail. Transient unlockError is dropped.
+  const user = await requireUser(buildSafeReturnTo("/company/leads", raw, [
+    "companyId", "page", "pageSize", "leadId",
+    "preferredRegionId", "vehicleTypeId", "tonnageId", "desiredWorkType",
+    "minExperienceYears", "leaseExperience", "vehicleOwned", "availableFromBefore",
+  ]));
+  const memberships = await getCompanyMemberships(user.id);
   const params = toSearchParams(raw);
   const query = parseLeadDiscoveryQuery(params);
   let selectedCompanyId: string | null = null;

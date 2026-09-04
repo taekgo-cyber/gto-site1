@@ -4,6 +4,7 @@ import { Container } from "@/components/common/Container";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { getCompanyMemberships, requireUser } from "@/lib/auth/dal";
+import { buildSafeReturnTo } from "@/lib/auth/redirect";
 import { resolveActiveCompanyId } from "@/lib/company/context";
 import { parseCompanyOperationsQuery } from "@/lib/leads/operations-validation";
 import { listCompanyOperations } from "@/lib/leads/operations";
@@ -38,9 +39,12 @@ export default async function CompanyOperationsPage({
 }: {
   searchParams?: Promise<SearchParams>;
 }) {
-  const user = await requireUser();
-  const memberships = await getCompanyMemberships(user.id);
   const raw = searchParams ? await searchParams : {};
+  // Documented query: parseCompanyOperationsQuery + leadId detail.
+  const user = await requireUser(buildSafeReturnTo("/company/operations", raw, [
+    "companyId", "page", "pageSize", "filter", "leadId",
+  ]));
+  const memberships = await getCompanyMemberships(user.id);
   const params = toSearchParams(raw);
   const query = parseCompanyOperationsQuery(params);
 

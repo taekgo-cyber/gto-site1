@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default async function LeaseWritePage() {
-  await requireUser();
+  await requireUser("/lease/write");
   const masterData = await getLeaseMasterData();
 
   return (

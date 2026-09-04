@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { requireUser } from "@/lib/auth/dal";
+import { buildSafeReturnTo } from "@/lib/auth/redirect";
 import { parseNotificationPage } from "@/lib/notifications/contract";
 import {
   getNotificationPreferences,
@@ -37,8 +38,8 @@ function formatDate(date: Date): string {
 export default async function NotificationsPage(
   props: PageProps<"/notifications">,
 ) {
-  const user = await requireUser();
   const searchParams = await props.searchParams;
+  const user = await requireUser(buildSafeReturnTo("/notifications", { page: searchParams.page }, ["page"]));
   const page = parseNotificationPage(searchParams.page);
   const [result, preferences] = await Promise.all([
     listInAppNotifications(user.id, page),

@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 export default async function LeaseEditPage(props: PageProps<"/lease/[id]/edit">) {
   const { id } = await props.params;
-  const user = await requireUser();
+  const user = await requireUser(`/lease/${encodeURIComponent(id)}/edit`);
 
   const record = await findPost(id);
   if (!record || record.deletedAt !== null || record.authorId !== user.id) {

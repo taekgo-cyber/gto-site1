@@ -10,7 +10,7 @@ import { CompanyEditForm, CompanyNewForm } from "@/components/company/CompanyApp
 export const metadata: Metadata = { title: "업체 등록 신청" };
 
 export default async function CompanyApplyPage() {
-  const user = await requireUser();
+  const user = await requireUser("/company/apply");
   const memberships = await getCompanyMemberships(user.id);
   const owned = memberships.filter(
     (m) => m.role === "OWNER" && m.status === "ACTIVE",
