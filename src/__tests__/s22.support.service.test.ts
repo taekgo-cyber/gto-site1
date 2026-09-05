@@ -34,7 +34,7 @@ describe("S22 support ticket service", () => {
     const createTicket = vi.fn().mockResolvedValue({ id: "ticket1", accessToken: "a".repeat(25), status: "OPEN", createdAt: new Date() });
     const createOps = vi.fn().mockResolvedValue({ id: "event1" });
     prismaMock.$transaction.mockImplementation(async (callback: (tx: unknown) => unknown) => callback({
-      supportRateLimitBucket: { upsert }, supportTicket: { create: createTicket }, opsEvent: { create: createOps },
+      supportRateLimitBucket: { deleteMany: vi.fn(), upsert }, supportTicket: { create: createTicket }, opsEvent: { create: createOps },
     }));
     const result = await createSupportTicket({ requesterUserId: "u1", data: validData, abuse: { key: "hash", windowStart: new Date() } });
     expect(result.id).toBe("ticket1");
@@ -49,7 +49,7 @@ describe("S22 support ticket service", () => {
   it("rolls the transaction back when the hourly bucket exceeds the bound", async () => {
     const createTicket = vi.fn();
     prismaMock.$transaction.mockImplementation(async (callback: (tx: unknown) => unknown) => callback({
-      supportRateLimitBucket: { upsert: vi.fn().mockResolvedValue({ count: 6 }) }, supportTicket: { create: createTicket }, opsEvent: { create: vi.fn() },
+      supportRateLimitBucket: { deleteMany: vi.fn(), upsert: vi.fn().mockResolvedValue({ count: 6 }) }, supportTicket: { create: createTicket }, opsEvent: { create: vi.fn() },
     }));
     await expect(createSupportTicket({ data: validData, abuse: { key: "hash", windowStart: new Date() } })).rejects.toThrow("SUPPORT_RATE_LIMITED");
     expect(createTicket).not.toHaveBeenCalled();

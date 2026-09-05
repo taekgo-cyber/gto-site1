@@ -19,8 +19,6 @@ function telHref(phone: string): string {
  * 주의: 전화 클릭 이벤트는 DB에 저장하지 않는다. (Session 8 이후 별도 설계)
  */
 export function PhoneInquiry({ phone, isLoggedIn, returnTo }: PhoneInquiryProps) {
-  if (!phone) return null;
-
   const buttonStyles =
     "inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 text-base font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:w-auto";
 
@@ -31,6 +29,8 @@ export function PhoneInquiry({ phone, isLoggedIn, returnTo }: PhoneInquiryProps)
       </Link>
     );
   }
+
+  if (!phone) return null;
 
   return (
     <a href={telHref(phone)} className="block sm:inline-block">

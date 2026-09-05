@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { LocalDiskFileStorage } from "@/lib/storage/local";
+import { resolveUploadDirectory } from "@/lib/storage";
 
 let tempDir: string;
 let storage: LocalDiskFileStorage;
@@ -17,6 +18,13 @@ afterEach(async () => {
 });
 
 describe("LocalDiskFileStorage", () => {
+  it("uses the configured Production upload volume path instead of cwd/uploads", () => {
+    expect(resolveUploadDirectory({ UPLOAD_DIR: "/data/uploads" }, "C:\\app"))
+      .toBe("/data/uploads");
+    expect(resolveUploadDirectory({ UPLOAD_DIR: "/data/uploads" }, "C:\\app"))
+      .not.toBe(path.resolve("C:\\app", "uploads"));
+  });
+
   it("put/get/delete 라운드트립이 동작한다", async () => {
     const key = "post123/abc-123.png";
     const data = Buffer.from("fake-image-bytes");

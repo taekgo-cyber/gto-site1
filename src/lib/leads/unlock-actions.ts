@@ -1,11 +1,13 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { requireUser } from "@/lib/auth/dal";
 import { assertLaunchOperationsAvailable, resolveRuntimeLaunchPolicy } from "@/lib/launch/policy";
 import { logOperationalError } from "@/lib/observability/logger";
 import { resolveLeadPolicy } from "./constants";
 import { unlockLeadContact } from "./service";
+import { enforceRequestRateLimit, SECURITY_RATE_LIMITS } from "@/lib/security/rate-limit";
 
 function required(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -19,6 +21,12 @@ export async function unlockCompanyLeadContact(formData: FormData): Promise<void
   if (!companyId || !leadId) redirect("/company/leads?unlockError=1");
 
   try {
+    await enforceRequestRateLimit({
+      headers: await headers(),
+      scope: "lead:contact-unlock",
+      subject: user.id,
+      policy: SECURITY_RATE_LIMITS.leadUnlock,
+    });
     assertLaunchOperationsAvailable(resolveRuntimeLaunchPolicy());
     await unlockLeadContact({
       companyId,

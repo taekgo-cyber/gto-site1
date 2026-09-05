@@ -1,6 +1,13 @@
 "use server";
 
+import { headers } from "next/headers";
 import { getCurrentUser } from "@/lib/auth/dal";
+import {
+  enforceDistinctRequestLimit,
+  enforceRequestRateLimit,
+  SECURITY_RATE_LIMITS,
+  SecurityRateLimitError,
+} from "@/lib/security/rate-limit";
 import type { ExamGradeResult } from "./exam";
 import {
   gradeCbtAnswer,
@@ -27,6 +34,18 @@ export async function gradeCbtAnswerAction(
   selectedOptionId: number,
 ): Promise<GradeCbtAnswerResult> {
   try {
+    const requestHeaders = await headers();
+    await enforceRequestRateLimit({
+      headers: requestHeaders,
+      scope: "cbt:answer",
+      policy: SECURITY_RATE_LIMITS.cbtAnswer,
+    });
+    await enforceDistinctRequestLimit({
+      headers: requestHeaders,
+      scope: "cbt:distinct-question",
+      distinctValue: questionId,
+      policy: SECURITY_RATE_LIMITS.cbtDistinctQuestions,
+    });
     const result = await gradeCbtAnswer(questionId, selectedOptionId);
 
     const user = await getCurrentUser();
@@ -45,6 +64,9 @@ export async function gradeCbtAnswerAction(
 
     return { ok: true, data: result };
   } catch (error) {
+    if (error instanceof SecurityRateLimitError) {
+      return { ok: false, message: "풀이 요청이 너무 빠릅니다. 잠시 후 다시 시도해 주세요." };
+    }
     const message =
       error instanceof Error ? error.message : "채점 중 오류가 발생했습니다.";
     return { ok: false, message };
@@ -57,6 +79,11 @@ export async function submitCbtExamAction(
   durationSeconds: number | null,
 ): Promise<SubmitCbtExamResult> {
   try {
+    await enforceRequestRateLimit({
+      headers: await headers(),
+      scope: "cbt:exam-submit",
+      policy: SECURITY_RATE_LIMITS.cbtExamSubmit,
+    });
     const user = await getCurrentUser();
     const result = await submitExam(
       categorySlug,
@@ -66,6 +93,9 @@ export async function submitCbtExamAction(
     );
     return { ok: true, data: result };
   } catch (error) {
+    if (error instanceof SecurityRateLimitError) {
+      return { ok: false, message: "시험 제출 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." };
+    }
     const message =
       error instanceof Error ? error.message : "시험 제출 중 오류가 발생했습니다.";
     return { ok: false, message };

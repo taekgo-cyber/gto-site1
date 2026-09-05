@@ -25,8 +25,10 @@ export default async function JobPostPage(props: PageProps<"/jobs/[id]">) {
     if (!sample) notFound();
     return <JobPostDetailView post={sampleJobPost(sample)} sample={sample} />;
   }
-  const [post, user, recommendations] = await Promise.all([
-    getJobPostById(id), getApiUser(), getPublicRecommendations({ domain: "JOBS", id }),
+  const user = await getApiUser();
+  const [post, recommendations] = await Promise.all([
+    getJobPostById(id, { includeContact: user !== null }),
+    getPublicRecommendations({ domain: "JOBS", id }),
   ]);
   if (!post || post.status !== "OPEN") notFound();
   return <JobPostDetailView post={post} isLoggedIn={user !== null} readOnly={isReadOnlyDetailPreview()} recommendations={<RelatedRecommendations items={recommendations} />} />;

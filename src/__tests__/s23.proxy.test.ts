@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
 import { proxy } from "@/proxy";
@@ -6,6 +6,7 @@ import { proxy } from "@/proxy";
 const originalAvailability = process.env.SITE_AVAILABILITY;
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   if (originalAvailability === undefined) delete process.env.SITE_AVAILABILITY;
   else process.env.SITE_AVAILABILITY = originalAvailability;
 });
@@ -17,7 +18,10 @@ describe("S23 site availability proxy", () => {
     expect(page.status).toBe(307);
     expect(page.headers.get("location")).toBe("https://example.com/maintenance");
 
-    const api = proxy(new NextRequest("https://example.com/api/company/leads", { method: "POST" }));
+    const api = proxy(new NextRequest("https://example.com/api/company/leads", {
+      method: "POST",
+      headers: { origin: "https://example.com" },
+    }));
     expect(api.status).toBe(503);
     expect(api.headers.get("retry-after")).toBe("300");
   });
@@ -47,5 +51,56 @@ describe("S23 site availability proxy", () => {
     expect(anonymous.headers.get("location")).toContain(
       "/login?next=%2Fcompany%2Fleads%3FcompanyId%3Dcompany-1",
     );
+  });
+
+  it("rejects cross-origin mutations and allows a legitimate same-origin request", () => {
+    process.env.SITE_AVAILABILITY = "PUBLIC";
+    const blocked = proxy(new NextRequest("https://service.example/api/posts", {
+      method: "POST",
+      headers: {
+        origin: "https://evil.example",
+        host: "service.example",
+        "sec-fetch-site": "cross-site",
+      },
+    }));
+    expect(blocked.status).toBe(403);
+
+    const allowed = proxy(new NextRequest("https://service.example/api/posts", {
+      method: "POST",
+      headers: {
+        origin: "https://service.example",
+        host: "service.example",
+        "sec-fetch-site": "same-origin",
+      },
+    }));
+    expect(allowed.headers.get("x-middleware-next")).toBe("1");
+  });
+
+  it("rejects missing-origin writes except explicit authenticated server-to-server routes", () => {
+    process.env.SITE_AVAILABILITY = "PUBLIC";
+    expect(proxy(new NextRequest("https://example.com/api/posts", { method: "POST" })).status)
+      .toBe(403);
+    expect(proxy(new NextRequest("https://example.com/api/posts", {
+      method: "POST",
+      headers: { referer: "https://example.com/posts/new" },
+    })).headers.get("x-middleware-next")).toBe("1");
+    expect(proxy(new NextRequest("https://example.com/api/cron/ops", { method: "POST" }))
+      .headers.get("x-middleware-next")).toBe("1");
+    expect(proxy(new NextRequest("https://example.com/api/telegram/webhook", { method: "POST" }))
+      .headers.get("x-middleware-next")).toBe("1");
+  });
+
+  it("adds production HSTS without preload only on HTTPS production responses", () => {
+    process.env.SITE_AVAILABILITY = "PUBLIC";
+    vi.stubEnv("NODE_ENV", "production");
+    const secure = proxy(new NextRequest("https://service.example/api/ready"));
+    expect(secure.headers.get("strict-transport-security"))
+      .toBe("max-age=31536000; includeSubDomains");
+    expect(secure.headers.get("content-security-policy"))
+      .toContain("upgrade-insecure-requests");
+
+    const local = proxy(new NextRequest("http://localhost:3000/api/ready"));
+    expect(local.headers.get("strict-transport-security")).toBeNull();
+    expect(local.headers.get("content-security-policy")).toBeNull();
   });
 });

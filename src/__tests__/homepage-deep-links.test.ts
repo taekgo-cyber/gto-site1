@@ -83,6 +83,51 @@ describe("canonical sample details", () => {
 });
 
 describe("real public detail regression", () => {
+  it("keeps contact data out of anonymous job and lease render inputs", async () => {
+    const privatePhone = "010-9876-5432";
+    const job = {
+      ...sampleJobPost(inventory.main[1]),
+      id: "actual-job-private-contact",
+      companyPhone: privatePhone,
+    };
+    vi.mocked(getJobPostById).mockResolvedValue(job);
+    const jobHtml = renderToStaticMarkup(await JobPage(props(job.id)));
+    expect(getJobPostById).toHaveBeenCalledWith(job.id, { includeContact: false });
+    expect(jobHtml).not.toContain(privatePhone);
+    expect(jobHtml).not.toContain("tel:");
+    expect(jobHtml).toContain("로그인 후 확인");
+
+    const lease = { ...sampleLeasePost(inventory.main[0]), id: "actual-lease-private-contact" };
+    vi.mocked(getPostDetail).mockResolvedValue(lease);
+    vi.mocked(getPostAuthorPhone).mockResolvedValue(privatePhone);
+    const leaseHtml = renderToStaticMarkup(await LeasePage(props(lease.id)));
+    expect(getPostAuthorPhone).not.toHaveBeenCalled();
+    expect(leaseHtml).not.toContain(privatePhone);
+    expect(leaseHtml).not.toContain("tel:");
+    expect(leaseHtml).toContain("로그인 후 확인");
+  });
+
+  it("preserves the authenticated contact path", async () => {
+    const privatePhone = "010-1234-5678";
+    vi.mocked(getApiUser).mockResolvedValue({ id: "user-1", role: "USER" } as never);
+    const job = {
+      ...sampleJobPost(inventory.main[1]),
+      id: "actual-job-authenticated",
+      companyPhone: privatePhone,
+    };
+    vi.mocked(getJobPostById).mockResolvedValue(job);
+    const jobHtml = renderToStaticMarkup(await JobPage(props(job.id)));
+    expect(getJobPostById).toHaveBeenCalledWith(job.id, { includeContact: true });
+    expect(jobHtml).toContain("tel:01012345678");
+
+    const lease = { ...sampleLeasePost(inventory.main[0]), id: "actual-lease-authenticated" };
+    vi.mocked(getPostDetail).mockResolvedValue(lease);
+    vi.mocked(getPostAuthorPhone).mockResolvedValue(privatePhone);
+    const leaseHtml = renderToStaticMarkup(await LeasePage(props(lease.id)));
+    expect(getPostAuthorPhone).toHaveBeenCalledWith(lease.id);
+    expect(leaseHtml).toContain("tel:01012345678");
+  });
+
   it("preserves existing missing/hidden real ID contracts", async () => {
     vi.mocked(getJobPostById).mockResolvedValue(null);
     vi.mocked(getPostDetail).mockRejectedValue(new Error("NOT_FOUND"));

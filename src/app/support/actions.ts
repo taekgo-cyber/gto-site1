@@ -46,8 +46,11 @@ export async function createSupportTicketAction(
   try {
     const validated = validateCreateSupportTicket(data);
     const requestHeaders = await headers();
-    const address = (requestHeaders.get("x-forwarded-for")?.split(",")[0] ?? requestHeaders.get("x-real-ip") ?? "anonymous").trim().slice(0, 128);
-    const secret = process.env.SUPPORT_ABUSE_HASH_SECRET ?? process.env.AUTH_SECRET ?? "";
+    const address = (requestHeaders.get("x-real-ip") ?? requestHeaders.get("x-forwarded-for")?.split(",")[0] ?? "anonymous").trim().slice(0, 128);
+    const dedicatedSecret = process.env.SUPPORT_ABUSE_HASH_SECRET ?? "";
+    const secret = process.env.NODE_ENV === "production"
+      ? dedicatedSecret
+      : dedicatedSecret || process.env.AUTH_SECRET || "";
     const abuse = buildSupportAbuseKey({ address, contact: validated.requesterEmail || validated.requesterPhone || "", secret });
     const user = await getCurrentUser();
     const ticket = await createSupportTicket({ requesterUserId: user?.id, data, abuse });

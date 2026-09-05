@@ -12,14 +12,14 @@ function isUniqueConflict(error: unknown): boolean {
   return Boolean(error && typeof error === "object" && "code" in error && (error as { code?: unknown }).code === "P2002");
 }
 
-function normalizeClientDedupe(value: string): string {
+function normalizeServerDedupe(value: string): string {
   const normalized = value.trim();
   if (!normalized || normalized.length > 200) throw new Error("ADVERTISEMENT_IMPRESSION_DEDUPE_INVALID");
   return normalized;
 }
 
-function hashDedupe(campaignId: string, raw: string): string {
-  return createHash("sha256").update(`impression:${campaignId}:${raw}`, "utf8").digest("hex");
+function hashDedupe(eventType: "impression" | "click", campaignId: string, raw: string): string {
+  return createHash("sha256").update(`${eventType}:${campaignId}:${raw}`, "utf8").digest("hex");
 }
 
 function normalizeAttributionToken(value: string): string {
@@ -39,13 +39,17 @@ async function assertActiveAdmin(actorUserId: string): Promise<void> {
 
 export async function recordAdvertisementImpression(input: {
   campaignId: string;
-  dedupeKey: string;
+  serverDedupeKey: string;
   now?: Date;
 }) {
   const now = input.now ?? new Date();
   const campaign = await getTrackablePublicCampaign(input.campaignId, now);
   if (!campaign) throw new Error("ADVERTISEMENT_CAMPAIGN_NOT_TRACKABLE");
-  const dedupeKey = hashDedupe(campaign.id, normalizeClientDedupe(input.dedupeKey));
+  const dedupeKey = hashDedupe(
+    "impression",
+    campaign.id,
+    normalizeServerDedupe(input.serverDedupeKey),
+  );
   try {
     const event = await prisma.adAnalyticsEvent.create({
       data: {
@@ -65,27 +69,54 @@ export async function recordAdvertisementImpression(input: {
   }
 }
 
-export async function recordAdvertisementClick(input: { campaignId: string; now?: Date }) {
+export async function recordAdvertisementClick(input: {
+  campaignId: string;
+  serverDedupeKey: string;
+  now?: Date;
+}) {
   const now = input.now ?? new Date();
   const campaign = await getTrackablePublicCampaign(input.campaignId, now);
   if (!campaign || !campaign.linkUrl) throw new Error("ADVERTISEMENT_CAMPAIGN_NOT_TRACKABLE");
   const attributionToken = randomBytes(32).toString("base64url");
-  const event = await prisma.adAnalyticsEvent.create({
-    data: {
-      campaignId: campaign.id,
-      companyId: campaign.companyId,
-      placementId: campaign.placementId,
-      eventType: "CLICK",
-      occurredAt: now,
+  const dedupeKey = hashDedupe(
+    "click",
+    campaign.id,
+    normalizeServerDedupe(input.serverDedupeKey),
+  );
+  try {
+    const event = await prisma.adAnalyticsEvent.create({
+      data: {
+        campaignId: campaign.id,
+        companyId: campaign.companyId,
+        placementId: campaign.placementId,
+        eventType: "CLICK",
+        occurredAt: now,
+        attributionToken,
+        dedupeKey,
+      },
+      select: { id: true },
+    });
+    return {
+      recorded: true as const,
+      eventId: event.id,
       attributionToken,
-    },
-    select: { id: true },
-  });
-  return {
-    eventId: event.id,
-    attributionToken,
-    destination: campaign.linkUrl,
-  };
+      destination: campaign.linkUrl,
+    };
+  } catch (error) {
+    if (!isUniqueConflict(error)) throw error;
+    const existing = await prisma.adAnalyticsEvent.findUnique({
+      where: { dedupeKey },
+      select: { id: true, attributionToken: true },
+    });
+    if (!existing?.attributionToken) throw error;
+    return {
+      recorded: false as const,
+      duplicate: true as const,
+      eventId: existing.id,
+      attributionToken: existing.attributionToken,
+      destination: campaign.linkUrl,
+    };
+  }
 }
 
 export async function recordAdvertisementConversionFromAttribution(input: {

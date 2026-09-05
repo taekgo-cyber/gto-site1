@@ -1,5 +1,12 @@
 import { recordAdvertisementImpression } from "@/lib/analytics/ads";
 import { logOperationalError } from "@/lib/observability/logger";
+import {
+  buildServerRequestKey,
+  enforceRequestRateLimit,
+  rateLimitResponse,
+  SECURITY_RATE_LIMITS,
+  SecurityRateLimitError,
+} from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -7,24 +14,24 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ campaignId: string }> },
 ) {
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return Response.json({ error: "INVALID_REQUEST" }, { status: 400 });
-  }
-  const dedupeKey = body && typeof body === "object" && "dedupeKey" in body
-    ? (body as { dedupeKey?: unknown }).dedupeKey
-    : null;
-  if (typeof dedupeKey !== "string") {
-    return Response.json({ error: "INVALID_REQUEST" }, { status: 400 });
-  }
-
   const { campaignId } = await params;
   try {
-    const result = await recordAdvertisementImpression({ campaignId, dedupeKey });
+    await enforceRequestRateLimit({
+      headers: request.headers,
+      scope: "ads:impression",
+      subject: campaignId,
+      policy: SECURITY_RATE_LIMITS.adImpression,
+    });
+    const { key: serverDedupeKey } = buildServerRequestKey({
+      headers: request.headers,
+      scope: "ads:impression-dedupe",
+      subject: campaignId,
+      windowMs: 30 * 60_000,
+    });
+    const result = await recordAdvertisementImpression({ campaignId, serverDedupeKey });
     return Response.json(result, { status: result.recorded ? 201 : 200 });
   } catch (error) {
+    if (error instanceof SecurityRateLimitError) return rateLimitResponse(error);
     const code = error instanceof Error ? error.message : "";
     if (code === "ADVERTISEMENT_IMPRESSION_DEDUPE_INVALID") {
       return Response.json({ error: "INVALID_REQUEST" }, { status: 400 });

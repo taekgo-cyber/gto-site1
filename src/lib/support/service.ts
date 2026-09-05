@@ -32,6 +32,13 @@ export async function createSupportTicket(input: {
 
   return prisma.$transaction(async (tx) => {
     if (input.abuse) {
+      await tx.supportRateLimitBucket.deleteMany({
+        where: {
+          windowStart: {
+            lt: new Date(input.abuse.windowStart.getTime() - 48 * 60 * 60_000),
+          },
+        },
+      });
       const bucket = await tx.supportRateLimitBucket.upsert({
         where: { key: input.abuse.key },
         create: { key: input.abuse.key, windowStart: input.abuse.windowStart, count: 1 },

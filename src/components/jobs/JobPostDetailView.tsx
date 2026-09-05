@@ -91,7 +91,7 @@ export function JobPostDetailView({ post, isLoggedIn = false, recommendations, s
             </div>
           ) : null}
 
-          {sample ? <SampleInquiryPreview /> : post.companyPhone ? (
+          {sample ? <SampleInquiryPreview /> : (
             <div className="mt-4 border-t border-border pt-4">
               <PhoneInquiry
                 phone={post.companyPhone}
@@ -99,7 +99,7 @@ export function JobPostDetailView({ post, isLoggedIn = false, recommendations, s
                 returnTo={`/jobs/${post.id}`}
               />
             </div>
-          ) : null}
+          )}
         </CardContent>
       </Card>
       {recommendations}

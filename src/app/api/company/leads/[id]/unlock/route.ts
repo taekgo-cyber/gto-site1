@@ -5,6 +5,12 @@ import { resolveLeadPolicy } from "@/lib/leads/constants";
 import { readUnlockedLeadContact, unlockLeadContact } from "@/lib/leads/service";
 import { assertLaunchOperationsAvailable, resolveRuntimeLaunchPolicy } from "@/lib/launch/policy";
 import { logOperationalError } from "@/lib/observability/logger";
+import {
+  enforceRequestRateLimit,
+  rateLimitResponse,
+  SECURITY_RATE_LIMITS,
+  SecurityRateLimitError,
+} from "@/lib/security/rate-limit";
 
 function mapError(error: unknown) {
   if (error instanceof Error && /not unlocked/i.test(error.message)) return notFound("연락처가 아직 unlock되지 않았습니다.");
@@ -24,10 +30,17 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   try {
     const user = await requireApiUser();
     const { companyId, leadId } = await ids(request, context);
+    await enforceRequestRateLimit({
+      headers: request.headers,
+      scope: "lead:contact-unlock",
+      subject: user.id,
+      policy: SECURITY_RATE_LIMITS.leadUnlock,
+    });
     assertLaunchOperationsAvailable(resolveRuntimeLaunchPolicy());
     const result = await unlockLeadContact({ companyId, leadId, actorUserId: user.id, policy: resolveLeadPolicy() });
     return json({ contact: result.contact, alreadyUnlocked: result.alreadyUnlocked });
   } catch (error) {
+    if (error instanceof SecurityRateLimitError) return rateLimitResponse(error);
     logOperationalError({
       operation: "lead_contact_unlock_api",
       actorType: "COMPANY",

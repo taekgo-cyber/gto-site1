@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { createInAppNotification } from "@/lib/notifications/service";
 import { requireUser } from "./dal";
@@ -18,6 +19,12 @@ import {
   validateSignup,
   type FieldErrors,
 } from "./validation";
+import {
+  enforceRequestRateLimit,
+  enforceSubjectRateLimit,
+  SECURITY_RATE_LIMITS,
+  SecurityRateLimitError,
+} from "@/lib/security/rate-limit";
 
 export type FormState =
   | {
@@ -32,6 +39,18 @@ export async function signup(
   _prevState: FormState,
   formData: FormData,
 ): Promise<FormState> {
+  try {
+    await enforceRequestRateLimit({
+      headers: await headers(),
+      scope: "auth:signup",
+      policy: SECURITY_RATE_LIMITS.signup,
+    });
+  } catch (error) {
+    if (error instanceof SecurityRateLimitError) {
+      return { formError: "가입 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." };
+    }
+    throw error;
+  }
   const next = normalizeAuthRedirect(formData.get("next"));
   const { errors, data } = validateSignup(formData);
   if (!data) return { fieldErrors: errors };
@@ -87,6 +106,29 @@ export async function login(
   _prevState: FormState,
   formData: FormData,
 ): Promise<FormState> {
+  try {
+    const rawIdentifier = formData.get("email");
+    const normalizedIdentifier = typeof rawIdentifier === "string"
+      ? rawIdentifier.trim().toLowerCase().slice(0, 254)
+      : "";
+    await enforceRequestRateLimit({
+      headers: await headers(),
+      scope: "auth:login",
+      policy: SECURITY_RATE_LIMITS.login,
+    });
+    if (normalizedIdentifier) {
+      await enforceSubjectRateLimit({
+        scope: "auth:login-identifier",
+        subject: normalizedIdentifier,
+        policy: SECURITY_RATE_LIMITS.login,
+      });
+    }
+  } catch (error) {
+    if (error instanceof SecurityRateLimitError) {
+      return { formError: "로그인 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." };
+    }
+    throw error;
+  }
   const next = normalizeAuthRedirect(formData.get("next"));
   const { errors, data } = validateLogin(formData);
   if (!data) return { fieldErrors: errors };

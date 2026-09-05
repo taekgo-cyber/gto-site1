@@ -31,8 +31,6 @@ export function AdViewabilityTracker({
       record: () => {
         void fetch(`/api/ads/${encodeURIComponent(campaignId)}/impression`, {
           method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ dedupeKey: pageCampaignKey }),
           keepalive: true,
         }).catch(() => undefined);
       },

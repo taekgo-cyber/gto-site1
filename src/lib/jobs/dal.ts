@@ -224,7 +224,10 @@ async function buildJobPostListWhere(input: {
   return where;
 }
 
-export async function getJobPostById(id: string): Promise<JobPostDetail | null> {
+export async function getJobPostById(
+  id: string,
+  options: { includeContact?: boolean } = {},
+): Promise<JobPostDetail | null> {
   const post = await prisma.jobPost.findUnique({
     where: { id },
     select: {
@@ -242,7 +245,7 @@ export async function getJobPostById(id: string): Promise<JobPostDetail | null> 
       publishedAt: true,
       viewCount: true,
       status: true,
-      company: { select: { name: true, phone: true } },
+      company: { select: { name: true } },
       author: { select: { nickname: true, name: true } },
       originRegion: { select: { name: true } },
       destRegion: { select: { name: true } },
@@ -252,6 +255,15 @@ export async function getJobPostById(id: string): Promise<JobPostDetail | null> 
   });
 
   if (!post) return null;
+
+  const companyPhone = options.includeContact
+    ? (
+        await prisma.jobPost.findUnique({
+          where: { id },
+          select: { company: { select: { phone: true } } },
+        })
+      )?.company?.phone ?? null
+    : null;
 
   return {
     id: post.id,
@@ -269,7 +281,7 @@ export async function getJobPostById(id: string): Promise<JobPostDetail | null> 
     viewCount: post.viewCount,
     status: post.status,
     companyName: post.company?.name ?? null,
-    companyPhone: post.company?.phone ?? null,
+    companyPhone,
     authorName: post.author?.nickname ?? post.author?.name ?? null,
     originRegionName: post.originRegion?.name ?? null,
     destRegionName: post.destRegion?.name ?? null,

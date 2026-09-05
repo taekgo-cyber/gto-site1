@@ -108,7 +108,7 @@ export function LeasePostDetailView({ post, isOwner = false, isLoggedIn = false,
             </p>
           </div>
 
-          {sample ? <SampleInquiryPreview /> : authorPhone ? (
+          {sample ? <SampleInquiryPreview /> : (
             <div className="border-t border-border pt-4">
               <PhoneInquiry
                 phone={authorPhone}
@@ -116,7 +116,7 @@ export function LeasePostDetailView({ post, isOwner = false, isLoggedIn = false,
                 returnTo={`/lease/${post.id}`}
               />
             </div>
-          ) : null}
+          )}
 
           {images.length > 0 ? (
             <div>

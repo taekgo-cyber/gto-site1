@@ -29,7 +29,8 @@ export default async function LeasePostDetailPage(props: PageProps<"/lease/[id]"
   let post: PostPublic;
   try { post = await getPostDetail(user, id, { recordView: !isReadOnlyDetailPreview() }); } catch { notFound(); }
   const [authorPhone, recommendations] = await Promise.all([
-    getPostAuthorPhone(id), getPublicRecommendations({ domain: "LEASE", id }),
+    user ? getPostAuthorPhone(id) : Promise.resolve(null),
+    getPublicRecommendations({ domain: "LEASE", id }),
   ]);
   return <LeasePostDetailView post={post} isOwner={user !== null && user.id === post.author.id} isLoggedIn={user !== null} authorPhone={authorPhone} recommendations={<RelatedRecommendations items={recommendations} />} />;
 }

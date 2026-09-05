@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   userFindUnique: vi.fn(),
   eventCreate: vi.fn(),
+  eventFindUnique: vi.fn(),
   eventFindFirst: vi.fn(),
   eventGroupBy: vi.fn(),
   campaignFindMany: vi.fn(),
@@ -16,6 +17,7 @@ vi.mock("@/lib/prisma", () => ({
     user: { findUnique: mocks.userFindUnique },
     adAnalyticsEvent: {
       create: mocks.eventCreate,
+      findUnique: mocks.eventFindUnique,
       findFirst: mocks.eventFindFirst,
       groupBy: mocks.eventGroupBy,
     },
@@ -56,6 +58,7 @@ describe("canonical Session 16 advertising analytics", () => {
     mocks.userFindUnique.mockResolvedValue({ role: "ADMIN", status: "ACTIVE" });
     mocks.trackableCampaign.mockResolvedValue(trackable);
     mocks.eventCreate.mockResolvedValue({ id: "event-1" });
+    mocks.eventFindUnique.mockResolvedValue(null);
     mocks.eventGroupBy.mockResolvedValue([]);
     mocks.campaignFindMany.mockResolvedValue([]);
     mocks.companyFindMany.mockResolvedValue([]);
@@ -66,7 +69,7 @@ describe("canonical Session 16 advertising analytics", () => {
     const rawDedupe = "campaign-1:/home:page-load-raw";
     const result = await recordAdvertisementImpression({
       campaignId: "campaign-1",
-      dedupeKey: rawDedupe,
+      serverDedupeKey: rawDedupe,
       now,
     });
 
@@ -90,7 +93,7 @@ describe("canonical Session 16 advertising analytics", () => {
     mocks.eventCreate.mockRejectedValueOnce(p2002());
     await expect(recordAdvertisementImpression({
       campaignId: "campaign-1",
-      dedupeKey: "same-page-load",
+      serverDedupeKey: "same-page-load",
       now,
     })).resolves.toEqual({ recorded: false, duplicate: true });
   });
@@ -99,14 +102,18 @@ describe("canonical Session 16 advertising analytics", () => {
     mocks.trackableCampaign.mockResolvedValueOnce(null);
     await expect(recordAdvertisementImpression({
       campaignId: "inactive",
-      dedupeKey: "page-load",
+      serverDedupeKey: "page-load",
       now,
     })).rejects.toThrow("ADVERTISEMENT_CAMPAIGN_NOT_TRACKABLE");
     expect(mocks.eventCreate).not.toHaveBeenCalled();
   });
 
   it("records a click with an opaque attribution token and authoritative destination", async () => {
-    const result = await recordAdvertisementClick({ campaignId: "campaign-1", now });
+    const result = await recordAdvertisementClick({
+      campaignId: "campaign-1",
+      serverDedupeKey: "visitor-window-1",
+      now,
+    });
     expect(result.destination).toBe("/mypage/lead");
     expect(result.attributionToken).toMatch(/^[A-Za-z0-9_-]{40,}$/);
     const createArg = mocks.eventCreate.mock.calls[0][0];
@@ -119,6 +126,29 @@ describe("canonical Session 16 advertising analytics", () => {
       attributionToken: result.attributionToken,
     });
     expect(JSON.stringify(createArg.data)).not.toMatch(/userAgent|ipAddress|phone|email/i);
+    expect(createArg.data.dedupeKey).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("dedupes a repeated click while preserving the safe redirect attribution", async () => {
+    mocks.eventCreate.mockRejectedValueOnce(p2002());
+    mocks.eventFindUnique.mockResolvedValueOnce({ id: "click-existing", attributionToken: "opaque-existing-token" });
+    await expect(recordAdvertisementClick({
+      campaignId: "campaign-1",
+      serverDedupeKey: "same-visitor-window",
+      now,
+    })).resolves.toMatchObject({
+      recorded: false,
+      duplicate: true,
+      attributionToken: "opaque-existing-token",
+      destination: "/mypage/lead",
+    });
+  });
+
+  it("keeps a distinct legitimate click countable", async () => {
+    await recordAdvertisementClick({ campaignId: "campaign-1", serverDedupeKey: "window-1", now });
+    await recordAdvertisementClick({ campaignId: "campaign-1", serverDedupeKey: "window-2", now });
+    const keys = mocks.eventCreate.mock.calls.map((call) => call[0].data.dedupeKey);
+    expect(keys[0]).not.toBe(keys[1]);
   });
 
   it("rejects forged or expired attribution without writing a conversion", async () => {
